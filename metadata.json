@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix E-KAVACH Backend",
+  "description": "Production-grade connected full-stack system with Express backend, ABHA/emergency APIs, telemetry WebSockets, and E-KAVACH frontend integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
