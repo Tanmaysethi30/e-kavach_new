@@ -14,7 +14,6 @@ const patientRoutes = require('./routes/patient.routes');
 const doctorRoutes = require('./routes/doctor.routes');
 const adminRoutes = require('./routes/admin.routes');
 const healthRoutes = require('./routes/health.routes');
-const grafanaRoutes = require('./routes/grafana.routes');
 
 const app = express();
 
@@ -60,8 +59,6 @@ app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR)));
 
 // Mount API routes
 app.use('/api', healthRoutes);
-app.use('/api', grafanaRoutes);
-app.use('/', grafanaRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/doctor', doctorRoutes);

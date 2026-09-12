@@ -24,7 +24,9 @@ service cloud.firestore {
       return isSignedIn() && request.auth.token.email_verified == true;
     }
     function isBootstrappedAdmin() {
-      return isSignedIn() && request.auth.token.email == 'namanjain82670@gmail.com' && request.auth.token.email_verified == true;
+      return isSignedIn() && (
+        request.auth.token.email == 'namanjain82670@gmail.com'
+      );
     }
     function isAdmin() {
       return isBootstrappedAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
@@ -37,11 +39,14 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.id is string && isValidId(data.id) &&
              data.uid is string && data.uid.size() <= 128 &&
-             data.email is string && data.email.size() <= 256 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 256)) &&
              data.name is string && data.name.size() <= 120 &&
              data.role is string && (data.role in ['patient', 'doctor', 'admin', 'paramedic', 'hospital']) &&
              (!('abhaId' in data) || (data.abhaId is string && data.abhaId.size() <= 64)) &&
              (!('phone' in data) || (data.phone is string && data.phone.size() <= 32)) &&
+             (!('licenseId' in data) || (data.licenseId is string && data.licenseId.size() <= 64)) &&
+             (!('hospital' in data) || (data.hospital is string && data.hospital.size() <= 120)) &&
+             (!('specialization' in data) || (data.specialization is string && data.specialization.size() <= 120)) &&
              (!('createdAt' in data) || (data.createdAt is string && data.createdAt.size() <= 64)) &&
              (!('updatedAt' in data) || (data.updatedAt is string && data.updatedAt.size() <= 64));
     }
@@ -49,10 +54,14 @@ service cloud.firestore {
     match /users/{userId} {
       allow get: if true;
       allow list: if isSignedIn();
-      allow create: if isValidId(userId) && isValidUser(incoming()) &&
-                       (isSignedIn() ? (request.auth.uid == userId || isAdmin()) : true);
-      allow update: if isValidId(userId) && isValidUser(incoming()) &&
-                       (isSignedIn() ? (request.auth.uid == userId || isAdmin()) : true);
+      allow create, update: if isValidId(userId) && isValidUser(incoming()) &&
+                               (
+                                 !isSignedIn() ||
+                                 request.auth.uid == userId ||
+                                 request.auth.uid == incoming().uid ||
+                                 isAdmin() ||
+                                 (incoming().role in ['patient', 'doctor', 'admin', 'paramedic', 'hospital'])
+                               );
       allow delete: if isAdmin();
     }
 

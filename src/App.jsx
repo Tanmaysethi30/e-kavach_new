@@ -48,7 +48,6 @@ import PatientManagement from './pages/admin/PatientManagement';
 import EmergencyWard from './pages/admin/EmergencyWard';
 import PharmacyManagement from './pages/admin/PharmacyManagement';
 import HospitalNetwork from './pages/admin/HospitalNetwork';
-import GrafanaObservability from './pages/admin/GrafanaObservability';
 
 function NotFoundPage() {
   return (
@@ -138,13 +137,7 @@ export default function App() {
             <Route path="emergency-ward" element={<EmergencyWard />} />
             <Route path="pharmacy" element={<PharmacyManagement />} />
             <Route path="network" element={<HospitalNetwork />} />
-            <Route path="grafana" element={<GrafanaObservability />} />
-            <Route path="observability" element={<GrafanaObservability />} />
           </Route>
-
-          {/* STANDALONE OBSERVABILITY ALIAS */}
-          <Route path="/grafana" element={<Navigate to="/admin/grafana" replace />} />
-          <Route path="/observability" element={<Navigate to="/admin/grafana" replace />} />
 
           {/* CATCH-ALL */}
           <Route path="*" element={<NotFoundPage />} />

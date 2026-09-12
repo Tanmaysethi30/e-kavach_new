@@ -92,16 +92,6 @@ class SocketService {
           oxygenReserveHours: 96,
           stateNetworkSync: 'ACTIVE',
         });
-
-        // Emit real-time Grafana metrics packet
-        try {
-          const metricsService = require('./metrics.service');
-          if (metricsService && typeof metricsService.getSummary === 'function') {
-            this.io.emit('telemetry:grafana-metrics', metricsService.getSummary());
-          }
-        } catch (_e) {
-          // ignore
-        }
       }
     }, 3000);
   }

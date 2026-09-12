@@ -9,13 +9,16 @@
         "uid": { "type": "string", "maxLength": 128 },
         "email": { "type": "string", "format": "email", "maxLength": 256 },
         "name": { "type": "string", "maxLength": 120 },
-        "role": { "type": "string", "enum": ["patient", "doctor", "admin", "paramedic"] },
+        "role": { "type": "string", "enum": ["patient", "doctor", "admin", "paramedic", "hospital"] },
         "abhaId": { "type": "string", "maxLength": 64 },
         "phone": { "type": "string", "maxLength": 32 },
+        "licenseId": { "type": "string", "maxLength": 64 },
+        "hospital": { "type": "string", "maxLength": 120 },
+        "specialization": { "type": "string", "maxLength": 120 },
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["id", "uid", "email", "name", "role"]
+      "required": ["id", "uid", "name", "role"]
     },
     "Admin": {
       "title": "Admin",

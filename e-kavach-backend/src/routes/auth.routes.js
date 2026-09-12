@@ -11,6 +11,7 @@ router.post('/google-local', authLimiter, (req, res, next) => authController.goo
 router.post('/otp/request', otpLimiter, (req, res, next) => authController.requestOTP(req, res, next));
 router.post('/otp/verify', authLimiter, (req, res, next) => authController.verifyOTP(req, res, next));
 router.post('/refresh', (req, res, next) => authController.refresh(req, res, next));
+router.get('/me', authenticateToken, (req, res, next) => authController.getMe(req, res, next));
 router.post('/logout', (req, res, next) => authController.logout(req, res, next));
 
 module.exports = router;

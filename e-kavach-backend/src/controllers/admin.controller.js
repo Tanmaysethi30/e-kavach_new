@@ -19,6 +19,25 @@ class AdminController {
     }
   }
 
+  async getHospitalSchema(req, res, next) {
+    try {
+      const targetId = req.params.hospital_id || req.query.hospital_id || req.user?.hospitalId || req.user?.id;
+      const schemaResult = await adminService.getHospitalSchema(req.user, targetId);
+      res.json({ success: true, ...schemaResult });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async saveHospitalSchema(req, res, next) {
+    try {
+      const result = await adminService.saveHospitalSchema(req.user, req.body);
+      res.json({ success: true, ...result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getDashboardSummary(req, res, next) {
     try {
       const summary = await adminService.getDashboardSummary(req.user);

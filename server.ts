@@ -31,8 +31,7 @@ async function startServer() {
       req.url.startsWith('/api') ||
       req.url.startsWith('/uploads') ||
       req.url === '/metrics' ||
-      req.url.startsWith('/metrics') ||
-      req.url.startsWith('/grafana')
+      req.url.startsWith('/metrics')
     ) {
       return backendApp(req, res, next);
     }
@@ -56,7 +55,11 @@ async function startServer() {
       server: {
         middlewareMode: true,
         host: '0.0.0.0',
-        port: 3000,
+        port: PORT,
+        allowedHosts: true,
+        hmr: {
+          server,
+        },
       },
       appType: 'spa',
     });

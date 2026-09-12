@@ -84,6 +84,7 @@ export default function HomePage() {
 
   // OTP resend timer
   const [timerSeconds, setTimerSeconds] = useState(27);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   useEffect(() => {
     if (timerSeconds > 0) {
       const interval = setInterval(() => setTimerSeconds((s) => s - 1), 1000);
@@ -93,7 +94,9 @@ export default function HomePage() {
 
   const handleAuthSubmit = async (e) => {
     if (e) e.preventDefault();
+    if (isSubmitting) return;
     setRegError('');
+    setIsSubmitting(true);
     try {
       if (authMode === 'login') {
         const dest = await login(activeRole, {
@@ -128,6 +131,8 @@ export default function HomePage() {
       } else {
         setRegError('Registration failed. Please check your credentials.');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

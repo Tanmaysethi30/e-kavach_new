@@ -29,10 +29,26 @@ export const OperationType = {
 };
 
 /**
-  * Standardized error handler for Firestore pipeline
-  */
+ * Standardized error handler for Firestore pipeline conforming to FirestoreErrorInfo
+ */
 export function handleFirestoreError(error, operationType, path) {
-  console.error(`Firestore ${operationType} Error at [${path}]:`, error);
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    operationType,
+    path,
+    authInfo: {
+      userId: auth?.currentUser?.uid || null,
+      email: auth?.currentUser?.email || null,
+      emailVerified: auth?.currentUser?.emailVerified || null,
+      isAnonymous: auth?.currentUser?.isAnonymous || null,
+      tenantId: auth?.currentUser?.tenantId || null,
+      providerInfo: auth?.currentUser?.providerData?.map((provider) => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || [],
+    },
+  };
+  console.error(`Firestore ${operationType} Error at [${path}]:`, JSON.stringify(errInfo));
 }
 
 /**
@@ -84,7 +100,7 @@ export async function syncUserProfileToFirestore(profile) {
     }, { merge: true });
     console.log('✅ Synced user profile to real-time Firestore:', cleanId);
   } catch (err) {
-    handleFirestoreError(err, OperationType.WRITE, `users/${profile.id}`);
+    handleFirestoreError(err, OperationType.WRITE, `users/${cleanId || profile.id}`);
   }
 }
 

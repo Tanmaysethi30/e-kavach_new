@@ -71,6 +71,8 @@ class AdminService {
     const doctors = await db.doctorProfile.findMany();
     const staff = await db.staffMember.findMany({ where: { hospitalId } });
 
+    const schemaRecord = db.getHospitalSchema(hospital.id);
+
     const totalBeds = beds.reduce((acc, b) => acc + (b.totalBeds || 0), 0);
     const occupiedBeds = beds.reduce((acc, b) => acc + (b.occupiedBeds || 0), 0);
     const availableBeds = beds.reduce((acc, b) => acc + (b.availableBeds || Math.max(0, (b.totalBeds || 0) - (b.occupiedBeds || 0))), 0);
@@ -99,25 +101,64 @@ class AdminService {
     return {
       hospital: {
         id: hospital.id,
-        name: hospital.name,
-        code: hospital.code || 'AP-HSP-842-TN',
-        address: hospital.address || '',
-        city: hospital.city || '',
-        state: hospital.state || '',
-        pinCode: hospital.pinCode || '',
-        contactPhone: hospital.contactNumbers?.er || user.phone || '+91 44 2829 0200',
-        emergencyEmail: hospital.contactNumbers?.email || user.email || 'admin@apollo.org',
+        registration_id: schemaRecord.registration_id || hospital.registration_id || user.registration_id || 'REG-HOSP-ADMIN-3003',
+        hospital_id: schemaRecord.hospital_id || hospital.id,
+        name: schemaRecord.hospital_name || hospital.name,
+        hospital_name: schemaRecord.hospital_name || hospital.name,
+        hospital_type: schemaRecord.hospital_type || 'Private',
+        registration_number: schemaRecord.registration_number || hospital.code || 'AP-HSP-842-TN',
+        code: schemaRecord.registration_number || hospital.code || 'AP-HSP-842-TN',
+        contact_number: schemaRecord.contact_number || hospital.contactNumbers?.er || user.phone || '+91 44 2829 0200',
+        contactPhone: schemaRecord.contact_number || hospital.contactNumbers?.er || user.phone || '+91 44 2829 0200',
+        email: schemaRecord.email || hospital.contactNumbers?.email || user.email || 'admin@apollo.org',
+        emergencyEmail: schemaRecord.email || hospital.contactNumbers?.email || user.email || 'admin@apollo.org',
+        website: schemaRecord.website || '',
+        address: schemaRecord.address || hospital.address || '',
+        city: schemaRecord.city || hospital.city || '',
+        district: schemaRecord.district || schemaRecord.city || hospital.city || '',
+        state: schemaRecord.state || hospital.state || '',
+        pinCode: schemaRecord.pincode || hospital.pinCode || '',
+        pincode: schemaRecord.pincode || hospital.pinCode || '',
+        latitude: schemaRecord.latitude || hospital.geoLat || 13.0604,
+        longitude: schemaRecord.longitude || hospital.geoLng || 80.2496,
+        total_beds: schemaRecord.total_beds || totalBeds || 450,
+        available_beds: schemaRecord.available_beds || availableBeds || 68,
+        icu_beds: schemaRecord.icu_beds || 50,
+        icu_available: schemaRecord.icu_available || 4,
+        emergency_beds: schemaRecord.emergency_beds || 12,
+        emergency_available: schemaRecord.emergency_available || 3,
+        general_beds: schemaRecord.general_beds || 240,
+        private_beds: schemaRecord.private_beds || 148,
+        ambulance_count: schemaRecord.ambulance_count || 6,
+        blood_bank_available: schemaRecord.blood_bank_available ?? true,
+        pharmacy_available: schemaRecord.pharmacy_available ?? true,
+        diagnostic_available: schemaRecord.diagnostic_available ?? true,
+        operation_theatre_count: schemaRecord.operation_theatre_count || 14,
+        ventilator_count: schemaRecord.ventilator_count || 18,
+        oxygen_beds: schemaRecord.oxygen_beds || 140,
+        specialities: schemaRecord.specialities || hospital.departments || ['Cardiology', 'Emergency & Trauma', 'ICU & Critical Care'],
+        services: schemaRecord.services || ['24x7 Emergency Care', 'OPD', 'IPD', 'Lab', 'Pharmacy'],
+        opening_time: schemaRecord.opening_time || '00:00',
+        closing_time: schemaRecord.closing_time || '23:59',
+        emergency_24x7: schemaRecord.emergency_24x7 ?? true,
+        admin_name: schemaRecord.admin_name || user.name || 'Dr. R. K. Nambiar',
+        admin_phone: schemaRecord.admin_phone || user.phone || '+91 94440 28290',
+        status: schemaRecord.status || hospital.status || 'Approved',
+        created_at: schemaRecord.created_at,
+        updated_at: schemaRecord.updated_at,
         helpline: hospital.contactNumbers?.helpline || '1066',
         ambulance: hospital.contactNumbers?.ambulance || '108',
-        departments: hospital.departments || ['Cardiology', 'Emergency & Trauma', 'ICU & Critical Care'],
+        departments: schemaRecord.specialities || hospital.departments || ['Cardiology', 'Emergency & Trauma', 'ICU & Critical Care'],
         facilities: hospital.facilities || ['O2 Tank', 'Ventilators', 'Telemetry'],
         oxygenReservesPct: hospital.oxygenReservesPct || 98,
         ventilatorsInUse: hospital.ventilatorsInUse || 14,
-        ventilatorsTotal: hospital.ventilatorsTotal || 18,
+        ventilatorsTotal: schemaRecord.ventilator_count || hospital.ventilatorsTotal || 18,
         telemetryActivePct: hospital.telemetryActivePct || 100,
-        status: hospital.status || 'ACTIVE',
         accreditation: hospital.accreditation || 'NABH Accredited',
       },
+      schemaRecord,
+      schemaVariables: schemaRecord,
+      schemaDefinition: db.HOSPITAL_SCHEMA_FIELDS,
       metrics: {
         totalBeds,
         occupiedBeds,
@@ -127,6 +168,37 @@ class AdminService {
       wards: formattedWards,
       doctors: doctors.slice(0, 10),
       staffCount: staff.length,
+    };
+  }
+
+  async getHospitalSchema(user = {}, queryId) {
+    const hospitalId = queryId || user.hospitalId || user.id || 'hosp-apollo-greams';
+    const record = db.getHospitalSchema(hospitalId);
+    return {
+      schema: db.HOSPITAL_SCHEMA_FIELDS,
+      data: record,
+      variables: record,
+    };
+  }
+
+  async saveHospitalSchema(user = {}, payload = {}) {
+    const hospitalId = payload.hospital_id || payload.id || user.hospitalId || user.id || 'hosp-apollo-greams';
+    const recordToSave = {
+      ...payload,
+      hospital_id: hospitalId,
+      id: hospitalId,
+    };
+    const saved = db.saveHospitalSchema(recordToSave);
+
+    try {
+      socketService.broadcastTelemetry('hospital:schemaUpdated', saved);
+    } catch (_e) {}
+
+    return {
+      schema: db.HOSPITAL_SCHEMA_FIELDS,
+      data: saved,
+      variables: saved,
+      message: 'Hospital schema and variable state saved successfully to internal database',
     };
   }
 
@@ -199,6 +271,25 @@ class AdminService {
         }
       }
     }
+
+    // Sync schema variables in internal database
+    try {
+      db.saveHospitalSchema({
+        hospital_id: hospitalId,
+        id: hospitalId,
+        hospital_name: payload.name,
+        registration_number: payload.code,
+        address: payload.address,
+        city: payload.city,
+        state: payload.state,
+        pincode: payload.pinCode,
+        specialities: payload.departments,
+        contact_number: payload.contactNumbers.er,
+        email: payload.contactNumbers.email,
+        ventilator_count: payload.ventilatorsTotal,
+        ...updateData,
+      });
+    } catch (_err) {}
 
     try {
       socketService.broadcastTelemetry('hospital:updated', updatedHospital);

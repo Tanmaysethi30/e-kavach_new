@@ -6,6 +6,7 @@ const DEFAULT_PASSWORD_HASH = bcrypt.hashSync(DEFAULT_PASSWORD, 10);
 const seedHospitals = [
   {
     id: 'hosp-apollo-greams',
+    registration_id: 'REG-HOSP-APOLLO-0842',
     name: 'Apollo Greams Trauma Hub',
     code: 'AP-HSP-842-TN',
     address: '21 Greams Lane, Off Greams Road, Thousand Lights',
@@ -24,6 +25,7 @@ const seedHospitals = [
   },
   {
     id: 'HOSP-1',
+    registration_id: 'REG-HOSP-AIIMS-1001',
     name: 'AIIMS New Delhi Trauma Center',
     code: 'AIIMS-TC-01',
     address: 'Ansari Nagar',
@@ -41,6 +43,7 @@ const seedHospitals = [
   },
   {
     id: 'HOSP-2',
+    registration_id: 'REG-HOSP-FORTIS-0002',
     name: 'Fortis Malar Hospital',
     code: 'FORTIS-MLR-02',
     address: 'Adyar',
@@ -58,6 +61,7 @@ const seedHospitals = [
   },
   {
     id: 'HOSP-3',
+    registration_id: 'REG-HOSP-STANLEY-0003',
     name: 'Stanley Medical College & Hospital',
     code: 'STANLEY-MCH-03',
     address: 'Royapuram',
@@ -75,6 +79,7 @@ const seedHospitals = [
   },
   {
     id: 'HOSP-4',
+    registration_id: 'REG-HOSP-MANIPAL-0004',
     name: 'Manipal Hospital Old Airport Road',
     code: 'MANIPAL-BLR-04',
     address: 'HAL Airport Road',
@@ -92,9 +97,230 @@ const seedHospitals = [
   }
 ];
 
+const HOSPITAL_SCHEMA_FIELDS = [
+  { field: 'hospital_id', type: 'UUID / BIGINT', purpose: 'Unique hospital ID' },
+  { field: 'hospital_name', type: 'VARCHAR', purpose: 'Official hospital name' },
+  { field: 'hospital_type', type: 'VARCHAR', purpose: 'Government / Private / Trust' },
+  { field: 'registration_number', type: 'VARCHAR', purpose: 'Hospital registration/license number' },
+  { field: 'contact_number', type: 'VARCHAR', purpose: 'Main hospital contact' },
+  { field: 'email', type: 'VARCHAR', purpose: 'Official hospital email' },
+  { field: 'website', type: 'VARCHAR', purpose: 'Hospital website' },
+  { field: 'address', type: 'TEXT', purpose: 'Complete address' },
+  { field: 'city', type: 'VARCHAR', purpose: 'City' },
+  { field: 'district', type: 'VARCHAR', purpose: 'District' },
+  { field: 'state', type: 'VARCHAR', purpose: 'State' },
+  { field: 'pincode', type: 'VARCHAR', purpose: 'PIN code' },
+  { field: 'latitude', type: 'DECIMAL', purpose: 'GIS location' },
+  { field: 'longitude', type: 'DECIMAL', purpose: 'GIS location' },
+  { field: 'total_beds', type: 'INTEGER', purpose: 'Total bed capacity' },
+  { field: 'available_beds', type: 'INTEGER', purpose: 'Currently available beds' },
+  { field: 'icu_beds', type: 'INTEGER', purpose: 'ICU capacity' },
+  { field: 'icu_available', type: 'INTEGER', purpose: 'Available ICU beds' },
+  { field: 'emergency_beds', type: 'INTEGER', purpose: 'Emergency beds' },
+  { field: 'emergency_available', type: 'INTEGER', purpose: 'Available emergency beds' },
+  { field: 'general_beds', type: 'INTEGER', purpose: 'General ward beds' },
+  { field: 'private_beds', type: 'INTEGER', purpose: 'Private-room beds' },
+  { field: 'ambulance_count', type: 'INTEGER', purpose: 'Available ambulances' },
+  { field: 'blood_bank_available', type: 'BOOLEAN', purpose: 'Blood bank availability' },
+  { field: 'pharmacy_available', type: 'BOOLEAN', purpose: 'Pharmacy availability' },
+  { field: 'diagnostic_available', type: 'BOOLEAN', purpose: 'Diagnostic/lab facility' },
+  { field: 'operation_theatre_count', type: 'INTEGER', purpose: 'Number of OTs' },
+  { field: 'ventilator_count', type: 'INTEGER', purpose: 'Total ventilators' },
+  { field: 'oxygen_beds', type: 'INTEGER', purpose: 'Oxygen-supported beds' },
+  { field: 'specialities', type: 'JSON / TEXT', purpose: 'Cardiology, Neurology, etc.' },
+  { field: 'services', type: 'JSON / TEXT', purpose: 'Emergency, OPD, IPD, Lab, etc.' },
+  { field: 'opening_time', type: 'TIME', purpose: 'Regular opening time' },
+  { field: 'closing_time', type: 'TIME', purpose: 'Regular closing time' },
+  { field: 'emergency_24x7', type: 'BOOLEAN', purpose: '24×7 emergency availability' },
+  { field: 'admin_name', type: 'VARCHAR', purpose: 'Hospital administrator' },
+  { field: 'admin_phone', type: 'VARCHAR', purpose: 'Administrator contact' },
+  { field: 'status', type: 'VARCHAR', purpose: 'Pending / Approved / Suspended' },
+  { field: 'created_at', type: 'TIMESTAMP', purpose: 'Registration timestamp' },
+  { field: 'updated_at', type: 'TIMESTAMP', purpose: 'Last update' }
+];
+
+const seedHospitalSchemaRecords = [
+  {
+    hospital_id: 'hosp-apollo-greams',
+    registration_id: 'REG-HOSP-APOLLO-0842',
+    hospital_name: 'Apollo Greams Trauma Hub',
+    hospital_type: 'Private',
+    registration_number: 'HSP-REG-2210-TN',
+    contact_number: '+91 44 2829 0200',
+    email: 'admin@apollogreams.org',
+    website: 'https://apollohospitals.com/greams',
+    address: '21 Greams Lane, Off Greams Road, Thousand Lights',
+    city: 'Chennai',
+    district: 'Chennai',
+    state: 'Tamil Nadu',
+    pincode: '600006',
+    latitude: 13.0604,
+    longitude: 80.2496,
+    total_beds: 450,
+    available_beds: 68,
+    icu_beds: 50,
+    icu_available: 4,
+    emergency_beds: 12,
+    emergency_available: 3,
+    general_beds: 240,
+    private_beds: 148,
+    ambulance_count: 6,
+    blood_bank_available: true,
+    pharmacy_available: true,
+    diagnostic_available: true,
+    operation_theatre_count: 14,
+    ventilator_count: 18,
+    oxygen_beds: 140,
+    specialities: ['Cardiology', 'Emergency & Trauma', 'Neurology', 'Orthopedics', 'ICU & Critical Care', 'Nephrology', 'General Surgery', 'Pediatrics'],
+    services: ['24x7 Emergency Care', 'OPD Consultations', 'IPD Ward Inpatient', 'Advanced Pathology & Imaging', 'Blood Bank & Transfusion', '24x7 Pharmacy', 'ALS Ambulance Fleet', 'Tele-ICU Grid'],
+    opening_time: '00:00',
+    closing_time: '23:59',
+    emergency_24x7: true,
+    admin_name: 'Dr. R. K. Nambiar',
+    admin_phone: '+91 94440 28290',
+    status: 'Approved',
+    created_at: '2025-01-15T09:30:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    hospital_id: 'HOSP-1',
+    registration_id: 'REG-HOSP-AIIMS-1001',
+    hospital_name: 'AIIMS New Delhi Trauma Center',
+    hospital_type: 'Government',
+    registration_number: 'AIIMS-REG-1001-DL',
+    contact_number: '+91 11 2658 8500',
+    email: 'director@aiims.edu',
+    website: 'https://www.aiims.edu',
+    address: 'Ansari Nagar, Ring Road',
+    city: 'New Delhi',
+    district: 'New Delhi',
+    state: 'Delhi',
+    pincode: '110029',
+    latitude: 28.5672,
+    longitude: 77.2100,
+    total_beds: 120,
+    available_beds: 56,
+    icu_beds: 20,
+    icu_available: 14,
+    emergency_beds: 15,
+    emergency_available: 6,
+    general_beds: 70,
+    private_beds: 15,
+    ambulance_count: 10,
+    blood_bank_available: true,
+    pharmacy_available: true,
+    diagnostic_available: true,
+    operation_theatre_count: 8,
+    ventilator_count: 22,
+    oxygen_beds: 65,
+    specialities: ['Polytrauma', 'Neurotrauma', 'Hyperbaric O2', 'Critical Care'],
+    services: ['Emergency 24x7', 'OPD', 'IPD', 'Diagnostic Lab', 'Blood Bank'],
+    opening_time: '00:00',
+    closing_time: '23:59',
+    emergency_24x7: true,
+    admin_name: 'Dr. Arvind Mehra',
+    admin_phone: '+91 98112 44301',
+    status: 'Approved',
+    created_at: '2025-02-10T10:00:00.000Z',
+    updated_at: '2026-03-20T14:30:00.000Z'
+  }
+];
+
+const seedRegistrations = [
+  {
+    registration_id: 'REG-PAT-RAJESH-9824',
+    auth_user_id: 'user-patient-rajesh',
+    name: 'Rajesh V. Sharma',
+    email: 'rajesh.sharma@ekavach.health',
+    phone: '+91 98401 22819',
+    role: 'patient',
+    status: 'ACTIVE',
+    created_at: '2025-01-10T08:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-DOC-KAVITHA-4491',
+    auth_user_id: 'user-doctor-kavitha',
+    name: 'Dr. Kavitha Menon',
+    email: 'dr.kavitha@apollo.health',
+    phone: '+91 98401 99420',
+    role: 'doctor',
+    status: 'ACTIVE',
+    created_at: '2025-01-12T09:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-DOC-ARVIND-3829',
+    auth_user_id: 'user-doctor-arvind',
+    name: 'Dr. Arvind Swaminathan',
+    email: 'dr.arvind@aiims.edu',
+    phone: '+91 98112 44301',
+    role: 'doctor',
+    status: 'ACTIVE',
+    created_at: '2025-01-12T09:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-DOC-SHALINI-5120',
+    auth_user_id: 'user-doctor-shalini',
+    name: 'Dr. Shalini Deshmukh',
+    email: 'dr.shalini@manipal.health',
+    phone: '+91 98801 77210',
+    role: 'doctor',
+    status: 'ACTIVE',
+    created_at: '2025-01-12T09:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-DOC-NAIR-4190',
+    auth_user_id: 'user-doctor-rajeshnair',
+    name: 'Dr. Rajesh K. Nair',
+    email: 'dr.rajesh@fortis.health',
+    phone: '+91 98440 33890',
+    role: 'doctor',
+    status: 'ACTIVE',
+    created_at: '2025-01-12T09:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-DOC-PRIYA-6041',
+    auth_user_id: 'user-doctor-priya',
+    name: 'Dr. Priya R. Sundaram',
+    email: 'dr.priya@apollo.health',
+    phone: '+91 98402 11980',
+    role: 'doctor',
+    status: 'ACTIVE',
+    created_at: '2025-01-12T09:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-DOC-ZAID-4771',
+    auth_user_id: 'user-doctor-zaid',
+    name: 'Dr. Mohammed Zaid',
+    email: 'dr.zaid@aiims.edu',
+    phone: '+91 98119 55602',
+    role: 'doctor',
+    status: 'ACTIVE',
+    created_at: '2025-01-12T09:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  },
+  {
+    registration_id: 'REG-ADM-NAMBIAR-0842',
+    auth_user_id: 'user-admin-nambiar',
+    name: 'Dr. R. K. Nambiar',
+    email: 'admin.nambiar@apollo.health',
+    phone: '+91 98401 84200',
+    role: 'hospital',
+    status: 'ACTIVE',
+    created_at: '2025-01-10T08:00:00.000Z',
+    updated_at: '2026-03-24T12:00:00.000Z'
+  }
+];
+
 const seedUsers = [
   {
     id: 'user-patient-rajesh',
+    registration_id: 'REG-PAT-RAJESH-9824',
     email: 'rajesh.sharma@ekavach.health',
     phone: '+91 98401 22819',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -103,6 +329,7 @@ const seedUsers = [
   },
   {
     id: 'user-doctor-kavitha',
+    registration_id: 'REG-DOC-KAVITHA-4491',
     email: 'dr.kavitha@apollo.health',
     phone: '+91 98401 99420',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -111,6 +338,7 @@ const seedUsers = [
   },
   {
     id: 'user-doctor-arvind',
+    registration_id: 'REG-DOC-ARVIND-3829',
     email: 'dr.arvind@aiims.edu',
     phone: '+91 98112 44301',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -119,6 +347,7 @@ const seedUsers = [
   },
   {
     id: 'user-doctor-shalini',
+    registration_id: 'REG-DOC-SHALINI-5120',
     email: 'dr.shalini@manipal.health',
     phone: '+91 98801 77210',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -127,6 +356,7 @@ const seedUsers = [
   },
   {
     id: 'user-doctor-rajeshnair',
+    registration_id: 'REG-DOC-NAIR-4190',
     email: 'dr.rajesh@fortis.health',
     phone: '+91 98440 33890',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -135,6 +365,7 @@ const seedUsers = [
   },
   {
     id: 'user-doctor-priya',
+    registration_id: 'REG-DOC-PRIYA-6041',
     email: 'dr.priya@apollo.health',
     phone: '+91 98402 11980',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -143,6 +374,7 @@ const seedUsers = [
   },
   {
     id: 'user-doctor-zaid',
+    registration_id: 'REG-DOC-ZAID-4771',
     email: 'dr.zaid@aiims.edu',
     phone: '+91 98119 55602',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -151,6 +383,7 @@ const seedUsers = [
   },
   {
     id: 'user-admin-nambiar',
+    registration_id: 'REG-ADM-NAMBIAR-0842',
     email: 'admin.nambiar@apollo.health',
     phone: '+91 98401 84200',
     passwordHash: DEFAULT_PASSWORD_HASH,
@@ -163,6 +396,8 @@ const seedPatientProfiles = [
   {
     id: 'patient-rajesh',
     userId: 'user-patient-rajesh',
+    registration_id: 'REG-PAT-RAJESH-9824',
+    registrationId: 'REG-PAT-RAJESH-9824',
     name: 'Rajesh V. Sharma',
     abhaNumber: '9824-8819-3320-TN',
     bloodGroup: 'O+ (Rh Pos)',
@@ -186,6 +421,9 @@ const seedDoctorProfiles = [
   {
     id: 'doctor-kavitha',
     userId: 'user-doctor-kavitha',
+    registration_id: 'REG-DOC-KAVITHA-4491',
+    registrationId: 'REG-DOC-KAVITHA-4491',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
     name: 'Dr. Kavitha Menon',
     title: 'Chief Interventional Cardio',
     nmcNumber: 'MD-44912-TN',
@@ -202,6 +440,9 @@ const seedDoctorProfiles = [
   {
     id: 'doctor-arvind',
     userId: 'user-doctor-arvind',
+    registration_id: 'REG-DOC-ARVIND-3829',
+    registrationId: 'REG-DOC-ARVIND-3829',
+    hospitalRegistrationId: 'REG-HOSP-AIIMS-1001',
     name: 'Dr. Arvind Swaminathan',
     title: 'Lead Neurosurgeon & Stroke Specialist',
     nmcNumber: 'MD-38291-DL',
@@ -218,6 +459,9 @@ const seedDoctorProfiles = [
   {
     id: 'doctor-shalini',
     userId: 'user-doctor-shalini',
+    registration_id: 'REG-DOC-SHALINI-5120',
+    registrationId: 'REG-DOC-SHALINI-5120',
+    hospitalRegistrationId: 'REG-HOSP-MANIPAL-0004',
     name: 'Dr. Shalini Deshmukh',
     title: 'Senior Pulmonologist & Critical Care',
     nmcNumber: 'MD-51204-KA',
@@ -234,6 +478,9 @@ const seedDoctorProfiles = [
   {
     id: 'doctor-rajeshnair',
     userId: 'user-doctor-rajeshnair',
+    registration_id: 'REG-DOC-NAIR-4190',
+    registrationId: 'REG-DOC-NAIR-4190',
+    hospitalRegistrationId: 'REG-HOSP-FORTIS-0002',
     name: 'Dr. Rajesh K. Nair',
     title: 'Chief Orthopedic Trauma Surgeon',
     nmcNumber: 'MD-41908-TN',
@@ -250,6 +497,9 @@ const seedDoctorProfiles = [
   {
     id: 'doctor-priya',
     userId: 'user-doctor-priya',
+    registration_id: 'REG-DOC-PRIYA-6041',
+    registrationId: 'REG-DOC-PRIYA-6041',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
     name: 'Dr. Priya R. Sundaram',
     title: 'Consultant Emergency Medicine',
     nmcNumber: 'MD-60419-TN',
@@ -266,6 +516,9 @@ const seedDoctorProfiles = [
   {
     id: 'doctor-zaid',
     userId: 'user-doctor-zaid',
+    registration_id: 'REG-DOC-ZAID-4771',
+    registrationId: 'REG-DOC-ZAID-4771',
+    hospitalRegistrationId: 'REG-HOSP-AIIMS-1001',
     name: 'Dr. Mohammed Zaid',
     title: 'Director of Nephrology & Renal Transplant',
     nmcNumber: 'MD-47712-DL',
@@ -285,7 +538,10 @@ const seedHospitalAdminProfiles = [
   {
     id: 'admin-nambiar',
     userId: 'user-admin-nambiar',
+    registration_id: 'REG-ADM-NAMBIAR-0842',
+    registrationId: 'REG-ADM-NAMBIAR-0842',
     hospitalId: 'hosp-apollo-greams',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
     name: 'Dr. R. K. Nambiar',
     title: 'Hospital Administrator',
     designation: 'Chief Medical Officer & Hospital Administrator',
@@ -574,6 +830,7 @@ const seedAccessLogs = [
 ];
 
 module.exports = {
+  seedRegistrations,
   seedHospitals,
   seedUsers,
   seedPatientProfiles,
@@ -592,4 +849,6 @@ module.exports = {
   seedMedicalRecords,
   seedConsentGrants,
   seedAccessLogs,
+  HOSPITAL_SCHEMA_FIELDS,
+  seedHospitalSchemaRecords,
 };

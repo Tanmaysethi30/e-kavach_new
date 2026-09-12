@@ -24,7 +24,6 @@ export default function AdminLayout() {
     { to: '/admin/emergency-ward', label: 'Emergency Ward', icon: 'emergency' },
     { to: '/admin/pharmacy', label: 'Pharmacy Management', icon: 'medication' },
     { to: '/admin/network', label: 'Hospital Network', icon: 'hub' },
-    { to: '/admin/grafana', label: 'Grafana Telemetry', icon: 'monitoring' },
   ];
 
   return (

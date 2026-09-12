@@ -34,6 +34,8 @@ class AuthController {
       res.status(201).json({
         success: true,
         message: 'User registered successfully',
+        registration_id: result.user?.registration_id,
+        registrationId: result.user?.registration_id,
         ...result,
       });
     } catch (err) {
@@ -56,7 +58,27 @@ class AuthController {
       res.json({
         success: true,
         message: 'Login successful',
+        registration_id: result.user?.registration_id,
+        registrationId: result.user?.registration_id,
         ...result,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getMe(req, res, next) {
+    try {
+      const userId = req.user ? req.user.id : null;
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Unauthorized session' });
+      }
+      const user = await authService.getMe(userId);
+      res.json({
+        success: true,
+        user,
+        registration_id: user.registration_id,
+        registrationId: user.registration_id,
       });
     } catch (err) {
       next(err);

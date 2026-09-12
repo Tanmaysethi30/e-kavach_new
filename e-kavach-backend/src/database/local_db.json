@@ -1,0 +1,1555 @@
+{
+  "user": [
+    {
+      "id": "user-patient-rajesh",
+      "email": "rajesh.sharma@ekavach.health",
+      "phone": "+91 98401 22819",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "patient",
+      "status": "ACTIVE",
+      "registration_id": "REG-PAT-RAJESH-9824"
+    },
+    {
+      "id": "user-doctor-kavitha",
+      "email": "dr.kavitha@apollo.health",
+      "phone": "+91 98401 99420",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-DOC-KAVITHA-4491"
+    },
+    {
+      "id": "user-doctor-arvind",
+      "email": "dr.arvind@aiims.edu",
+      "phone": "+91 98112 44301",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-DOC-ARVIND-3829"
+    },
+    {
+      "id": "user-doctor-shalini",
+      "email": "dr.shalini@manipal.health",
+      "phone": "+91 98801 77210",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-DOC-SHALINI-5120"
+    },
+    {
+      "id": "user-doctor-rajeshnair",
+      "email": "dr.rajesh@fortis.health",
+      "phone": "+91 98440 33890",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-DOC-NAIR-4190"
+    },
+    {
+      "id": "user-doctor-priya",
+      "email": "dr.priya@apollo.health",
+      "phone": "+91 98402 11980",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-DOC-PRIYA-6041"
+    },
+    {
+      "id": "user-doctor-zaid",
+      "email": "dr.zaid@aiims.edu",
+      "phone": "+91 98119 55602",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-DOC-ZAID-4771"
+    },
+    {
+      "id": "user-admin-nambiar",
+      "email": "admin.nambiar@apollo.health",
+      "phone": "+91 98401 84200",
+      "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
+      "role": "hospital",
+      "status": "ACTIVE",
+      "registration_id": "REG-ADM-NAMBIAR-0842"
+    },
+    {
+      "id": "user_1789205001361_77p6mw",
+      "createdAt": "2026-09-12T09:23:21.361Z",
+      "updatedAt": "2026-09-12T09:23:21.361Z",
+      "email": "kavitha.menon@apollo.org",
+      "phone": "+91 98401 99421",
+      "passwordHash": "$2b$10$VBvvTriBCiNBRM1ilSAqUO0lc3y3LRaeIsSaK9KSoEpHoodbhDLrW",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "registration_id": "REG-E8A20CC9-AE73-4128-BF44-0296B0268C0D"
+    },
+    {
+      "id": "user_1789205352744_6lm5qh",
+      "createdAt": "2026-09-12T09:29:12.744Z",
+      "updatedAt": "2026-09-12T09:29:12.744Z",
+      "email": "admin@apollogreams.org",
+      "phone": "+91 44 2829 0200",
+      "passwordHash": "$2b$10$PHK0dzmNaNLRGMjwy1B2mOyP5NKAVGUVGh6Mbrsug5lPays6OyIi2",
+      "role": "hospital",
+      "status": "ACTIVE",
+      "registration_id": "REG-9392E83F-6911-4F83-9C05-E3B035FE7468"
+    },
+    {
+      "id": "user_1789207813185_ne7p2u",
+      "createdAt": "2026-09-12T10:10:13.185Z",
+      "updatedAt": "2026-09-12T10:10:13.185Z",
+      "registration_id": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
+      "email": "test_doc_verify_1@ekavach.gov.in",
+      "phone": "+91 9724854279",
+      "passwordHash": "$2b$10$/B36eZrOFJpGditcJT8xUuv.DbaMOlvPOkbDzo3CRIjxwH1ApPbi.",
+      "role": "doctor",
+      "status": "ACTIVE"
+    }
+  ],
+  "hospital": [
+    {
+      "id": "hosp-apollo-greams",
+      "name": "Apollo Greams Trauma Hub",
+      "code": "AP-HSP-842-TN",
+      "address": "21 Greams Lane, Off Greams Road, Thousand Lights",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "pinCode": "600006",
+      "geoLat": 13.0604,
+      "geoLng": 80.2496,
+      "departments": [
+        "Cardiology",
+        "Emergency & Trauma",
+        "Neurology",
+        "Orthopedics",
+        "ICU & Critical Care",
+        "Pharmacy"
+      ],
+      "contactNumbers": {
+        "er": "+91 44 2829 0200",
+        "helpline": "1066",
+        "ambulance": "108"
+      },
+      "icuBedsTotal": 50,
+      "icuBedsOccupied": 46,
+      "wardBedsTotal": 400,
+      "wardBedsOccupied": 336,
+      "status": "ACTIVE",
+      "registration_id": "REG-HOSP-APOLLO-0842"
+    },
+    {
+      "id": "HOSP-1",
+      "name": "AIIMS New Delhi Trauma Center",
+      "code": "AIIMS-TC-01",
+      "address": "Ansari Nagar",
+      "city": "New Delhi",
+      "state": "Delhi",
+      "pinCode": "110029",
+      "geoLat": 28.5672,
+      "geoLng": 77.21,
+      "departments": [
+        "Polytrauma",
+        "Neurotrauma",
+        "Hyperbaric O2"
+      ],
+      "icuBedsTotal": 20,
+      "icuBedsOccupied": 6,
+      "wardBedsTotal": 100,
+      "wardBedsOccupied": 58,
+      "status": "ACTIVE",
+      "registration_id": "REG-HOSP-AIIMS-1001"
+    },
+    {
+      "id": "HOSP-2",
+      "name": "Fortis Malar Hospital",
+      "code": "FORTIS-MLR-02",
+      "address": "Adyar",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "pinCode": "600020",
+      "geoLat": 13.0067,
+      "geoLng": 80.257,
+      "departments": [
+        "Cardiothoracic",
+        "ECMO Support",
+        "Burns"
+      ],
+      "icuBedsTotal": 15,
+      "icuBedsOccupied": 7,
+      "wardBedsTotal": 80,
+      "wardBedsOccupied": 58,
+      "status": "ACTIVE",
+      "registration_id": "REG-HOSP-FORTIS-0002"
+    },
+    {
+      "id": "HOSP-3",
+      "name": "Stanley Medical College & Hospital",
+      "code": "STANLEY-MCH-03",
+      "address": "Royapuram",
+      "city": "Chennai",
+      "state": "Tamil Nadu",
+      "pinCode": "600001",
+      "geoLat": 13.1075,
+      "geoLng": 80.2928,
+      "departments": [
+        "Micro-Reconstructive",
+        "Toxicological Emergency"
+      ],
+      "icuBedsTotal": 25,
+      "icuBedsOccupied": 6,
+      "wardBedsTotal": 150,
+      "wardBedsOccupied": 90,
+      "status": "ACTIVE",
+      "registration_id": "REG-HOSP-STANLEY-0003"
+    },
+    {
+      "id": "HOSP-4",
+      "name": "Manipal Hospital Old Airport Road",
+      "code": "MANIPAL-BLR-04",
+      "address": "HAL Airport Road",
+      "city": "Bengaluru",
+      "state": "Karnataka",
+      "pinCode": "560017",
+      "geoLat": 12.9592,
+      "geoLng": 77.6534,
+      "departments": [
+        "Organ Retrieval",
+        "Interventional Radiology"
+      ],
+      "icuBedsTotal": 20,
+      "icuBedsOccupied": 9,
+      "wardBedsTotal": 120,
+      "wardBedsOccupied": 86,
+      "status": "ACTIVE",
+      "registration_id": "REG-HOSP-MANIPAL-0004"
+    }
+  ],
+  "patientProfile": [
+    {
+      "id": "patient-rajesh",
+      "userId": "user-patient-rajesh",
+      "name": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "bloodGroup": "O+ (Rh Pos)",
+      "gender": "Male",
+      "dob": "1972-06-15T00:00:00.000Z",
+      "chronicConditions": [
+        "Type II Diabetes (Insulin Dependent)",
+        "Mild Hypertension"
+      ],
+      "allergies": [
+        "Penicillin (Severe anaphylaxis)"
+      ],
+      "implants": [
+        "Coronary Stent (DES - 2021)"
+      ],
+      "emergencyContacts": [
+        {
+          "name": "Ananya S.",
+          "relation": "Spouse",
+          "phone": "+91 98401 22819",
+          "priority": 1,
+          "verified": true
+        },
+        {
+          "name": "Dr. Vivek Sharma",
+          "relation": "Brother / Physician",
+          "phone": "+91 94440 88129",
+          "priority": 2,
+          "verified": true
+        }
+      ],
+      "emergencyToken": "EK-TR-88190-V4",
+      "qrPayload": "EKAVACH:ABHA:9824-8819-3320-TN:BLOOD:O_POS:ALLERGY:PENICILLIN:TOKEN:EK-TR-88190-V4",
+      "hospitalAffiliation": "Apollo Greams Trauma Hub",
+      "tag": "Verified Health ID",
+      "abhaNumberEncrypted": "a5d10ce1540a43e779910e4ea811e846:8754a52400bd134a93ff54823a8ed2cf:92daada12c15e99a5a2b65b9b4392c038a",
+      "registration_id": "REG-PAT-RAJESH-9824",
+      "registrationId": "REG-PAT-RAJESH-9824"
+    }
+  ],
+  "doctorProfile": [
+    {
+      "id": "doctor-kavitha",
+      "userId": "user-doctor-kavitha",
+      "name": "Dr. Kavitha Menon",
+      "title": "Chief Interventional Cardio",
+      "nmcNumber": "MD-44912-TN",
+      "specialization": "Interventional Cardiology & Electrophysiology",
+      "credentialStatus": "VERIFIED",
+      "hospitalAffiliation": "Apollo Greams Trauma Hub",
+      "department": "Cardiology",
+      "tag": "ID-9942",
+      "degrees": "MD, DM, FACC",
+      "experienceYears": 18,
+      "consultationFee": 800,
+      "availableSlots": [
+        "09:30 AM",
+        "11:00 AM",
+        "02:30 PM",
+        "04:00 PM",
+        "05:30 PM"
+      ],
+      "registration_id": "REG-DOC-KAVITHA-4491",
+      "registrationId": "REG-DOC-KAVITHA-4491",
+      "hospitalRegistrationId": "REG-HOSP-APOLLO-0842"
+    },
+    {
+      "id": "doctor-arvind",
+      "userId": "user-doctor-arvind",
+      "name": "Dr. Arvind Swaminathan",
+      "title": "Lead Neurosurgeon & Stroke Specialist",
+      "nmcNumber": "MD-38291-DL",
+      "specialization": "Neurosurgery & Cerebrovascular Trauma",
+      "credentialStatus": "VERIFIED",
+      "hospitalAffiliation": "AIIMS New Delhi Trauma Center",
+      "department": "Neurology",
+      "tag": "ID-8821",
+      "degrees": "MS, MCh (Neurosurgery), FINR",
+      "experienceYears": 15,
+      "consultationFee": 1000,
+      "availableSlots": [
+        "10:00 AM",
+        "11:30 AM",
+        "03:00 PM",
+        "04:30 PM"
+      ],
+      "registration_id": "REG-DOC-ARVIND-3829",
+      "registrationId": "REG-DOC-ARVIND-3829",
+      "hospitalRegistrationId": "REG-HOSP-AIIMS-1001"
+    },
+    {
+      "id": "doctor-shalini",
+      "userId": "user-doctor-shalini",
+      "name": "Dr. Shalini Deshmukh",
+      "title": "Senior Pulmonologist & Critical Care",
+      "nmcNumber": "MD-51204-KA",
+      "specialization": "Pulmonary Medicine, ARDS & Bronchoscopy",
+      "credentialStatus": "VERIFIED",
+      "hospitalAffiliation": "Manipal Hospital Old Airport Road",
+      "department": "Pulmonology",
+      "tag": "ID-7714",
+      "degrees": "MD, DNB (Resp Diseases), FCCP",
+      "experienceYears": 12,
+      "consultationFee": 750,
+      "availableSlots": [
+        "09:00 AM",
+        "10:30 AM",
+        "01:30 PM",
+        "03:30 PM",
+        "05:00 PM"
+      ],
+      "registration_id": "REG-DOC-SHALINI-5120",
+      "registrationId": "REG-DOC-SHALINI-5120",
+      "hospitalRegistrationId": "REG-HOSP-MANIPAL-0004"
+    },
+    {
+      "id": "doctor-rajeshnair",
+      "userId": "user-doctor-rajeshnair",
+      "name": "Dr. Rajesh K. Nair",
+      "title": "Chief Orthopedic Trauma Surgeon",
+      "nmcNumber": "MD-41908-TN",
+      "specialization": "Orthopedics, Joint Reconstruction & Polytrauma",
+      "credentialStatus": "VERIFIED",
+      "hospitalAffiliation": "Fortis Malar Hospital",
+      "department": "Orthopedics",
+      "tag": "ID-6602",
+      "degrees": "MS (Ortho), DNB, FRCS (Tr & Orth)",
+      "experienceYears": 20,
+      "consultationFee": 850,
+      "availableSlots": [
+        "10:00 AM",
+        "12:00 PM",
+        "02:00 PM",
+        "04:00 PM"
+      ],
+      "registration_id": "REG-DOC-NAIR-4190",
+      "registrationId": "REG-DOC-NAIR-4190",
+      "hospitalRegistrationId": "REG-HOSP-FORTIS-0002"
+    },
+    {
+      "id": "doctor-priya",
+      "userId": "user-doctor-priya",
+      "name": "Dr. Priya R. Sundaram",
+      "title": "Consultant Emergency Medicine",
+      "nmcNumber": "MD-60419-TN",
+      "specialization": "Emergency Medicine & Golden Hour Resuscitation",
+      "credentialStatus": "VERIFIED",
+      "hospitalAffiliation": "Apollo Greams Trauma Hub",
+      "department": "Emergency Medicine",
+      "tag": "ID-5519",
+      "degrees": "MD (Emergency Medicine), MRCEM",
+      "experienceYears": 9,
+      "consultationFee": 600,
+      "availableSlots": [
+        "09:00 AM",
+        "11:00 AM",
+        "01:00 PM",
+        "03:00 PM",
+        "06:00 PM"
+      ],
+      "registration_id": "REG-DOC-PRIYA-6041",
+      "registrationId": "REG-DOC-PRIYA-6041",
+      "hospitalRegistrationId": "REG-HOSP-APOLLO-0842"
+    },
+    {
+      "id": "doctor-zaid",
+      "userId": "user-doctor-zaid",
+      "name": "Dr. Mohammed Zaid",
+      "title": "Director of Nephrology & Renal Transplant",
+      "nmcNumber": "MD-47712-DL",
+      "specialization": "Nephrology, Dialysis & Renal Transplantation",
+      "credentialStatus": "VERIFIED",
+      "hospitalAffiliation": "AIIMS New Delhi Trauma Center",
+      "department": "Nephrology",
+      "tag": "ID-4420",
+      "degrees": "MD, DM (Nephrology), FISN",
+      "experienceYears": 16,
+      "consultationFee": 900,
+      "availableSlots": [
+        "11:00 AM",
+        "12:30 PM",
+        "03:30 PM",
+        "05:00 PM"
+      ],
+      "registration_id": "REG-DOC-ZAID-4771",
+      "registrationId": "REG-DOC-ZAID-4771",
+      "hospitalRegistrationId": "REG-HOSP-AIIMS-1001"
+    },
+    {
+      "id": "doctorProfile_1789205001362_vqlxil",
+      "createdAt": "2026-09-12T09:23:21.362Z",
+      "updatedAt": "2026-09-12T09:23:21.362Z",
+      "userId": "user_1789205001361_77p6mw",
+      "name": "Dr. Kavitha Menon",
+      "title": "Chief Interventional Cardio",
+      "nmcNumber": "NMC-44912-TN",
+      "specialization": "General Medicine & Trauma",
+      "hospitalAffiliation": "Apollo Greams Trauma Hub",
+      "department": "Emergency Medicine",
+      "tag": "ID-5348",
+      "degrees": "MBBS, MD",
+      "experienceYears": 10,
+      "consultationFee": 750,
+      "availableSlots": [
+        "09:30 AM",
+        "11:00 AM",
+        "02:30 PM",
+        "04:00 PM",
+        "05:30 PM"
+      ],
+      "registration_id": "REG-E8A20CC9-AE73-4128-BF44-0296B0268C0D",
+      "registrationId": "REG-E8A20CC9-AE73-4128-BF44-0296B0268C0D",
+      "hospitalRegistrationId": "REG-HOSP-APOLLO-0842",
+      "phone": "+91 98401 99421"
+    },
+    {
+      "id": "doctorProfile_1789207813186_8o2w2l",
+      "createdAt": "2026-09-12T10:10:13.186Z",
+      "updatedAt": "2026-09-12T10:10:13.186Z",
+      "userId": "user_1789207813185_ne7p2u",
+      "registration_id": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
+      "registrationId": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
+      "hospitalRegistrationId": "REG-HOSP-APOLLO-0842",
+      "name": "Dr. Ananya Roy",
+      "title": "Specialist Consultant",
+      "nmcNumber": "MD-25865-TN",
+      "specialization": "General Medicine & Trauma",
+      "hospitalAffiliation": "Apollo Greams Trauma Hub",
+      "department": "Emergency Medicine",
+      "tag": "ID-4750",
+      "degrees": "MBBS, MD",
+      "experienceYears": 10,
+      "consultationFee": 750,
+      "availableSlots": [
+        "09:30 AM",
+        "11:00 AM",
+        "02:30 PM",
+        "04:00 PM",
+        "05:30 PM"
+      ]
+    }
+  ],
+  "hospitalAdminProfile": [
+    {
+      "id": "admin-nambiar",
+      "userId": "user-admin-nambiar",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Dr. R. K. Nambiar",
+      "title": "Hospital Administrator",
+      "designation": "Chief Medical Officer & Hospital Administrator",
+      "tag": "VERIFIED ADMIN",
+      "registration_id": "REG-ADM-NAMBIAR-0842",
+      "registrationId": "REG-ADM-NAMBIAR-0842",
+      "hospitalRegistrationId": "REG-HOSP-APOLLO-0842"
+    },
+    {
+      "id": "hospitalAdminProfile_1789205352745_ejta4q",
+      "createdAt": "2026-09-12T09:29:12.745Z",
+      "updatedAt": "2026-09-12T09:29:12.745Z",
+      "userId": "user_1789205352744_6lm5qh",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Apollo Greams Trauma Hub",
+      "title": "Hospital Administrator",
+      "designation": "Medical Superintendent",
+      "tag": "VERIFIED ADMIN",
+      "registration_id": "REG-9392E83F-6911-4F83-9C05-E3B035FE7468",
+      "registrationId": "REG-9392E83F-6911-4F83-9C05-E3B035FE7468",
+      "hospitalRegistrationId": "REG-HOSP-APOLLO-0842"
+    },
+    {
+      "id": "hospitalAdminProfile_1789208405007_aa8qu3",
+      "createdAt": "2026-09-12T10:20:05.007Z",
+      "updatedAt": "2026-09-12T10:20:05.007Z",
+      "userId": "user_1789208405002_gfxwm0",
+      "registration_id": "REG-ADA8C4AD-9A75-4FB4-BAC7-085B9FFDC136",
+      "registrationId": "REG-ADA8C4AD-9A75-4FB4-BAC7-085B9FFDC136",
+      "hospitalId": "hosp-test-hosp-7481",
+      "hospitalRegistrationId": "REG-HOSP-TEST-HOSP-7481",
+      "name": "Hospital Unit One",
+      "title": "Hospital Administrator",
+      "designation": "Medical Superintendent",
+      "tag": "TEST-HOSP-7481"
+    }
+  ],
+  "emergencyPass": [
+    {
+      "id": "pass-rajesh",
+      "patientProfileId": "patient-rajesh",
+      "passToken": "EK-TR-88190-V4",
+      "bloodGroup": "O+ (Rh Pos)",
+      "criticalAllergies": "Severe Penicillin anaphylaxis reaction.",
+      "chronicConditions": "Type II Diabetes (Insulin Dependent), Mild Hypertension",
+      "implants": "Coronary Stent (DES - 2021)",
+      "iceContacts": [
+        {
+          "name": "Ananya S.",
+          "relation": "Spouse",
+          "phone": "+91 98401 22819",
+          "priority": 1
+        },
+        {
+          "name": "Dr. Vivek Sharma",
+          "relation": "Brother / Physician",
+          "phone": "+91 94440 88129",
+          "priority": 2
+        }
+      ],
+      "status": "ACTIVE",
+      "qrMatrix": "data:image/svg+xml;utf8,<svg ...></svg>"
+    },
+    {
+      "id": "emergencyPass_1789208398541_x88dv0",
+      "createdAt": "2026-09-12T10:19:58.541Z",
+      "updatedAt": "2026-09-12T10:19:58.541Z",
+      "patientProfileId": "patientProfile_1789208398538_gfpyw4",
+      "passToken": "EK-TR-19456-V4",
+      "bloodGroup": "O+ (Rh Pos)",
+      "criticalAllergies": "None reported",
+      "chronicConditions": "None reported",
+      "iceContacts": [
+        {
+          "name": "Primary ICE Contact",
+          "phone": "9840126510",
+          "relation": "Family",
+          "priority": 1,
+          "verified": true
+        }
+      ],
+      "status": "ACTIVE"
+    }
+  ],
+  "abhaAccount": [
+    {
+      "id": "abha-rajesh",
+      "patientProfileId": "patient-rajesh",
+      "abhaNumber": "9824-8819-3320-TN",
+      "phrAddress": "rajesh.sharma@abdm",
+      "linkedMobile": "+91 98401 22819",
+      "aadhaarRef": "XXXX-XXXX-4819",
+      "qrPayload": "ABDM:PHR:rajesh.sharma@abdm:ABHA:9824-8819-3320-TN",
+      "verificationStatus": "LEVEL-4 CERTIFIED",
+      "issueDate": "2023-01-10T00:00:00.000Z",
+      "abhaNumberEncrypted": "fd4e6e0ca46954d600179e8fd9170106:afeab59028a24393e950f276ef4d0abe:f981bad3421ecd3634438a66b1fe56bd8f",
+      "linkedMobileEncrypted": "a936b05d43e109822d339091dead99cb:968610d8354667353ddeb071fc6ca3b9:a70cddf53955131d33a8734a1901a5"
+    },
+    {
+      "id": "abhaAccount_1789208398540_vj6mub",
+      "createdAt": "2026-09-12T10:19:58.540Z",
+      "updatedAt": "2026-09-12T10:19:58.540Z",
+      "patientProfileId": "patientProfile_1789208398538_gfpyw4",
+      "abhaNumber": "df1547d4fa983b9b63fbfe533cba4265:98b48df4ee634f858da59f6d482c4483:dd73fd202f6de4a900d441fc316222b922",
+      "phrAddress": "testpatienta@abdm",
+      "linkedMobile": "e6fcd07a1b63390cad7f762ae6ade07e:7bfa4e37dbd79f21fbd87589e693e63c:4f6b19a295c96d0387e2",
+      "aadhaarRef": "XXXX-XXXX-4819",
+      "qrPayload": "ABDM:PHR:Test Patient A@abdm:ABHA:9824-8819-6858-TN",
+      "verificationStatus": "LEVEL-4 CERTIFIED",
+      "issueDate": "2026-09-12T10:19:58.540Z"
+    }
+  ],
+  "governmentScheme": [
+    {
+      "id": "scheme-pmjay",
+      "name": "Ayushman Bharat PM-JAY",
+      "code": "PMJAY",
+      "description": "National Health Protection Scheme providing cashless coverage up to ₹5,00,000 per family per year for secondary and tertiary care.",
+      "coverageAmount": 500000,
+      "department": "National Health Authority (NHA)",
+      "eligibilityRules": {
+        "seccCategory": "D1-D7",
+        "incomeLimit": 250000
+      }
+    },
+    {
+      "id": "scheme-cmchis",
+      "name": "Chief Minister Comprehensive Health Insurance Scheme (CMCHIS)",
+      "code": "CMCHIS",
+      "description": "Tamil Nadu State health assurance cover up to ₹5,00,000 for critical surgeries and trauma procedures.",
+      "coverageAmount": 500000,
+      "department": "Govt of Tamil Nadu Dept of Health",
+      "eligibilityRules": {
+        "stateResident": true,
+        "rationCardRequired": true
+      }
+    },
+    {
+      "id": "scheme-esi",
+      "name": "Employees State Insurance Scheme",
+      "code": "ESI",
+      "description": "Full medical care and disability protection for insured formal sector employees and dependents.",
+      "coverageAmount": 1000000,
+      "department": "Ministry of Labour & Employment",
+      "eligibilityRules": {
+        "wageThreshold": 21000
+      }
+    }
+  ],
+  "patientSchemeEnrollment": [
+    {
+      "id": "enrollment-rajesh-pmjay",
+      "patientProfileId": "patient-rajesh",
+      "schemeId": "scheme-pmjay",
+      "status": "RENEWAL_DUE",
+      "policyNumber": "PMJAY-TN-2024-991204",
+      "claimHistory": [
+        {
+          "date": "2025-11-14",
+          "hospital": "Apollo Greams",
+          "procedure": "Cardiac Angiogram & Stenting",
+          "amountClaimed": 185000,
+          "status": "APPROVED"
+        }
+      ]
+    },
+    {
+      "id": "enrollment-rajesh-cmchis",
+      "patientProfileId": "patient-rajesh",
+      "schemeId": "scheme-cmchis",
+      "status": "ENROLLED",
+      "policyNumber": "CMCHIS-CHE-882190",
+      "claimHistory": []
+    }
+  ],
+  "bed": [
+    {
+      "id": "bed-icu",
+      "hospitalId": "hosp-apollo-greams",
+      "wardType": "ICU",
+      "wardName": "Intensive Coronary Care Unit",
+      "totalBeds": 50,
+      "occupiedBeds": 46,
+      "availableBeds": 4,
+      "status": "HIGH_LOAD"
+    },
+    {
+      "id": "bed-ccu",
+      "hospitalId": "hosp-apollo-greams",
+      "wardType": "CCU",
+      "wardName": "Critical Care Unit",
+      "totalBeds": 32,
+      "occupiedBeds": 28,
+      "availableBeds": 4,
+      "status": "HIGH_LOAD"
+    },
+    {
+      "id": "bed-trauma",
+      "hospitalId": "hosp-apollo-greams",
+      "wardType": "TRAUMA_BAY",
+      "wardName": "Emergency Trauma Bays",
+      "totalBeds": 8,
+      "occupiedBeds": 6,
+      "availableBeds": 2,
+      "status": "OPERATIONAL"
+    },
+    {
+      "id": "bed-general",
+      "hospitalId": "hosp-apollo-greams",
+      "wardType": "GENERAL",
+      "wardName": "Inpatient General & Special Wards",
+      "totalBeds": 360,
+      "occupiedBeds": 302,
+      "availableBeds": 58,
+      "status": "OPERATIONAL"
+    },
+    {
+      "id": "bed_1789205353012_jmfe5n",
+      "createdAt": "2026-09-12T09:29:13.012Z",
+      "updatedAt": "2026-09-12T09:29:13.012Z",
+      "wardType": "TRAUMA_BAY",
+      "name": "Trauma & Emergency Bay",
+      "location": "Ground Floor • Wing A",
+      "category": "Emergency",
+      "totalBeds": 8,
+      "occupiedBeds": 6,
+      "availableBeds": 2,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353012_gdb1ix",
+      "createdAt": "2026-09-12T09:29:13.012Z",
+      "updatedAt": "2026-09-12T09:29:13.012Z",
+      "wardType": "ICU",
+      "name": "Intensive Care Unit (ICU Node 1-3)",
+      "location": "2nd Floor • Wing B",
+      "category": "Critical Care",
+      "totalBeds": 50,
+      "occupiedBeds": 46,
+      "availableBeds": 4,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353013_pmoirl",
+      "createdAt": "2026-09-12T09:29:13.013Z",
+      "updatedAt": "2026-09-12T09:29:13.013Z",
+      "wardType": "CCU",
+      "name": "Cardiac Care Unit (CCU)",
+      "location": "3rd Floor • Wing A",
+      "category": "Critical Care",
+      "totalBeds": 32,
+      "occupiedBeds": 28,
+      "availableBeds": 4,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353013_rpv4eu",
+      "createdAt": "2026-09-12T09:29:13.013Z",
+      "updatedAt": "2026-09-12T09:29:13.013Z",
+      "wardType": "SURGICAL",
+      "name": "Surgical Post-Op Recovery",
+      "location": "4th Floor • Wing C",
+      "category": "Inpatient",
+      "totalBeds": 40,
+      "occupiedBeds": 31,
+      "availableBeds": 9,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353013_xfpkf6",
+      "createdAt": "2026-09-12T09:29:13.013Z",
+      "updatedAt": "2026-09-12T09:29:13.013Z",
+      "wardType": "GENERAL",
+      "name": "General Medical Ward",
+      "location": "Floors 5 & 6 • East Wing",
+      "category": "Inpatient",
+      "totalBeds": 180,
+      "occupiedBeds": 152,
+      "availableBeds": 28,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353014_prckuv",
+      "createdAt": "2026-09-12T09:29:13.014Z",
+      "updatedAt": "2026-09-12T09:29:13.014Z",
+      "wardType": "DELUXE",
+      "name": "Semi-Private & Deluxe Inpatient",
+      "location": "7th Floor • Wing D",
+      "category": "Inpatient",
+      "totalBeds": 90,
+      "occupiedBeds": 75,
+      "availableBeds": 15,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353014_9vi2vb",
+      "createdAt": "2026-09-12T09:29:13.014Z",
+      "updatedAt": "2026-09-12T09:29:13.014Z",
+      "wardType": "NICU",
+      "name": "Pediatric & Neonatal ICU (NICU)",
+      "location": "3rd Floor • Wing C",
+      "category": "Critical Care",
+      "totalBeds": 30,
+      "occupiedBeds": 26,
+      "availableBeds": 4,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789205353015_6inj6a",
+      "createdAt": "2026-09-12T09:29:13.015Z",
+      "updatedAt": "2026-09-12T09:29:13.015Z",
+      "wardType": "ISOLATION",
+      "name": "Isolation & Infectious Disease",
+      "location": "Ground Floor • Annex",
+      "category": "Critical Care",
+      "totalBeds": 20,
+      "occupiedBeds": 18,
+      "availableBeds": 2,
+      "hospitalId": "user_1789205352744_6lm5qh"
+    },
+    {
+      "id": "bed_1789207018170_xeqg9e",
+      "createdAt": "2026-09-12T09:56:58.170Z",
+      "updatedAt": "2026-09-12T09:56:58.170Z",
+      "wardType": "TRAUMA_BAY",
+      "name": "Trauma & Emergency Bay",
+      "location": "Ground Floor • Wing A",
+      "category": "Emergency",
+      "totalBeds": 8,
+      "occupiedBeds": 6,
+      "availableBeds": 2,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018171_mkgis3",
+      "createdAt": "2026-09-12T09:56:58.171Z",
+      "updatedAt": "2026-09-12T09:56:58.171Z",
+      "wardType": "ICU",
+      "name": "Intensive Care Unit (ICU Node 1-3)",
+      "location": "2nd Floor • Wing B",
+      "category": "Critical Care",
+      "totalBeds": 50,
+      "occupiedBeds": 46,
+      "availableBeds": 4,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018171_lfuy7s",
+      "createdAt": "2026-09-12T09:56:58.171Z",
+      "updatedAt": "2026-09-12T09:56:58.171Z",
+      "wardType": "CCU",
+      "name": "Cardiac Care Unit (CCU)",
+      "location": "3rd Floor • Wing A",
+      "category": "Critical Care",
+      "totalBeds": 32,
+      "occupiedBeds": 28,
+      "availableBeds": 4,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018172_ra3xde",
+      "createdAt": "2026-09-12T09:56:58.172Z",
+      "updatedAt": "2026-09-12T09:56:58.172Z",
+      "wardType": "SURGICAL",
+      "name": "Surgical Post-Op Recovery",
+      "location": "4th Floor • Wing C",
+      "category": "Inpatient",
+      "totalBeds": 40,
+      "occupiedBeds": 31,
+      "availableBeds": 9,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018172_ycfknx",
+      "createdAt": "2026-09-12T09:56:58.172Z",
+      "updatedAt": "2026-09-12T09:56:58.172Z",
+      "wardType": "GENERAL",
+      "name": "General Medical Ward",
+      "location": "Floors 5 & 6 • East Wing",
+      "category": "Inpatient",
+      "totalBeds": 180,
+      "occupiedBeds": 152,
+      "availableBeds": 28,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018173_1wryz6",
+      "createdAt": "2026-09-12T09:56:58.173Z",
+      "updatedAt": "2026-09-12T09:56:58.173Z",
+      "wardType": "DELUXE",
+      "name": "Semi-Private & Deluxe Inpatient",
+      "location": "7th Floor • Wing D",
+      "category": "Inpatient",
+      "totalBeds": 90,
+      "occupiedBeds": 75,
+      "availableBeds": 15,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018173_j7vg0p",
+      "createdAt": "2026-09-12T09:56:58.173Z",
+      "updatedAt": "2026-09-12T09:56:58.173Z",
+      "wardType": "NICU",
+      "name": "Pediatric & Neonatal ICU (NICU)",
+      "location": "3rd Floor • Wing C",
+      "category": "Critical Care",
+      "totalBeds": 30,
+      "occupiedBeds": 26,
+      "availableBeds": 4,
+      "hospitalId": "user-admin-nambiar"
+    },
+    {
+      "id": "bed_1789207018176_kjp2gb",
+      "createdAt": "2026-09-12T09:56:58.176Z",
+      "updatedAt": "2026-09-12T09:56:58.176Z",
+      "wardType": "ISOLATION",
+      "name": "Isolation & Infectious Disease",
+      "location": "Ground Floor • Annex",
+      "category": "Critical Care",
+      "totalBeds": 20,
+      "occupiedBeds": 18,
+      "availableBeds": 2,
+      "hospitalId": "user-admin-nambiar"
+    }
+  ],
+  "triageEntry": [
+    {
+      "id": "triage-1",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "hosp-apollo-greams",
+      "assignedDoctorId": "doctor-kavitha",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical)",
+      "bayNumber": "Bay 02",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-12T09:07:40.213Z",
+      "vitals": {
+        "heartRate": "112 bpm",
+        "bp": "190/115",
+        "spO2": "88%",
+        "respRate": "24 /min"
+      },
+      "condition": "Acute Myocardial Infarction • ST Elevation",
+      "status": "ATTENDING"
+    },
+    {
+      "id": "triage-2",
+      "patientProfileId": null,
+      "hospitalId": "hosp-apollo-greams",
+      "assignedDoctorId": null,
+      "triageColor": "YELLOW",
+      "priorityLevel": "Priority 2 (Urgent)",
+      "bayNumber": "Bay 04",
+      "patientName": "Meenakshi Sundaram",
+      "abhaNumber": "7712-4401-TN",
+      "arrivalTime": "2026-09-12T08:50:40.213Z",
+      "vitals": {
+        "heartRate": "84 bpm",
+        "bp": "135/85",
+        "spO2": "97%",
+        "respRate": "18 /min"
+      },
+      "condition": "Polytrauma / Right Femur Compound Fracture",
+      "status": "INGRESS"
+    },
+    {
+      "id": "triage-3",
+      "patientProfileId": null,
+      "hospitalId": "hosp-apollo-greams",
+      "assignedDoctorId": null,
+      "triageColor": "GREEN",
+      "priorityLevel": "Priority 3 (Stable)",
+      "bayNumber": "Bay 06",
+      "patientName": "Harish K. Varma",
+      "abhaNumber": "4402-9918-TN",
+      "arrivalTime": "2026-09-12T08:27:40.213Z",
+      "vitals": {
+        "heartRate": "72 bpm",
+        "bp": "120/80",
+        "spO2": "99%",
+        "respRate": "16 /min"
+      },
+      "condition": "Deep Forearm Laceration / Suture In Progress",
+      "status": "INGRESS"
+    }
+  ],
+  "staffMember": [
+    {
+      "id": "ST-1042",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "PR",
+      "name": "Priya R.",
+      "role": "Critical Care Nurse",
+      "department": "ICU",
+      "status": "ON_DUTY",
+      "extension": "Ext. 4102 • Shift A"
+    },
+    {
+      "id": "ST-2189",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "KM",
+      "name": "Karthik M.",
+      "role": "Radiology & CT Specialist",
+      "department": "Diagnostic Bay",
+      "status": "ON_DUTY",
+      "extension": "Ext. 2219 • Shift A"
+    },
+    {
+      "id": "ST-3401",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "DS",
+      "name": "Deepa S.",
+      "role": "Trauma Triage Nurse",
+      "department": "ER Bay",
+      "status": "OFF_DUTY",
+      "extension": "Ext. 1104 • Shift C"
+    },
+    {
+      "id": "ST-4820",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "RA",
+      "name": "Rajeshwari Ananthan",
+      "role": "Senior OT Technician",
+      "department": "Surgical Wing",
+      "status": "ON_DUTY",
+      "extension": "Ext. 3381 • Shift A"
+    },
+    {
+      "id": "ST-5091",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "AK",
+      "name": "Anand Kumar",
+      "role": "Clinical Pharmacist",
+      "department": "Pharmacy",
+      "status": "ON_DUTY",
+      "extension": "Ext. 5509 • Shift A"
+    },
+    {
+      "id": "ST-6124",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "SD",
+      "name": "Sunita Deshmukh",
+      "role": "Inpatient Head Nurse",
+      "department": "General Ward",
+      "status": "OFF_DUTY",
+      "extension": "Ext. 4201 • Shift B"
+    },
+    {
+      "id": "ST-7730",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "BV",
+      "name": "Balaji Venkatesh",
+      "role": "Biomedical Equipment Engineer",
+      "department": "ICU & Telemetry",
+      "status": "ON_DUTY",
+      "extension": "Ext. 6112 • On Call"
+    },
+    {
+      "id": "ST-8812",
+      "hospitalId": "hosp-apollo-greams",
+      "initials": "MN",
+      "name": "Meera Namboodiri",
+      "role": "Pediatric Care Assistant",
+      "department": "NICU / PICU",
+      "status": "ON_DUTY",
+      "extension": "Ext. 4810 • Shift A"
+    }
+  ],
+  "pharmacyItem": [
+    {
+      "id": "pharm-1",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Metformin 500mg",
+      "genericName": "Generic: Metformin Hydrochloride • Oral Tablet",
+      "category": "Diabetes",
+      "lotNumber": "Lot #MT-8819",
+      "storageLocation": "Main Dispensary (Rack B-04)",
+      "stockQty": 4200,
+      "unit": "units",
+      "reorderThreshold": 1000,
+      "status": "IN_STOCK",
+      "icon": "pill"
+    },
+    {
+      "id": "pharm-2",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Epinephrine 1mg/mL",
+      "genericName": "Emergency Crash-Cart Reserve • 1:1000 IV",
+      "category": "Emergency Resuscitation",
+      "lotNumber": "Lot #EP-4401",
+      "storageLocation": "ER Bay 1-3 & Trauma Crash Cart",
+      "stockQty": 320,
+      "unit": "Amps",
+      "reorderThreshold": 150,
+      "status": "IN_STOCK",
+      "icon": "vaccines"
+    },
+    {
+      "id": "pharm-3",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Cefotaxime 1g IV",
+      "genericName": "Broad-spectrum Cephalosporin Antibiotic",
+      "category": "Antibiotics",
+      "lotNumber": "Lot #CF-9921",
+      "storageLocation": "Inpatient Central Stock",
+      "stockQty": 42,
+      "unit": "Vials",
+      "reorderThreshold": 100,
+      "status": "LOW_STOCK",
+      "icon": "science"
+    },
+    {
+      "id": "pharm-4",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Rosuvastatin 10mg",
+      "genericName": "Lipid-lowering HMG-CoA Reductase Inhibitor",
+      "category": "Cardiovascular",
+      "lotNumber": "Lot #RS-2041",
+      "storageLocation": "Main Dispensary (Rack C-02)",
+      "stockQty": 1800,
+      "unit": "units",
+      "reorderThreshold": 500,
+      "status": "IN_STOCK",
+      "icon": "pill"
+    },
+    {
+      "id": "pharm-5",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Aspirin 75mg Gastro-Resistant",
+      "genericName": "Antiplatelet Platelet Aggregation Inhibitor",
+      "category": "Cardiovascular",
+      "lotNumber": "Lot #AS-7718",
+      "storageLocation": "Main Dispensary (Rack C-03)",
+      "stockQty": 2400,
+      "unit": "units",
+      "reorderThreshold": 500,
+      "status": "IN_STOCK",
+      "icon": "pill"
+    },
+    {
+      "id": "pharm-6",
+      "hospitalId": "hosp-apollo-greams",
+      "name": "Insulin Glargine 100 IU/mL",
+      "genericName": "Long-Acting Basal Recombinant Insulin Soln",
+      "category": "Diabetes",
+      "lotNumber": "Lot #IN-8891",
+      "storageLocation": "Cold Vault 4°C (Unit 2)",
+      "stockQty": 110,
+      "unit": "Pens",
+      "reorderThreshold": 50,
+      "status": "IN_STOCK",
+      "icon": "vaccines"
+    }
+  ],
+  "hospitalNetworkNode": [
+    {
+      "id": "HOSP-1",
+      "name": "AIIMS New Delhi Trauma Center",
+      "subtext": "Apex National Super-Specialty Center • ABDM Tier-1 Node",
+      "location": "Ansari Nagar, New Delhi",
+      "subloc": "National Central Hub • PIN 110029",
+      "icuBeds": 14,
+      "wardBeds": 42,
+      "specialties": "Polytrauma, Neurotrauma, Hyperbaric O2",
+      "status": "connected",
+      "region": "national",
+      "distanceKm": 2180,
+      "o2ReserveHours": 120,
+      "bloodBankUnits": 450,
+      "latencySec": 0.08,
+      "icon": "local_hospital"
+    },
+    {
+      "id": "HOSP-2",
+      "name": "Fortis Malar Hospital",
+      "subtext": "Super-Specialty Trauma & Critical Care Unit",
+      "location": "Adyar, Chennai, Tamil Nadu",
+      "subloc": "South Chennai Node • 4.8 km away",
+      "icuBeds": 8,
+      "wardBeds": 22,
+      "specialties": "Cardiothoracic, ECMO Support, Burns",
+      "status": "connected",
+      "region": "chennai south",
+      "distanceKm": 4.8,
+      "o2ReserveHours": 84,
+      "bloodBankUnits": 120,
+      "latencySec": 0.02,
+      "icon": "domain"
+    },
+    {
+      "id": "HOSP-3",
+      "name": "Stanley Medical College & Hospital",
+      "subtext": "Government Medical College & State Trauma Center",
+      "location": "Royapuram, Chennai, Tamil Nadu",
+      "subloc": "North Chennai Node • 8.2 km away",
+      "icuBeds": 19,
+      "wardBeds": 60,
+      "specialties": "Micro-Reconstructive, Toxicological Emergency",
+      "status": "connected",
+      "region": "chennai",
+      "distanceKm": 8.2,
+      "o2ReserveHours": 96,
+      "bloodBankUnits": 210,
+      "latencySec": 0.03,
+      "icon": "emergency"
+    },
+    {
+      "id": "HOSP-4",
+      "name": "Manipal Hospital Old Airport Road",
+      "subtext": "Tertiary Multi-Specialty & Organ Transplant Center",
+      "location": "Bengaluru, Karnataka",
+      "subloc": "Inter-State Corridor Node • 290 km",
+      "icuBeds": 11,
+      "wardBeds": 34,
+      "specialties": "Organ Retrieval, Interventional Radiology",
+      "status": "connected",
+      "region": "south",
+      "distanceKm": 290,
+      "o2ReserveHours": 104,
+      "bloodBankUnits": 340,
+      "latencySec": 0.05,
+      "icon": "domain"
+    }
+  ],
+  "appointment": [
+    {
+      "id": "apt-1",
+      "tokenNumber": "EK-SLOT-101",
+      "patientProfileId": "patient-rajesh",
+      "doctorProfileId": "doctor-kavitha",
+      "hospitalId": "hosp-apollo-greams",
+      "patientName": "Rajesh V. Sharma",
+      "patientPhone": "+91 98401 22819",
+      "timeSlot": "10:30 AM",
+      "scheduledAt": "2026-09-13T09:22:40.213Z",
+      "mode": "IN_PERSON",
+      "status": "CONFIRMED",
+      "department": "Cardiology",
+      "symptoms": "Follow-up on coronary stent evaluation and HbA1c review.",
+      "notes": "{\"serviceType\":\"DOCTOR_CONSULT\",\"bookingFor\":\"SELF\",\"relation\":\"Self\",\"patientAge\":\"52\",\"patientGender\":\"Male\",\"userNotes\":\"Please bring latest fasting glucose reports.\"}"
+    },
+    {
+      "id": "apt-2",
+      "tokenNumber": "EK-SLOT-102",
+      "patientProfileId": "patient-rajesh",
+      "doctorProfileId": "doctor-kavitha",
+      "hospitalId": "hosp-apollo-greams",
+      "patientName": "Venkatesh Sharma",
+      "patientPhone": "+91 98401 22819",
+      "timeSlot": "11:45 AM",
+      "scheduledAt": "2026-09-14T09:22:40.213Z",
+      "mode": "IN_PERSON",
+      "status": "PENDING",
+      "department": "Cardiology",
+      "symptoms": "Echocardiography & Lipid Workup for elderly family member",
+      "notes": "{\"serviceType\":\"DIAGNOSTIC_TEST\",\"bookingFor\":\"OTHER\",\"relation\":\"Father\",\"testName\":\"Echocardiography & Lipid Profile\",\"patientAge\":\"76\",\"patientGender\":\"Male\",\"userNotes\":\"Senior citizen wheelchair assistance requested at gate.\"}"
+    }
+  ],
+  "medicalRecord": [
+    {
+      "id": "rec-1",
+      "patientProfileId": "patient-rajesh",
+      "uploadedByUserId": "user-doctor-kavitha",
+      "title": "Comprehensive Metabolic Panel & HbA1c",
+      "recordType": "LAB_REPORT",
+      "fileUrl": "/uploads/hba1c_report_rajesh.pdf",
+      "date": "2026-10-18T00:00:00.000Z",
+      "notes": "HbA1c: 6.8%, Fasting Blood Sugar: 124 mg/dL. Creatinine: 0.9 mg/dL."
+    },
+    {
+      "id": "rec-2",
+      "patientProfileId": "patient-rajesh",
+      "uploadedByUserId": "user-doctor-kavitha",
+      "title": "Cardiology Discharge Summary & Stent Protocol",
+      "recordType": "DISCHARGE_SUMMARY",
+      "fileUrl": "/uploads/cardio_discharge_rajesh.pdf",
+      "date": "2025-11-16T00:00:00.000Z",
+      "notes": "Drug-eluting stent successfully deployed in LAD. Patient stable on DAPT."
+    }
+  ],
+  "consentGrant": [
+    {
+      "id": "consent-kavitha",
+      "patientProfileId": "patient-rajesh",
+      "grantedToDoctorId": "doctor-kavitha",
+      "recordScope": "ALL",
+      "status": "ACTIVE",
+      "grantedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "accessLog": [
+    {
+      "id": "log-1",
+      "patientProfileId": "patient-rajesh",
+      "accessorUserId": "user-doctor-kavitha",
+      "accessorRole": "doctor",
+      "accessorName": "Dr. Kavitha Menon",
+      "hospitalId": "hosp-apollo-greams",
+      "accessType": "CONSULTATION_VIEW",
+      "reason": "Pre-consultation cardiac record review",
+      "ipAddress": "10.14.22.84",
+      "userAgent": "Apollo-Greams-Workstation-ChromeOS",
+      "latencyMs": 18,
+      "timestamp": "2026-09-12T06:22:40.213Z"
+    },
+    {
+      "id": "log-2",
+      "patientProfileId": "patient-rajesh",
+      "accessorUserId": "user-doctor-kavitha",
+      "accessorRole": "doctor",
+      "accessorName": "Dr. Kavitha Menon",
+      "hospitalId": "hosp-apollo-greams",
+      "accessType": "EMERGENCY_PASS_BYPASS",
+      "reason": "ER Bay 3 Emergency Triage Ingress Protocol",
+      "ipAddress": "10.14.22.90",
+      "userAgent": "Apollo-ER-Bay3-Scanner",
+      "latencyMs": 12,
+      "timestamp": "2026-09-11T09:22:40.213Z"
+    }
+  ],
+  "notification": [],
+  "conversation": [],
+  "message": [],
+  "hospitalSchemaRecords": [
+    {
+      "hospital_id": "hosp-apollo-greams",
+      "hospital_name": "Apollo Greams Trauma Hub",
+      "hospital_type": "Private",
+      "registration_number": "HSP-REG-2210-TN",
+      "contact_number": "+91 44 2829 0200",
+      "email": "admin@apollogreams.org",
+      "website": "https://apollohospitals.com/greams",
+      "address": "21 Greams Lane, Off Greams Road, Thousand Lights",
+      "city": "Chennai",
+      "district": "Chennai",
+      "state": "Tamil Nadu",
+      "pincode": "600006",
+      "latitude": 13.0604,
+      "longitude": 80.2496,
+      "total_beds": 450,
+      "available_beds": 68,
+      "icu_beds": 50,
+      "icu_available": 4,
+      "emergency_beds": 12,
+      "emergency_available": 3,
+      "general_beds": 240,
+      "private_beds": 148,
+      "ambulance_count": 6,
+      "blood_bank_available": true,
+      "pharmacy_available": true,
+      "diagnostic_available": true,
+      "operation_theatre_count": 14,
+      "ventilator_count": 18,
+      "oxygen_beds": 140,
+      "specialities": [
+        "Cardiology",
+        "Emergency & Trauma",
+        "Neurology",
+        "Orthopedics",
+        "ICU & Critical Care",
+        "Nephrology",
+        "General Surgery",
+        "Pediatrics"
+      ],
+      "services": [
+        "24x7 Emergency Care",
+        "OPD Consultations",
+        "IPD Ward Inpatient",
+        "Advanced Pathology & Imaging",
+        "Blood Bank & Transfusion",
+        "24x7 Pharmacy",
+        "ALS Ambulance Fleet",
+        "Tele-ICU Grid"
+      ],
+      "opening_time": "00:00",
+      "closing_time": "23:59",
+      "emergency_24x7": true,
+      "admin_name": "Dr. R. K. Nambiar",
+      "admin_phone": "+91 94440 28290",
+      "status": "Approved",
+      "created_at": "2025-01-15T09:30:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z",
+      "id": "hosp-apollo-greams",
+      "registration_id": "REG-HOSP-APOLLO-0842"
+    },
+    {
+      "hospital_id": "HOSP-1",
+      "hospital_name": "AIIMS New Delhi Trauma Center",
+      "hospital_type": "Government",
+      "registration_number": "AIIMS-REG-1001-DL",
+      "contact_number": "+91 11 2658 8500",
+      "email": "director@aiims.edu",
+      "website": "https://www.aiims.edu",
+      "address": "Ansari Nagar, Ring Road",
+      "city": "New Delhi",
+      "district": "New Delhi",
+      "state": "Delhi",
+      "pincode": "110029",
+      "latitude": 28.5672,
+      "longitude": 77.21,
+      "total_beds": 120,
+      "available_beds": 56,
+      "icu_beds": 20,
+      "icu_available": 14,
+      "emergency_beds": 15,
+      "emergency_available": 6,
+      "general_beds": 70,
+      "private_beds": 15,
+      "ambulance_count": 10,
+      "blood_bank_available": true,
+      "pharmacy_available": true,
+      "diagnostic_available": true,
+      "operation_theatre_count": 8,
+      "ventilator_count": 22,
+      "oxygen_beds": 65,
+      "specialities": [
+        "Polytrauma",
+        "Neurotrauma",
+        "Hyperbaric O2",
+        "Critical Care"
+      ],
+      "services": [
+        "Emergency 24x7",
+        "OPD",
+        "IPD",
+        "Diagnostic Lab",
+        "Blood Bank"
+      ],
+      "opening_time": "00:00",
+      "closing_time": "23:59",
+      "emergency_24x7": true,
+      "admin_name": "Dr. Arvind Mehra",
+      "admin_phone": "+91 98112 44301",
+      "status": "Approved",
+      "created_at": "2025-02-10T10:00:00.000Z",
+      "updated_at": "2026-03-20T14:30:00.000Z",
+      "id": "HOSP-1",
+      "registration_id": "REG-HOSP-AIIMS-1001"
+    }
+  ],
+  "registration": [
+    {
+      "id": "REG-PAT-RAJESH-9824",
+      "registration_id": "REG-PAT-RAJESH-9824",
+      "auth_user_id": "user-patient-rajesh",
+      "name": "Rajesh V. Sharma",
+      "email": "rajesh.sharma@ekavach.health",
+      "phone": "+91 98401 22819",
+      "role": "patient",
+      "status": "ACTIVE",
+      "created_at": "2025-01-10T08:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-DOC-KAVITHA-4491",
+      "registration_id": "REG-DOC-KAVITHA-4491",
+      "auth_user_id": "user-doctor-kavitha",
+      "name": "Dr. Kavitha Menon",
+      "email": "dr.kavitha@apollo.health",
+      "phone": "+91 98401 99420",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2025-01-12T09:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-DOC-ARVIND-3829",
+      "registration_id": "REG-DOC-ARVIND-3829",
+      "auth_user_id": "user-doctor-arvind",
+      "name": "Dr. Arvind Swaminathan",
+      "email": "dr.arvind@aiims.edu",
+      "phone": "+91 98112 44301",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2025-01-12T09:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-DOC-SHALINI-5120",
+      "registration_id": "REG-DOC-SHALINI-5120",
+      "auth_user_id": "user-doctor-shalini",
+      "name": "Dr. Shalini Deshmukh",
+      "email": "dr.shalini@manipal.health",
+      "phone": "+91 98801 77210",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2025-01-12T09:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-DOC-NAIR-4190",
+      "registration_id": "REG-DOC-NAIR-4190",
+      "auth_user_id": "user-doctor-rajeshnair",
+      "name": "Dr. Rajesh K. Nair",
+      "email": "dr.rajesh@fortis.health",
+      "phone": "+91 98440 33890",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2025-01-12T09:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-DOC-PRIYA-6041",
+      "registration_id": "REG-DOC-PRIYA-6041",
+      "auth_user_id": "user-doctor-priya",
+      "name": "Dr. Priya R. Sundaram",
+      "email": "dr.priya@apollo.health",
+      "phone": "+91 98402 11980",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2025-01-12T09:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-DOC-ZAID-4771",
+      "registration_id": "REG-DOC-ZAID-4771",
+      "auth_user_id": "user-doctor-zaid",
+      "name": "Dr. Mohammed Zaid",
+      "email": "dr.zaid@aiims.edu",
+      "phone": "+91 98119 55602",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2025-01-12T09:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-ADM-NAMBIAR-0842",
+      "registration_id": "REG-ADM-NAMBIAR-0842",
+      "auth_user_id": "user-admin-nambiar",
+      "name": "Dr. R. K. Nambiar",
+      "email": "admin.nambiar@apollo.health",
+      "phone": "+91 98401 84200",
+      "role": "hospital",
+      "status": "ACTIVE",
+      "created_at": "2025-01-10T08:00:00.000Z",
+      "updated_at": "2026-03-24T12:00:00.000Z"
+    },
+    {
+      "id": "REG-E8A20CC9-AE73-4128-BF44-0296B0268C0D",
+      "registration_id": "REG-E8A20CC9-AE73-4128-BF44-0296B0268C0D",
+      "auth_user_id": "user_1789205001361_77p6mw",
+      "name": "Dr. Kavitha Menon",
+      "email": "kavitha.menon@apollo.org",
+      "phone": "+91 98401 99421",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2026-09-12T09:23:21.361Z",
+      "updated_at": "2026-09-12T09:23:21.361Z"
+    },
+    {
+      "id": "REG-9392E83F-6911-4F83-9C05-E3B035FE7468",
+      "registration_id": "REG-9392E83F-6911-4F83-9C05-E3B035FE7468",
+      "auth_user_id": "user_1789205352744_6lm5qh",
+      "name": "Apollo Greams Trauma Hub",
+      "email": "admin@apollogreams.org",
+      "phone": "+91 44 2829 0200",
+      "role": "hospital",
+      "status": "ACTIVE",
+      "created_at": "2026-09-12T09:29:12.744Z",
+      "updated_at": "2026-09-12T09:29:12.744Z"
+    },
+    {
+      "id": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
+      "createdAt": "2026-09-12T10:10:13.186Z",
+      "updatedAt": "2026-09-12T10:10:13.186Z",
+      "registration_id": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
+      "auth_user_id": "user_1789207813185_ne7p2u",
+      "name": "Dr. Ananya Roy",
+      "email": "test_doc_verify_1@ekavach.gov.in",
+      "phone": "+91 9724854279",
+      "role": "doctor",
+      "status": "ACTIVE",
+      "created_at": "2026-09-12T10:10:13.186Z",
+      "updated_at": "2026-09-12T10:10:13.186Z"
+    }
+  ]
+}

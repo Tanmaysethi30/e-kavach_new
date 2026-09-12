@@ -330,13 +330,6 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                 <span className="material-symbols-outlined text-[18px]">settings</span>
                 Hospital Setup &amp; Details
               </Link>
-              <Link
-                to="/admin/grafana"
-                className="inline-flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white shadow-sm transition-all font-label-lg text-label-lg font-semibold cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-[18px]">monitoring</span>
-                Live Grafana Telemetry
-              </Link>
               <button
                 onClick={handleExportDailyReport}
                 className="inline-flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container-lowest text-primary shadow-sm hover:bg-surface-container-low transition-all font-label-lg text-label-lg font-medium cursor-pointer"

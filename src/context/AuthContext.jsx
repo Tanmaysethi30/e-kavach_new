@@ -7,6 +7,8 @@ const AuthContext = createContext();
 export const roleProfiles = {
   patient: {
     role: 'patient',
+    registration_id: 'REG-PAT-RAJESH-1001',
+    registrationId: 'REG-PAT-RAJESH-1001',
     name: 'Rajesh V. Sharma',
     id: 'ABHA-9824-8819-TN',
     tag: 'Verified Health ID',
@@ -18,6 +20,9 @@ export const roleProfiles = {
   },
   doctor: {
     role: 'doctor',
+    registration_id: 'REG-DOC-KAVITHA-2002',
+    registrationId: 'REG-DOC-KAVITHA-2002',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
     name: 'Dr. Kavitha Menon',
     title: 'Chief Interventional Cardio',
     id: 'NMC: MD-44912-TN',
@@ -27,18 +32,26 @@ export const roleProfiles = {
   },
   hospital: {
     role: 'hospital',
+    registration_id: 'REG-HOSP-ADMIN-3003',
+    registrationId: 'REG-HOSP-ADMIN-3003',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
     name: 'Dr. R. K. Nambiar',
     title: 'Hospital Administrator',
     id: 'AP-HSP-842-TN',
+    email: 'namanjain82670@gmail.com',
     tag: 'VERIFIED ADMIN',
     hospital: 'Apollo Greams Trauma Hub',
     dashboardRoute: '/admin/dashboard',
   },
   admin: {
     role: 'hospital',
+    registration_id: 'REG-HOSP-ADMIN-3003',
+    registrationId: 'REG-HOSP-ADMIN-3003',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
     name: 'Dr. R. K. Nambiar',
     title: 'Hospital Administrator',
     id: 'AP-HSP-842-TN',
+    email: 'namanjain82670@gmail.com',
     tag: 'VERIFIED ADMIN',
     hospital: 'Apollo Greams Trauma Hub',
     dashboardRoute: '/admin/dashboard',
@@ -72,7 +85,15 @@ export function AuthProvider({ children }) {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.user) {
-        const merged = { ...profile, ...data.user, role: normRole, dashboardRoute: profile.dashboardRoute };
+        const regId = data.user.registration_id || data.registration_id || profile.registration_id;
+        const merged = {
+          ...profile,
+          ...data.user,
+          registration_id: regId,
+          registrationId: regId,
+          role: normRole,
+          dashboardRoute: profile.dashboardRoute,
+        };
         setCurrentUser(merged);
         localStorage.setItem('ekavach_user', JSON.stringify(merged));
         syncUserProfileToFirestore(merged);
@@ -159,7 +180,14 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         if (data.user) {
-          const merged = { ...userPayload, ...data.user, profileCompleted: normRole === 'patient' ? false : true };
+          const regId = data.user.registration_id || data.registration_id || `REG-${Date.now()}`;
+          const merged = {
+            ...userPayload,
+            ...data.user,
+            registration_id: regId,
+            registrationId: regId,
+            profileCompleted: normRole === 'patient' ? false : true,
+          };
           setCurrentUser(merged);
           localStorage.setItem('ekavach_user', JSON.stringify(merged));
           syncUserProfileToFirestore(merged);
@@ -170,25 +198,13 @@ export function AuthProvider({ children }) {
         }
       } else {
         const errData = await res.json().catch(() => ({}));
-        if (errData.error && errData.error.toLowerCase().includes('already exists')) {
-          try {
-            return await login(normRole, { identifier: details.email || details.phone || details.aadhaar || details.licenseId, password: details.password });
-          } catch (_loginErr) {
-            throw new Error(errData.error);
-          }
-        }
-        if (errData.error) {
-          throw new Error(errData.error);
-        }
+        const message = errData.error || errData.message || 'Registration failed. Please check your credentials.';
+        throw new Error(message);
       }
     } catch (e) {
-      console.warn('Real-time register sync fallback to local profile:', e);
+      console.warn('Registration attempt failed:', e.message);
+      throw e;
     }
-
-    setCurrentUser(userPayload);
-    localStorage.setItem('ekavach_user', JSON.stringify(userPayload));
-    syncUserProfileToFirestore(userPayload);
-    return normRole === 'patient' ? '/patient/settings#profile' : baseProfile.dashboardRoute;
   };
 
   const updateProfileDetails = (updatedFields) => {
@@ -223,7 +239,8 @@ export function AuthProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         if (data.user) {
-          const merged = { ...profile, ...data.user, role: normRole, dashboardRoute: profile.dashboardRoute };
+          const regId = data.user.registration_id || data.registration_id || profile.registration_id;
+          const merged = { ...profile, ...data.user, registration_id: regId, registrationId: regId, role: normRole, dashboardRoute: profile.dashboardRoute };
           setCurrentUser(merged);
           localStorage.setItem('ekavach_user', JSON.stringify(merged));
           if (data.accessToken) {
@@ -253,8 +270,28 @@ export function AuthProvider({ children }) {
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
+        if (!parsed.registration_id && parsed.registrationId) {
+          parsed.registration_id = parsed.registrationId;
+        }
         setCurrentUser(parsed);
       } catch (_e) {}
+    }
+
+    if (savedToken) {
+      fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${savedToken}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.user) {
+            setCurrentUser((prev) => {
+              const updated = { ...prev, ...data.user };
+              localStorage.setItem('ekavach_user', JSON.stringify(updated));
+              return updated;
+            });
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -278,6 +315,7 @@ export function AuthProvider({ children }) {
       const normRole = role === 'admin' ? 'hospital' : role;
       const baseProfile = roleProfiles[normRole] || roleProfiles.patient;
       const abhaId = normRole === 'patient' ? `ABHA-${gUser.uid.slice(0, 4).toUpperCase()}-${gUser.uid.slice(4, 8).toUpperCase()}-TN` : baseProfile.id;
+      const regId = `REG-GGL-${gUser.uid.slice(0, 8).toUpperCase()}`;
 
       const merged = {
         ...baseProfile,
@@ -285,6 +323,8 @@ export function AuthProvider({ children }) {
         email: gUser.email,
         uid: gUser.uid,
         id: abhaId,
+        registration_id: regId,
+        registrationId: regId,
         photoURL: gUser.photoURL,
         role: normRole,
         dashboardRoute: baseProfile.dashboardRoute,

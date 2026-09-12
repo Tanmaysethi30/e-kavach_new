@@ -93,18 +93,6 @@ export function initTelemetrySocket() {
       }
     });
 
-    socketInstance.on('telemetry:grafana-metrics', (data) => {
-      if (data) {
-        grafanaListeners.forEach((fn) => {
-          try {
-            fn(data);
-          } catch (e) {
-            console.error('Error in grafana metrics listener:', e);
-          }
-        });
-      }
-    });
-
     socketInstance.on('appointment:update', (data) => {
       console.log('⚡ [CLIENT WS] Real-time appointment update received:', data);
       appointmentListeners.forEach((fn) => {
@@ -143,7 +131,6 @@ export function initTelemetrySocket() {
 }
 
 const appointmentListeners = new Set();
-const grafanaListeners = new Set();
 const consentListeners = new Set();
 
 export function subscribeConsentRequests(callback) {
@@ -153,16 +140,6 @@ export function subscribeConsentRequests(callback) {
   }
   return () => {
     consentListeners.delete(callback);
-  };
-}
-
-export function subscribeGrafanaMetrics(callback) {
-  grafanaListeners.add(callback);
-  if (!socketInstance) {
-    initTelemetrySocket();
-  }
-  return () => {
-    grafanaListeners.delete(callback);
   };
 }
 

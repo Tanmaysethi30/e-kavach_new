@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../database/db');
 const redisClient = require('../config/redis');
@@ -9,11 +10,15 @@ const { encryptPII, decryptPII } = require('../utils/crypto');
  */
 function formatUserProfile(user) {
   const role = user.role === 'hospital_admin' ? 'hospital' : user.role;
+  const regId = user.registration_id || user.registration?.registration_id || user.patientProfile?.registration_id || user.doctorProfile?.registration_id || user.hospitalAdminProfile?.registration_id || (user.id ? `REG-${user.id}` : 'REG-UNKNOWN');
 
   if (role === 'patient') {
     const profile = user.patientProfile || {};
     return {
       role: 'patient',
+      registration_id: regId,
+      registrationId: regId,
+      userId: user.id,
       name: profile.name || user.name || 'Rajesh V. Sharma',
       id: profile.abhaNumber ? (profile.abhaNumber.startsWith('ABHA-') ? profile.abhaNumber : `ABHA-${profile.abhaNumber}`) : 'ABHA-9824-8819-TN',
       abhaNumber: profile.abhaNumber || '9824-8819-3320-TN',
@@ -40,6 +45,10 @@ function formatUserProfile(user) {
     const nmcVal = profile.nmcNumber || 'MD-44912-TN';
     return {
       role: 'doctor',
+      registration_id: regId,
+      registrationId: regId,
+      userId: user.id,
+      hospitalRegistrationId: profile.hospitalRegistrationId || 'REG-HOSP-APOLLO-0842',
       name: profile.name || user.name || 'Dr. Kavitha Menon',
       title: profile.title || 'Chief Interventional Cardio',
       id: nmcVal.startsWith('NMC') ? nmcVal : `NMC: ${nmcVal}`,
@@ -64,6 +73,10 @@ function formatUserProfile(user) {
     const profile = user.hospitalAdminProfile || {};
     return {
       role: 'hospital',
+      registration_id: regId,
+      registrationId: regId,
+      userId: user.id,
+      hospitalRegistrationId: profile.hospitalRegistrationId || regId,
       name: profile.name || user.name || 'Dr. R. K. Nambiar',
       title: profile.title || 'Hospital Administrator',
       id: profile.hospitalId ? (profile.hospitalId.startsWith('AP-HSP') ? profile.hospitalId : profile.hospitalId) : 'AP-HSP-842-TN',
@@ -78,6 +91,9 @@ function formatUserProfile(user) {
 
   return {
     role,
+    registration_id: regId,
+    registrationId: regId,
+    userId: user.id,
     name: user.name || user.email,
     id: user.id,
     dashboardRoute: '/',
@@ -89,121 +105,126 @@ class AuthService {
     const normalizedRole = role === 'hospital_admin' ? 'hospital' : role;
 
     const reqEmail = (email || '').trim().toLowerCase();
-    const reqPhone = (phone || additionalDetails.phone || '').trim();
+    const reqPhone = (phone || additionalDetails.phone || additionalDetails.contact || '').trim();
     const reqAadhaar = (additionalDetails.aadhaar || additionalDetails.aadhaarNumber || '').trim();
     const reqLicense = (additionalDetails.licenseId || additionalDetails.licenseNumber || additionalDetails.nmcNumber || '').trim();
     const reqAbha = (additionalDetails.abha || additionalDetails.abhaNumber || '').trim();
+    const reqHospCode = (additionalDetails.regId || additionalDetails.code || additionalDetails.registration_number || additionalDetails.clinicalId || '').trim();
 
-    // 1. Strict 1-to-1 Unique ID Creation Check across Aadhaar, License Number, ABHA ID, Email & Phone
-    let existingUser = null;
-
+    // 1. Authoritative Pre-Check for Duplicate Registrations across Unique Identifiers
+    // Check Email Uniqueness (case-insensitive)
     if (reqEmail) {
-      existingUser = await db.user.findFirst({
+      const existingUserByEmail = await db.user.findFirst({
         where: { email: reqEmail },
-        include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
       });
-    }
-
-    if (!existingUser && reqPhone) {
-      existingUser = await db.user.findFirst({
-        where: { phone: reqPhone },
-        include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
+      const existingRegByEmail = await db.registration.findFirst({
+        where: { email: reqEmail },
       });
-    }
-
-    // Check Aadhaar Uniqueness in Patient Profiles & ABHA Accounts
-    if (!existingUser && reqAadhaar) {
-      const matchedPatient = await db.patientProfile.findFirst({
-        where: { aadhaarNumber: reqAadhaar },
-        include: { user: true },
-      });
-      if (matchedPatient) {
-        existingUser = await db.user.findUnique({
-          where: { id: matchedPatient.userId },
-          include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
-        });
-        if (!existingUser) {
-          const err = new Error(`An account with Aadhaar Number (${reqAadhaar}) already exists. Only one unique Health ID can be created per Aadhaar Number.`);
-          err.statusCode = 400;
-          throw err;
-        }
-      }
-    }
-
-    // Check Doctor License / NMC Number Uniqueness
-    if (!existingUser && reqLicense) {
-      const matchedDoctor = await db.doctorProfile.findFirst({
-        where: { nmcNumber: reqLicense },
-        include: { user: true },
-      });
-      if (matchedDoctor) {
-        existingUser = await db.user.findUnique({
-          where: { id: matchedDoctor.userId },
-          include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
-        });
-        if (!existingUser) {
-          const err = new Error(`An account with Doctor License Number (${reqLicense}) already exists. Only one unique ID can be created per License Number.`);
-          err.statusCode = 400;
-          throw err;
-        }
-      }
-    }
-
-    // Check ABHA Uniqueness
-    if (!existingUser && reqAbha) {
-      const matchedAbha = await db.patientProfile.findFirst({
-        where: { abhaNumber: reqAbha },
-        include: { user: true },
-      });
-      if (matchedAbha && matchedAbha.user) {
-        existingUser = await db.user.findUnique({
-          where: { id: matchedAbha.userId },
-          include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
-        });
-      }
-    }
-
-    // Handle existing user deduplication or password validation
-    if (existingUser) {
-      let isMatch = false;
-      if (password && existingUser.passwordHash) {
-        isMatch = await bcrypt.compare(password, existingUser.passwordHash).catch(() => false);
-      }
-      if (isMatch || password === 'Ekavach@2026' || password === 'Password@123' || !password) {
-        const accessToken = generateAccessToken({ userId: existingUser.id, role: existingUser.role });
-        const refreshToken = generateRefreshToken({ userId: existingUser.id, role: existingUser.role });
-        await redisClient.set(`refresh_token:${existingUser.id}`, refreshToken, 'EX', 7 * 24 * 60 * 60);
-
-        return {
-          user: formatUserProfile(existingUser),
-          accessToken,
-          refreshToken,
-          message: 'Matching unique Health ID found. Logged into single primary account.',
-        };
-      } else {
-        let identifierMsg = 'this email or phone';
-        if (reqAadhaar) identifierMsg = `Aadhaar Number (${reqAadhaar})`;
-        else if (reqLicense) identifierMsg = `License Number (${reqLicense})`;
-        else if (reqAbha) identifierMsg = `ABHA ID (${reqAbha})`;
-
-        const err = new Error(`An account with ${identifierMsg} already exists. Only one unique ID is permitted per Aadhaar / License Number. Please sign in using your existing password.`);
-        err.statusCode = 400;
+      if (existingUserByEmail || existingRegByEmail) {
+        const err = new Error('An account with this email already exists.');
+        err.statusCode = 409;
         throw err;
       }
     }
 
-    // Create New Unique User Account
+    // Check Phone Number Uniqueness (normalized)
+    if (reqPhone) {
+      const existingUserByPhone = await db.user.findFirst({
+        where: { phone: reqPhone },
+      });
+      const existingRegByPhone = await db.registration.findFirst({
+        where: { phone: reqPhone },
+      });
+      if (existingUserByPhone || existingRegByPhone) {
+        const err = new Error('This phone number is already registered.');
+        err.statusCode = 409;
+        throw err;
+      }
+    }
+
+    // Check Hospital Registration Number / License Uniqueness
+    if (normalizedRole === 'hospital' && reqHospCode) {
+      const existingHospital = await db.hospital.findFirst({
+        where: { OR: [{ code: reqHospCode }, { registration_id: reqHospCode }] },
+      });
+      const existingSchema = await db.hospitalSchemaRecords.findFirst({
+        where: { OR: [{ registration_number: reqHospCode }, { registration_id: reqHospCode }] },
+      });
+      if (existingHospital || existingSchema) {
+        const err = new Error('This registration number is already registered.');
+        err.statusCode = 409;
+        throw err;
+      }
+    }
+
+    // Check Doctor License / NMC Number Uniqueness
+    if (normalizedRole === 'doctor' && reqLicense) {
+      const matchedDoctor = await db.doctorProfile.findFirst({
+        where: { OR: [{ nmcNumber: reqLicense }, { licenseId: reqLicense }] },
+      });
+      if (matchedDoctor) {
+        const err = new Error('This medical license number is already registered.');
+        err.statusCode = 409;
+        throw err;
+      }
+    }
+
+    // Check Patient ABHA Number Uniqueness
+    if (normalizedRole === 'patient' && reqAbha) {
+      const matchedAbha = await db.patientProfile.findFirst({
+        where: { abhaNumber: reqAbha },
+      });
+      if (matchedAbha) {
+        const err = new Error('This ABHA number is already registered.');
+        err.statusCode = 409;
+        throw err;
+      }
+    }
+
+    // Check Patient Aadhaar Number Uniqueness
+    if (normalizedRole === 'patient' && reqAadhaar) {
+      const matchedAadhaar = await db.patientProfile.findFirst({
+        where: { aadhaarNumber: reqAadhaar },
+      });
+      if (matchedAadhaar) {
+        const err = new Error('An account with this Aadhaar number already exists.');
+        err.statusCode = 409;
+        throw err;
+      }
+    }
+
+    // Create New Unique User Account with Server-Generated Unique Registration ID
     const finalEmail = reqEmail || `${normalizedRole}_${Date.now()}@ekavach.gov.in`;
     const finalPhone = reqPhone || `+91 ${Math.floor(6000000000 + Math.random() * 3999999999)}`;
     const passwordHash = await bcrypt.hash(password || 'Ekavach@2026', 10);
+    const registration_id = `REG-${crypto.randomUUID().toUpperCase()}`;
 
+    // Database will enforce uniqueness constraints on user and registration insertions
     const user = await db.user.create({
       data: {
+        registration_id,
         email: finalEmail,
         phone: finalPhone,
         passwordHash,
         role: normalizedRole,
         status: 'ACTIVE',
+      },
+    });
+
+    // Create database registration record ensuring unique registration_id
+    const registeredName = name || additionalDetails.name || (normalizedRole === 'doctor' ? 'Dr. Medical Clinician' : normalizedRole === 'hospital' ? 'Hospital Administrator' : 'Registered Patient');
+    await db.registration.create({
+      data: {
+        id: registration_id,
+        registration_id,
+        auth_user_id: user.id,
+        name: registeredName,
+        email: finalEmail,
+        phone: finalPhone,
+        role: normalizedRole,
+        status: 'ACTIVE',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       },
     });
 
@@ -215,6 +236,8 @@ class AuthService {
       const patientProfile = await db.patientProfile.create({
         data: {
           userId: user.id,
+          registration_id,
+          registrationId: registration_id,
           name: patientName,
           abhaNumber: generatedAbha,
           aadhaarNumber: reqAadhaar || '9824-8819-3320',
@@ -264,6 +287,9 @@ class AuthService {
       await db.doctorProfile.create({
         data: {
           userId: user.id,
+          registration_id,
+          registrationId: registration_id,
+          hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
           name: name || additionalDetails.name || 'Dr. Medical Clinician',
           title: additionalDetails.title || 'Specialist Consultant',
           nmcNumber: licenseNum,
@@ -278,14 +304,107 @@ class AuthService {
         },
       });
     } else if (normalizedRole === 'hospital') {
+      const hospName = name || additionalDetails.name || 'Apollo Greams Trauma Hub';
+      const hospCode = additionalDetails.regId || additionalDetails.code || additionalDetails.registration_number || additionalDetails.clinicalId || 'AP-HSP-842-TN';
+      const hospId = additionalDetails.hospitalId || `hosp-${hospCode.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+
+      // Register or link the single hospital unit entity
+      let hosp = await db.hospital.findUnique({ where: { id: hospId } });
+      if (!hosp) {
+        hosp = (await db.hospital.findMany()).find(
+          (h) => h.id === hospId || h.code === hospCode || (h.name && h.name.toLowerCase() === hospName.toLowerCase())
+        );
+      }
+
+      if (!hosp) {
+        hosp = await db.hospital.create({
+          data: {
+            id: hospId,
+            registration_id: `REG-HOSP-${hospCode.toUpperCase().replace(/[^A-Z0-9]/g, '-')}`,
+            name: hospName,
+            code: hospCode,
+            address: additionalDetails.address || '21 Greams Lane, Off Greams Road, Thousand Lights',
+            city: additionalDetails.city || 'Chennai',
+            state: additionalDetails.state || 'Tamil Nadu',
+            pinCode: additionalDetails.pinCode || additionalDetails.pincode || '600006',
+            geoLat: 13.0604,
+            geoLng: 80.2496,
+            departments: ['Emergency & Trauma', 'Cardiology & CCU', 'Intensive Care Unit (ICU)', 'Neurology', 'Orthopedics'],
+            facilities: ['Liquid Cryo Oxygen Tank', 'Invasive Mechanical Ventilators', 'Central Telemetry', 'Trauma Bays', 'Helipad'],
+            contactNumbers: {
+              er: finalPhone || additionalDetails.contact || '+91 44 2829 0200',
+              helpline: '1066',
+              ambulance: '108',
+              email: finalEmail || additionalDetails.email || 'admin@apollo.org',
+            },
+            icuBedsTotal: 50,
+            icuBedsOccupied: 38,
+            wardBedsTotal: 350,
+            wardBedsOccupied: 222,
+            status: 'ACTIVE',
+            accreditation: 'NABH / JCI Accredited',
+            oxygenReservesPct: 98,
+            ventilatorsInUse: 14,
+            ventilatorsTotal: 18,
+            telemetryActivePct: 100,
+          },
+        });
+      }
+
+      // Register the internal database schema variable corresponding to this single unit
+      db.saveHospitalSchema({
+        hospital_id: hosp.id,
+        id: hosp.id,
+        registration_id: hosp.registration_id || 'REG-HOSP-APOLLO-0842',
+        hospital_name: hosp.name,
+        hospital_type: additionalDetails.hospital_type || 'Private',
+        registration_number: hosp.code,
+        contact_number: hosp.contactNumbers?.er || finalPhone,
+        email: hosp.contactNumbers?.email || finalEmail,
+        website: additionalDetails.website || `https://ekavach.gov.in/hospitals/${hosp.code.toLowerCase()}`,
+        address: hosp.address,
+        city: hosp.city,
+        district: hosp.city,
+        state: hosp.state,
+        pincode: hosp.pinCode,
+        latitude: hosp.geoLat || 13.0604,
+        longitude: hosp.geoLng || 80.2496,
+        total_beds: hosp.wardBedsTotal || 350,
+        available_beds: (hosp.wardBedsTotal || 350) - (hosp.wardBedsOccupied || 222),
+        icu_beds: hosp.icuBedsTotal || 50,
+        icu_available: (hosp.icuBedsTotal || 50) - (hosp.icuBedsOccupied || 38),
+        emergency_beds: 24,
+        emergency_available: 8,
+        general_beds: 180,
+        private_beds: 96,
+        ambulance_count: 6,
+        blood_bank_available: true,
+        pharmacy_available: true,
+        diagnostic_available: true,
+        operation_theatre_count: 8,
+        ventilator_count: hosp.ventilatorsTotal || 18,
+        oxygen_beds: 80,
+        specialities: hosp.departments,
+        services: ['24x7 Emergency Care', 'Advanced Life Support Ambulance', 'Invasive Ventilation', 'Cardiac Catheterization', 'Trauma Resuscitation'],
+        opening_time: '00:00',
+        closing_time: '23:59',
+        emergency_24x7: true,
+        admin_name: name || 'Hospital Administrator',
+        admin_phone: finalPhone,
+        status: 'Approved',
+      });
+
       await db.hospitalAdminProfile.create({
         data: {
           userId: user.id,
-          hospitalId: additionalDetails.hospitalId || 'hosp-apollo-greams',
+          registration_id,
+          registrationId: registration_id,
+          hospitalId: hosp.id,
+          hospitalRegistrationId: hosp.registration_id || 'REG-HOSP-APOLLO-0842',
           name: name || additionalDetails.name || 'Hospital Administrator',
           title: additionalDetails.title || 'Hospital Administrator',
           designation: additionalDetails.designation || 'Medical Superintendent',
-          tag: 'VERIFIED ADMIN',
+          tag: hosp.code,
         },
       });
     }
@@ -293,6 +412,7 @@ class AuthService {
     const fullUser = await db.user.findUnique({
       where: { id: user.id },
       include: {
+        registration: true,
         patientProfile: true,
         doctorProfile: true,
         hospitalAdminProfile: true,
@@ -314,23 +434,51 @@ class AuthService {
     const searchTarget = (identifier || email || phone || '').trim();
 
     if (searchTarget) {
-      // 1. Search by exact email or phone
+      // 1. Search by exact email, phone, registration_id, or id
       user = await db.user.findFirst({
         where: {
           OR: [
             { email: searchTarget.toLowerCase() },
             { phone: searchTarget },
+            { registration_id: searchTarget },
             { id: searchTarget },
           ],
         },
         include: {
+          registration: true,
           patientProfile: true,
           doctorProfile: true,
           hospitalAdminProfile: true,
         },
       });
 
-      // 2. Search Doctor Profile by License / NMC Number
+      // 1b. Search registration table by registration_id or auth_user_id
+      if (!user) {
+        const regRecord = await db.registration.findFirst({
+          where: {
+            OR: [
+              { registration_id: searchTarget },
+              { id: searchTarget },
+              { auth_user_id: searchTarget },
+            ],
+          },
+          include: {
+            user: {
+              include: {
+                registration: true,
+                patientProfile: true,
+                doctorProfile: true,
+                hospitalAdminProfile: true,
+              },
+            },
+          },
+        });
+        if (regRecord && regRecord.user) {
+          user = regRecord.user;
+        }
+      }
+
+      // 2. Search Doctor Profile by License / NMC Number or registration_id
       if (!user) {
         const doctorProf = await db.doctorProfile.findFirst({
           where: {
@@ -338,25 +486,27 @@ class AuthService {
               { nmcNumber: searchTarget },
               { nmcNumber: `NMC-${searchTarget}` },
               { nmcNumber: `NMC: ${searchTarget}` },
+              { registration_id: searchTarget },
             ],
           },
-          include: { user: { include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true } } },
+          include: { user: { include: { registration: true, patientProfile: true, doctorProfile: true, hospitalAdminProfile: true } } },
         });
         if (doctorProf && doctorProf.user) {
           user = doctorProf.user;
         }
       }
 
-      // 3. Search Patient Profile by ABHA Number or Aadhaar
+      // 3. Search Patient Profile by ABHA Number, Aadhaar, or registration_id
       if (!user) {
         const patientProf = await db.patientProfile.findFirst({
           where: {
             OR: [
               { abhaNumber: searchTarget },
               { aadhaarNumber: searchTarget },
+              { registration_id: searchTarget },
             ],
           },
-          include: { user: { include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true } } },
+          include: { user: { include: { registration: true, patientProfile: true, doctorProfile: true, hospitalAdminProfile: true } } },
         });
         if (patientProf && patientProf.user) {
           user = patientProf.user;
@@ -370,9 +520,10 @@ class AuthService {
             OR: [
               { hospitalId: searchTarget },
               { adminCode: searchTarget },
+              { registration_id: searchTarget },
             ],
           },
-          include: { user: { include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true } } },
+          include: { user: { include: { registration: true, patientProfile: true, doctorProfile: true, hospitalAdminProfile: true } } },
         });
         if (adminProf && adminProf.user) {
           user = adminProf.user;
@@ -386,6 +537,7 @@ class AuthService {
       user = await db.user.findFirst({
         where: { role: targetRole },
         include: {
+          registration: true,
           patientProfile: true,
           doctorProfile: true,
           hospitalAdminProfile: true,
@@ -577,8 +729,10 @@ class AuthService {
       // Create user with provided identifier and new password
       const normRole = role === 'hospital_admin' ? 'hospital' : role;
       const isEmail = identifier.includes('@');
+      const registration_id = `REG-${crypto.randomUUID().toUpperCase()}`;
       user = await db.user.create({
         data: {
+          registration_id,
           email: isEmail ? identifier : `${identifier.replace(/\s+/g, '').toLowerCase()}@ekavach.health`,
           phone: !isEmail ? identifier : undefined,
           passwordHash,
@@ -587,10 +741,27 @@ class AuthService {
         },
       });
 
+      await db.registration.create({
+        data: {
+          id: registration_id,
+          registration_id,
+          auth_user_id: user.id,
+          name: normRole === 'doctor' ? 'Dr. Medical Clinician' : normRole === 'hospital' ? 'Hospital Administrator' : 'Registered Patient',
+          email: user.email,
+          phone: user.phone || identifier,
+          role: normRole,
+          status: 'ACTIVE',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      });
+
       if (normRole === 'patient') {
         await db.patientProfile.create({
           data: {
             userId: user.id,
+            registration_id,
+            registrationId: registration_id,
             name: 'Registered Patient',
             abhaNumber: isEmail ? `9824-8819-${Math.floor(1000 + Math.random() * 9000)}-TN` : identifier,
             hospitalAffiliation: 'Apollo Greams Trauma Hub',
@@ -600,6 +771,9 @@ class AuthService {
         await db.doctorProfile.create({
           data: {
             userId: user.id,
+            registration_id,
+            registrationId: registration_id,
+            hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
             name: 'Dr. Medical Clinician',
             title: 'Specialist Consultant',
             nmcNumber: identifier,
@@ -611,7 +785,10 @@ class AuthService {
         await db.hospitalAdminProfile.create({
           data: {
             userId: user.id,
+            registration_id,
+            registrationId: registration_id,
             hospitalName: 'Apollo Greams Trauma Hub',
+            hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
             adminCode: identifier,
           },
         });
@@ -619,7 +796,7 @@ class AuthService {
 
       user = await db.user.findUnique({
         where: { id: user.id },
-        include: { patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
+        include: { registration: true, patientProfile: true, doctorProfile: true, hospitalAdminProfile: true },
       });
     }
 
@@ -647,6 +824,7 @@ class AuthService {
     let user = await db.user.findFirst({
       where: { email },
       include: {
+        registration: true,
         patientProfile: true,
         doctorProfile: true,
         hospitalAdminProfile: true,
@@ -674,6 +852,21 @@ class AuthService {
       refreshToken,
       message: 'Google Sign-In authenticated via local database pipeline',
     };
+  }
+
+  async getMe(userId) {
+    if (!userId) throw new Error('User ID is required');
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      include: {
+        registration: true,
+        patientProfile: true,
+        doctorProfile: true,
+        hospitalAdminProfile: true,
+      },
+    });
+    if (!user) throw new Error('User account not found');
+    return formatUserProfile(user);
   }
 
   async logout(userId) {

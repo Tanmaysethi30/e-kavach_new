@@ -42,6 +42,8 @@ async function authenticateToken(req, res, next) {
     if (fallbackUser) {
       req.user = {
         id: fallbackUser.id,
+        registration_id: fallbackUser.registration_id,
+        registrationId: fallbackUser.registration_id,
         email: fallbackUser.email,
         role: fallbackUser.role,
         patientProfile: fallbackUser.patientProfile || null,
@@ -84,6 +86,8 @@ async function authenticateToken(req, res, next) {
   // Attach session context
   req.user = {
     id: user.id,
+    registration_id: user.registration_id,
+    registrationId: user.registration_id,
     email: user.email,
     role: user.role, // 'patient' | 'doctor' | 'hospital'
     patientProfile: user.patientProfile || null,
