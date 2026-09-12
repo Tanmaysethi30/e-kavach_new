@@ -205,6 +205,33 @@ class PatientController {
       next(err);
     }
   }
+
+  async getNearbyHospitals(req, res, next) {
+    try {
+      const result = await patientService.getNearbyHospitals(req.query);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getRoute(req, res, next) {
+    try {
+      const result = await patientService.getRoute(req.query);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getIpLocation(req, res, next) {
+    try {
+      const result = await patientService.getIpLocation(req.ip);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new PatientController();

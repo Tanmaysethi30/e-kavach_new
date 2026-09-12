@@ -184,10 +184,27 @@ class InMemoryRepository {
         this.data = JSON.parse(raw);
         console.log('✅ Connected to local disk database pipeline (local_db.json)');
         
+        // Ensure all seed hospitals are present
+        if (!this.data.hospital || !Array.isArray(this.data.hospital)) {
+          this.data.hospital = JSON.parse(JSON.stringify(seedHospitals));
+        } else {
+          seedHospitals.forEach(sh => {
+            if (!this.data.hospital.some(h => h.id === sh.id)) {
+              this.data.hospital.push(JSON.parse(JSON.stringify(sh)));
+            }
+          });
+        }
+
         // Ensure hospitalSchemaRecords is populated
         if (!this.data.hospitalSchemaRecords || !Array.isArray(this.data.hospitalSchemaRecords) || this.data.hospitalSchemaRecords.length === 0) {
           this.data.hospitalSchemaRecords = JSON.parse(JSON.stringify(seedHospitalSchemaRecords));
         } else {
+          seedHospitalSchemaRecords.forEach(sr => {
+            const matchIndex = this.data.hospitalSchemaRecords.findIndex(r => r.hospital_id === sr.hospital_id || r.id === sr.hospital_id);
+            if (matchIndex === -1) {
+              this.data.hospitalSchemaRecords.push(JSON.parse(JSON.stringify(sr)));
+            }
+          });
           // Guarantee each record has both id and hospital_id
           this.data.hospitalSchemaRecords.forEach(rec => {
             if (!rec.id) rec.id = rec.hospital_id;
@@ -889,6 +906,9 @@ class InMemoryRepository {
     if (!this.data.hospitalSchemaRecords || !this.data.hospitalSchemaRecords.length) {
       this.data.hospitalSchemaRecords = JSON.parse(JSON.stringify(seedHospitalSchemaRecords));
     }
+    if (!hospitalId) {
+      return JSON.parse(JSON.stringify(this.data.hospitalSchemaRecords[0] || seedHospitalSchemaRecords[0]));
+    }
     const rec = this.data.hospitalSchemaRecords.find(
       (h) =>
         h.hospital_id === hospitalId ||
@@ -897,7 +917,56 @@ class InMemoryRepository {
         (h.hospital_name && String(hospitalId).toLowerCase() === h.hospital_name.toLowerCase())
     );
     if (rec) return JSON.parse(JSON.stringify(rec));
-    return JSON.parse(JSON.stringify(this.data.hospitalSchemaRecords[0] || seedHospitalSchemaRecords[0]));
+
+    // Check if hospital exists in this.data.hospital
+    const hosp = (this.data.hospital || []).find(h => h.id === hospitalId || (h.name && h.name.toLowerCase() === String(hospitalId).toLowerCase()));
+    if (hosp) {
+      return {
+        hospital_id: hosp.id,
+        id: hosp.id,
+        registration_id: hosp.registration_id || `REG-${hosp.id}`,
+        hospital_name: hosp.name,
+        hospital_type: hosp.id.includes('STANLEY') || hosp.id.includes('AIIMS') ? 'Government' : 'Private',
+        registration_number: hosp.code || `REG-${hosp.id}`,
+        contact_number: hosp.contactNumbers?.er || '+91 44 2829 0200',
+        email: 'info@hospital.org',
+        website: '',
+        address: hosp.address,
+        city: hosp.city,
+        district: hosp.city,
+        state: hosp.state,
+        pincode: hosp.pinCode,
+        latitude: hosp.geoLat,
+        longitude: hosp.geoLng,
+        total_beds: hosp.wardBedsTotal || 350,
+        available_beds: Math.max(10, (hosp.wardBedsTotal || 350) - (hosp.wardBedsOccupied || 280)),
+        icu_beds: hosp.icuBedsTotal || 30,
+        icu_available: Math.max(1, (hosp.icuBedsTotal || 30) - (hosp.icuBedsOccupied || 25)),
+        emergency_beds: 12,
+        emergency_available: 4,
+        general_beds: Math.round((hosp.wardBedsTotal || 350) * 0.6),
+        private_beds: Math.round((hosp.wardBedsTotal || 350) * 0.3),
+        ambulance_count: 5,
+        blood_bank_available: true,
+        pharmacy_available: true,
+        diagnostic_available: true,
+        operation_theatre_count: 10,
+        ventilator_count: 18,
+        oxygen_beds: Math.round((hosp.wardBedsTotal || 350) * 0.3),
+        specialities: hosp.departments || ['Emergency & Trauma', 'Critical Care'],
+        services: ['24x7 Emergency Care', 'OPD Consultations', 'IPD Ward Inpatient', 'Pharmacy 24x7'],
+        opening_time: '00:00',
+        closing_time: '23:59',
+        emergency_24x7: true,
+        admin_name: 'Hospital Administrator',
+        admin_phone: hosp.contactNumbers?.er || '+91 94440 28290',
+        status: hosp.status || 'Approved',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    return null;
   }
 
   saveHospitalSchema(schemaData = {}) {

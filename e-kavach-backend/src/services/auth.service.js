@@ -207,14 +207,24 @@ class AuthService {
     }
 
     // Check Doctor License / NMC Number Uniqueness
+    let existingPreCreatedDoctor = null;
     if (normalizedRole === 'doctor' && reqLicense) {
-      const matchedDoctor = await db.doctorProfile.findFirst({
-        where: { OR: [{ nmcNumber: reqLicense }, { licenseId: reqLicense }] },
-      });
+      const normalizeNmc = (v) => (v || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const allDoctors = await db.doctorProfile.findMany();
+      const matchedDoctor = allDoctors.find(
+        (d) =>
+          normalizeNmc(d.nmcNumber) === normalizeNmc(reqLicense) ||
+          normalizeNmc(d.licenseId) === normalizeNmc(reqLicense)
+      );
       if (matchedDoctor) {
-        const err = new Error('This medical license number is already registered.');
-        err.statusCode = 409;
-        throw err;
+        if (matchedDoctor.userId) {
+          const err = new Error('This medical license number is already registered.');
+          err.statusCode = 409;
+          throw err;
+        } else {
+          // Pre-created by a hospital without a user account! We will link it below.
+          existingPreCreatedDoctor = matchedDoctor;
+        }
       }
     }
 
@@ -342,26 +352,47 @@ class AuthService {
     } else if (normalizedRole === 'doctor') {
       const licenseNum = reqLicense || `MD-${Math.floor(10000 + Math.random() * 90000)}-TN`;
       const docName = name || additionalDetails.name || 'Dr. Medical Clinician';
-      await db.doctorProfile.create({
-        data: {
-          userId: user.id,
-          registration_id,
-          registrationId: registration_id,
-          hospitalRegistrationId: `REG-HOSP-${Math.floor(1000 + Math.random() * 9000)}`,
-          name: docName,
-          phone: finalPhone,
-          title: additionalDetails.title || 'Clinical Specialist',
-          nmcNumber: licenseNum,
-          specialization: additionalDetails.specialization || 'General Medicine',
-          hospitalAffiliation: additionalDetails.hospital || 'Clinical Health Network',
-          department: additionalDetails.department || 'General Medicine',
-          tag: `ID-${Math.floor(1000 + Math.random() * 9000)}`,
-          degrees: additionalDetails.degrees || 'MBBS',
-          experienceYears: additionalDetails.experienceYears || 5,
-          consultationFee: additionalDetails.consultationFee || 500,
-          availableSlots: ['09:30 AM', '11:00 AM', '02:30 PM', '04:00 PM', '05:30 PM'],
-        },
-      });
+
+      if (existingPreCreatedDoctor) {
+        // Link the registered user to the pre-created hospital doctor profile
+        await db.doctorProfile.update({
+          where: { id: existingPreCreatedDoctor.id },
+          data: {
+            userId: user.id,
+            registration_id: existingPreCreatedDoctor.registration_id || registration_id,
+            registrationId: existingPreCreatedDoctor.registration_id || registration_id,
+            name: docName || existingPreCreatedDoctor.name,
+            phone: finalPhone || existingPreCreatedDoctor.phone,
+            title: additionalDetails.title || existingPreCreatedDoctor.title || 'Clinical Specialist',
+            specialization: additionalDetails.specialization || existingPreCreatedDoctor.specialization || 'General Medicine',
+            hospitalAffiliation: existingPreCreatedDoctor.hospitalAffiliation || additionalDetails.hospital || 'Clinical Health Network',
+            department: existingPreCreatedDoctor.department || additionalDetails.department || 'General Medicine',
+            degrees: additionalDetails.degrees || existingPreCreatedDoctor.degrees || 'MBBS',
+            status: 'Available',
+          },
+        });
+      } else {
+        await db.doctorProfile.create({
+          data: {
+            userId: user.id,
+            registration_id,
+            registrationId: registration_id,
+            hospitalRegistrationId: `REG-HOSP-${Math.floor(1000 + Math.random() * 9000)}`,
+            name: docName,
+            phone: finalPhone,
+            title: additionalDetails.title || 'Clinical Specialist',
+            nmcNumber: licenseNum,
+            specialization: additionalDetails.specialization || 'General Medicine',
+            hospitalAffiliation: additionalDetails.hospital || 'Clinical Health Network',
+            department: additionalDetails.department || 'General Medicine',
+            tag: `ID-${Math.floor(1000 + Math.random() * 9000)}`,
+            degrees: additionalDetails.degrees || 'MBBS',
+            experienceYears: additionalDetails.experienceYears || 5,
+            consultationFee: additionalDetails.consultationFee || 500,
+            availableSlots: ['09:30 AM', '11:00 AM', '02:30 PM', '04:00 PM', '05:30 PM'],
+          },
+        });
+      }
     } else if (normalizedRole === 'hospital') {
       const hospName = name || additionalDetails.name || 'Apollo Greams Trauma Hub';
       const hospCode = additionalDetails.regId || additionalDetails.code || additionalDetails.registration_number || additionalDetails.clinicalId || 'AP-HSP-842-TN';

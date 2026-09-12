@@ -91,6 +91,20 @@ class SocketService {
     }
   }
 
+  broadcastEmergencyAlert(data) {
+    if (this.io) {
+      console.log('🚨 [WS] Broadcasting emergency alert:', data.type || 'EMERGENCY_ALERT');
+      this.io.emit('emergency:alert', {
+        timestamp: new Date().toISOString(),
+        ...data,
+      });
+      this.io.emit('notification:push', {
+        timestamp: new Date().toISOString(),
+        ...data,
+      });
+    }
+  }
+
   startLivePulse() {
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
 

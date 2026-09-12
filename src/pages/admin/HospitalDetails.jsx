@@ -62,7 +62,7 @@ export default function HospitalDetails() {
   const [registeredUnit, setRegisteredUnit] = useState({
     registration_id: currentUser?.registration_id || currentUser?.registrationId || 'REG-HOSP-ADMIN-3003',
     hospital_id: currentUser?.id || 'hosp-apollo-greams',
-    hospital_name: currentUser?.hospital || currentUser?.name || 'Apollo Greams Trauma Hub',
+    hospital_name: (typeof currentUser?.hospital === 'object' && currentUser?.hospital !== null ? (currentUser.hospital.name || currentUser.hospital.hospital_name) : currentUser?.hospital) || currentUser?.name || 'Apollo Greams Trauma Hub',
     hospital_type: 'Private',
     registration_number: currentUser?.tag || 'AP-HSP-842-TN',
     contact_number: currentUser?.phone || '+91 44 2829 0200',
@@ -151,7 +151,7 @@ export default function HospitalDetails() {
   // 1. Fetch live Hospital details from database on mount or user change
   useEffect(() => {
     fetchHospitalData();
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.registration_id]);
 
   const fetchHospitalData = async () => {
     setLoading(true);

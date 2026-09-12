@@ -28,7 +28,9 @@ export default function AppointmentSlipModal({ appointment, onClose, onCancelSlo
   const patientGender = meta.patientGender || 'Male';
   const doctorName = apt.doctorProfile?.name || 'Dr. Kavitha Menon';
   const doctorSpec = apt.doctorProfile?.specialization || apt.department || 'Cardiology Unit';
-  const hospitalName = apt.hospital?.name || 'Apollo Greams Trauma Hub, Chennai';
+  const hospitalName = (typeof apt.hospital === 'object' && apt.hospital !== null ? (apt.hospital.name || apt.hospital.hospital_name) : null)
+    || (typeof apt.hospital === 'string' ? apt.hospital : null)
+    || 'Apollo Greams Trauma Hub, Chennai';
 
   const handleCopyToken = () => {
     try {

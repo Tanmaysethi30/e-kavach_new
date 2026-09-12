@@ -1,14 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import EmergencyMarquee from '../common/EmergencyMarquee';
 import Avatar from '../common/Avatar';
 import LogoImg from '../../assets/images/Logo.jpg';
 import { useAuth } from '../../context/AuthContext';
+import { subscribeEmergencyAlert } from '../../services/telemetry';
 
 export default function PatientLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [emergencyAlert, setEmergencyAlert] = useState(null);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Listen for real-time break-glass emergency alerts via WebSocket
+  useEffect(() => {
+    const unsubscribe = subscribeEmergencyAlert((alertData) => {
+      console.log('🚨 Received real-time emergency break-glass alert in PatientLayout:', alertData);
+      setEmergencyAlert(alertData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const isProfileIncomplete = currentUser?.role === 'patient' && currentUser?.profileCompleted === false;
 
@@ -43,7 +54,6 @@ export default function PatientLayout() {
     { to: '/patient/appointments', label: 'Appointments', icon: 'event_available' },
     { to: '/patient/emergency', label: 'Hospital ER Access', icon: 'emergency' },
     { to: '/patient/health-history', label: 'Prescriptions & History', icon: 'prescriptions' },
-    { to: '/patient/scan', label: 'Patient QR Scan', icon: 'qr_code_scanner' },
     { to: '/patient/schemes', label: 'Government Schemes', icon: 'policy' },
     { to: '/patient/messages', label: 'Messages / Consults', icon: 'forum' },
     { to: '/patient/settings', label: 'Settings', icon: 'settings' },
@@ -234,6 +244,48 @@ export default function PatientLayout() {
           className="w-full flex-1 bg-surface px-4 sm:px-space-xl py-space-lg"
           style={{ paddingTop: 'calc(28px + 4.5rem)' }}
         >
+          {emergencyAlert && (
+            <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-red-950 via-rose-950 to-red-900 border-2 border-rose-500 text-white shadow-2xl animate-fade-in flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-600 border border-rose-400 flex items-center justify-center shrink-0 shadow animate-pulse">
+                  <span className="material-symbols-outlined text-white text-[24px]">emergency_home</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="bg-rose-800 text-rose-100 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded font-mono border border-rose-600">
+                      🚨 ABDM REGULATORY ALERT
+                    </span>
+                    <span className="text-xs text-amber-300 font-mono font-bold">
+                      Emergency Break-Glass Override Executed
+                    </span>
+                    <span className="text-xs text-rose-200 font-mono">
+                      Ref: {emergencyAlert.breakGlassRef || 'EK-BG-9912'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-rose-100 mt-1 leading-relaxed max-w-2xl">
+                    Your complete health records have been accessed by <strong>{emergencyAlert.doctorName || 'Emergency Physician'}</strong> (NMC Reg: <code className="bg-rose-900/60 px-1 py-0.5 rounded text-amber-200">{emergencyAlert.nmcNumber || 'MD-NMC-VERIFIED'}</code>) at <strong>{emergencyAlert.hospital || 'Trauma Emergency Center'}</strong> for clinical reason: <em>"{emergencyAlert.reason || 'Critical Emergency Triage'}"</em>.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                <Link
+                  to="/patient/health-history"
+                  className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition-colors shadow-sm no-underline"
+                >
+                  View Clinical Audit Log
+                </Link>
+                <button
+                  onClick={() => setEmergencyAlert(null)}
+                  className="p-1.5 text-rose-300 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                  type="button"
+                  title="Acknowledge & Close"
+                >
+                  <span className="material-symbols-outlined text-[18px]">close</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           <Outlet />
         </main>
       </div>

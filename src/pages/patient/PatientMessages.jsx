@@ -193,7 +193,9 @@ export default function PatientMessages() {
                           {c.name}
                         </h3>
                         <span className="text-outline-variant">•</span>
-                        <span className="font-body-sm text-body-sm text-on-surface-variant truncate">{c.hospital}</span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                          {typeof c.hospital === 'object' && c.hospital !== null ? (c.hospital.name || c.hospital.hospital_name) : c.hospital}
+                        </span>
                         <span className={`px-space-xs py-1 rounded-full font-label-sm text-label-sm font-semibold ml-1 ${c.badgeBg}`}>
                           {c.badge}
                         </span>

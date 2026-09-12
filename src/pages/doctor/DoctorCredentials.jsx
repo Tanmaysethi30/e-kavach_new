@@ -23,10 +23,14 @@ export default function DoctorCredentials() {
       }
     };
     loadCreds();
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.registration_id]);
 
   const nmcLicense = credentials?.nmcNumber || currentUser?.nmcNumber || currentUser?.licenseId || 'MD-44912-TN';
-  const hospitalNode = credentials?.hospital || currentUser?.hospital || 'Apollo Main Greams Road • Node 09 Cluster (Trauma Bay 3)';
+  const hospitalNode = (typeof credentials?.hospital === 'object' && credentials?.hospital !== null ? (credentials.hospital.name || credentials.hospital.hospital_name) : null)
+    || (typeof currentUser?.hospital === 'object' && currentUser?.hospital !== null ? (currentUser.hospital.name || currentUser.hospital.hospital_name) : null)
+    || credentials?.hospital
+    || currentUser?.hospital
+    || 'Apollo Main Greams Road • Node 09 Cluster (Trauma Bay 3)';
   const docHprId = credentials?.hprId || currentUser?.id || currentUser?.registration_id || 'DOC-9082-IND';
 
   const showToast = (msg) => {

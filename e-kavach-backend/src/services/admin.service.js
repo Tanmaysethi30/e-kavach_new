@@ -452,15 +452,61 @@ class AdminService {
     return await db.doctorProfile.findMany();
   }
 
-  async createDoctor(data) {
+  async createDoctor(data, user = null) {
+    const rawNmc = (data.nmc || data.nmcNumber || data.licenseId || '').trim();
+    const normalizeNmc = (val) => (val || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanInputNmc = normalizeNmc(rawNmc);
+
+    // Resolve hospital name from user context, schema, or default
+    let hospitalAffiliation = data.hospitalAffiliation || data.hospital;
+    if (!hospitalAffiliation && user) {
+      hospitalAffiliation = user.hospital || user.name;
+    }
+    if (!hospitalAffiliation) {
+      hospitalAffiliation = 'Apollo Greams Trauma Hub';
+    }
+
+    // Check if doctor with provided NMC number / license already exists
+    let existingDoctor = null;
+    if (cleanInputNmc) {
+      const allDoctors = await db.doctorProfile.findMany();
+      existingDoctor = allDoctors.find(
+        (d) =>
+          normalizeNmc(d.nmcNumber) === cleanInputNmc ||
+          normalizeNmc(d.licenseId) === cleanInputNmc ||
+          (d.id && d.id.toLowerCase() === rawNmc.toLowerCase()) ||
+          (d.registration_id && normalizeNmc(d.registration_id) === cleanInputNmc)
+      );
+    }
+
+    if (existingDoctor) {
+      // Doctor exists: Link and update affiliation to this hospital with active clinical standing
+      const updated = await db.doctorProfile.update({
+        where: { id: existingDoctor.id },
+        data: {
+          hospitalAffiliation,
+          department: data.department || data.ward || existingDoctor.department || 'General OPD',
+          status: data.status || 'Available',
+          specialization: data.specialty || data.specialization || existingDoctor.specialization,
+          degrees: data.degrees || existingDoctor.degrees || 'MD, DM',
+        },
+      });
+      try {
+        socketService.broadcastTelemetry('doctor:updated', updated);
+      } catch (_e) {}
+      return { ...updated, linked: true };
+    }
+
+    // New doctor: Create fresh profile
+    const nmcNumber = rawNmc || `TN-MC-${Math.floor(10000 + Math.random() * 90000)}`;
     const doctor = await db.doctorProfile.create({
       data: {
         name: data.name.startsWith('Dr.') ? data.name : `Dr. ${data.name}`,
         title: data.title || `${data.specialty || 'Specialist'} - Consultant`,
-        nmcNumber: data.nmc || data.nmcNumber || `TN-MC-${Math.floor(10000 + Math.random() * 90000)}`,
+        nmcNumber,
         specialization: data.specialty || data.specialization || 'Interventional Cardiology',
         department: data.department || data.ward || 'Cardiology',
-        hospitalAffiliation: data.hospitalAffiliation || 'Apollo Greams Trauma Hub',
+        hospitalAffiliation,
         degrees: data.degrees || 'MD, DM',
         credentialStatus: 'VERIFIED',
         consultationFee: typeof data.consultationFee === 'number' ? data.consultationFee : 800,
@@ -472,7 +518,7 @@ class AdminService {
     try {
       socketService.broadcastTelemetry('doctor:updated', doctor);
     } catch (_e) {}
-    return doctor;
+    return { ...doctor, linked: false };
   }
 
   async updateDoctor(id, data) {

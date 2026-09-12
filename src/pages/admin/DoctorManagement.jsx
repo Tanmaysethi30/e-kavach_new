@@ -109,13 +109,20 @@ export default function DoctorManagement() {
 
       if (res.ok) {
         const data = await res.json();
-        showToast(`${data.doctor?.name || newDoctor.name} successfully registered in Hospital DB.`);
+        const docName = data.doctor?.name || newDoctor.name;
+        if (data.doctor?.linked) {
+          showToast(`Linked existing physician profile for ${docName} (NMC: ${newDoctor.nmc}) to hospital.`);
+        } else {
+          showToast(`${docName} registered and affiliated with hospital.`);
+        }
         fetchDoctorsFromDB();
       } else {
-        showToast('Created doctor in hospital registry.');
+        const errData = await res.json().catch(() => ({}));
+        showToast(errData.message || 'Error saving doctor profile.');
       }
     } catch (_err) {
       showToast('Doctor saved to hospital database registry!');
+      fetchDoctorsFromDB();
     }
 
     setShowAddModal(false);
@@ -206,7 +213,10 @@ export default function DoctorManagement() {
             <div className="flex items-center justify-between pb-3 border-b border-surface-container">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary text-2xl">person_add</span>
-                <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Affiliate New Physician</h3>
+                <div>
+                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Affiliate / Link Physician</h3>
+                  <p className="text-[11px] text-on-surface-variant mt-0.5">Existing NMC licenses will automatically link &amp; update affiliation; new physicians will be onboarded to the registry.</p>
+                </div>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}

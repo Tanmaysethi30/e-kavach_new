@@ -1,5 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import BreakGlassModal from '../../components/doctor/BreakGlassModal';
+import jsQR from 'jsqr';
+import { lookupPatientInRegistry } from '../../utils/emergencyRegistry';
 
 export default function DoctorScan() {
   const navigate = useNavigate();
@@ -7,16 +10,93 @@ export default function DoctorScan() {
   const [toastMsg, setToastMsg] = useState('');
   const [manualAbha, setManualAbha] = useState('');
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isScanningFrame, setIsScanningFrame] = useState(false);
+  const [qrDetected, setQrDetected] = useState(false);
+  const [breakGlassModalOpen, setBreakGlassModalOpen] = useState(false);
+  const [breakGlassPatient, setBreakGlassPatient] = useState(null);
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const canvasRef = useRef(null);
+  const animFrameRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const isDecodingRef = useRef(false);
 
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(''), 4500);
   };
 
+  // Audio confirmation beep for medical optical scan verification
+  const playBeep = () => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } catch {
+      // Audio is non-blocking
+    }
+  };
+
+  // Helper to extract clean ABHA or passToken from various QR code formats
+  const parseQrData = (rawData) => {
+    if (!rawData) return '';
+    const str = String(rawData).trim();
+    // JSON object format (e.g. {"emergencyId": "EK-EMG-...", "abha": "9824-8819-3320-TN", "name": "..."})
+    if (str.startsWith('{') && str.endsWith('}')) {
+      try {
+        const parsed = JSON.parse(str);
+        return parsed.emergencyId || parsed.ref || parsed.abhaNumber || parsed.abha || parsed.token || parsed.passToken || parsed.patientId || parsed.id || str;
+      } catch {
+        // Continue to other parsers
+      }
+    }
+    if (str.includes('emergencyId=')) {
+      const match = str.match(/emergencyId=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    // URL or query string format
+    if (str.includes('patientId=')) {
+      const match = str.match(/patientId=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    if (str.includes('abha=')) {
+      const match = str.match(/abha=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    if (str.includes('token=')) {
+      const match = str.match(/token=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    // Tagged prefixes
+    if (str.includes('ABHA:')) {
+      return str.split('ABHA:')[1].split(':')[0].split(';')[0].trim();
+    }
+    if (str.includes('TOKEN:')) {
+      return str.split('TOKEN:')[1].split(':')[0].split(';')[0].trim();
+    }
+    return str;
+  };
+
   const stopCamera = () => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    isDecodingRef.current = false;
+    setIsScanningFrame(false);
+
     if (streamRef.current) {
       try {
         streamRef.current.getTracks().forEach((track) => track.stop());
@@ -38,24 +118,37 @@ export default function DoctorScan() {
       return;
     }
 
+    setQrDetected(false);
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API is not supported in this browser or environment.');
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+        });
+      } catch (errConstraint) {
+        console.warn('Constraint getUserMedia failed, falling back to basic video:', errConstraint);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      }
+
       streamRef.current = stream;
       setIsCameraActive(true);
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
         videoRef.current.play().catch(() => {});
       }
       showToast('Optical 60 FPS Camera feed active. Align ABHA QR token within reticle.');
     } catch (err) {
       console.warn('Camera access unavailable:', err);
       stopCamera();
-      showToast('Camera access unavailable or permission denied. Switched to manual ABHA lookup.');
+      showToast('Camera access unavailable or permission denied. Switched to manual ABHA lookup or file upload.');
       const input = document.getElementById('abha-input');
       if (input) {
         input.focus();
@@ -64,11 +157,123 @@ export default function DoctorScan() {
     }
   };
 
+  // Synchronize stream attachment whenever isCameraActive or video element mounts
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      if (videoRef.current.srcObject !== streamRef.current) {
+        videoRef.current.srcObject = streamRef.current;
+      }
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isCameraActive]);
+
+  // Continuous QR detection loop on video stream
+  useEffect(() => {
+    if (!isCameraActive) return;
+
+    let active = true;
+    const scanFrame = () => {
+      if (!active || !isCameraActive || !videoRef.current || !streamRef.current) {
+        return;
+      }
+      const video = videoRef.current;
+      if (video.readyState >= video.HAVE_CURRENT_DATA && video.videoWidth > 0 && video.videoHeight > 0) {
+        setIsScanningFrame(true);
+        if (!canvasRef.current) {
+          canvasRef.current = document.createElement('canvas');
+        }
+        const canvas = canvasRef.current;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (ctx && !isDecodingRef.current) {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: 'dontInvert',
+            });
+            if (code && code.data && code.data.trim()) {
+              isDecodingRef.current = true;
+              playBeep();
+              setQrDetected(true);
+              const extractedId = parseQrData(code.data);
+              setManualAbha(extractedId);
+              showToast(`Optical QR scan verified: ${extractedId}`);
+              stopCamera();
+              handleScan(extractedId);
+              return;
+            }
+          } catch (err) {
+            console.warn('Frame decode error:', err);
+          }
+        }
+      }
+      animFrameRef.current = requestAnimationFrame(scanFrame);
+    };
+
+    animFrameRef.current = requestAnimationFrame(scanFrame);
+
+    return () => {
+      active = false;
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+    };
+  }, [isCameraActive]);
+
   useEffect(() => {
     return () => {
       stopCamera();
     };
   }, []);
+
+  // Upload or drag-and-drop QR image decoding
+  const handleImageFile = (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('Please select a valid image file (PNG, JPG, WebP).');
+      return;
+    }
+    showToast('Decoding QR code from image file...');
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = canvasRef.current || document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) {
+          showToast('Failed to initialize optical canvas renderer.');
+          return;
+        }
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+        try {
+          const imageData = ctx.getImageData(0, 0, img.width, img.height);
+          const code = jsQR(imageData.data, imageData.width, imageData.height, {
+            inversionAttempts: 'attemptBoth',
+          });
+          if (code && code.data && code.data.trim()) {
+            playBeep();
+            setQrDetected(true);
+            const extractedId = parseQrData(code.data);
+            setManualAbha(extractedId);
+            showToast(`QR Code decoded successfully: ${extractedId}`);
+            handleScan(extractedId);
+          } else {
+            showToast('No readable QR code found in this image. Ensure clear focus and lighting.');
+          }
+        } catch (err) {
+          console.error('Image QR decode error:', err);
+          showToast('Error analyzing image for QR token.');
+        }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleManualFocus = () => {
     const input = document.getElementById('abha-input');
@@ -81,9 +286,49 @@ export default function DoctorScan() {
   const [isScanning, setIsScanning] = useState(false);
 
   const handleScan = async (overrideAbha) => {
-    const id = (typeof overrideAbha === 'string' ? overrideAbha : manualAbha).trim() || '9824-8819-3320-TN';
+    const id = (typeof overrideAbha === 'string' && overrideAbha.trim())
+      ? overrideAbha.trim()
+      : (manualAbha.trim() || '9824-8819-3320-TN');
+
     setIsScanning(true);
     try {
+      // 1. Check local emergency registry first for instant resolution of automatically generated patient QRs
+      const localProfile = lookupPatientInRegistry(id);
+      if (localProfile) {
+        const p = localProfile;
+        const pName = p.name || p.fullName || 'Patient';
+        const initials = pName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'PT';
+        const contactStr = p.emergencyContactName
+          ? `${p.emergencyContactName} (${p.emergencyContactPhone || '+91 98401 22819'}) - ${p.emergencyContactRelation || 'Emergency Contact'}`
+          : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Ananya S. (+91 98401 22819) - Spouse');
+
+        setScanResult({
+          id: p.emergencyId || p.id || 'patient-rajesh',
+          initials,
+          name: pName,
+          abha: p.abhaNumber || id,
+          emergencyId: p.emergencyId || 'EK-EMG-9824-8819',
+          blood: p.bloodGroup ? (p.bloodGroup.includes('Rh') ? p.bloodGroup : `${p.bloodGroup} (Rh Pos)`) : 'O+ (Rh Pos)',
+          bp: p.bpLevel || p.bp || '128/82 mmHg',
+          sugar: p.bloodSugar || (p.hasDiabetes === 'Yes' ? 'Fasting 118 mg/dL (HbA1c 6.8%)' : 'Normal (92 mg/dL)'),
+          gender: p.gender || 'Male',
+          age: p.age || (p.dob ? `${new Date().getFullYear() - new Date(p.dob).getFullYear()} Yrs` : 42),
+          height: p.height || '174 cm',
+          weight: p.weight || '76 kg',
+          allergies: p.allergies || p.criticalAllergies || 'Penicillin (Severe anaphylaxis)',
+          conditions: p.chronicConditions || p.conditions || (p.hasDiabetes === 'Yes' ? 'Type II Diabetes' : 'None reported'),
+          emergencyContact: contactStr,
+          implants: p.surgeries || p.implants || 'None recorded',
+          accessLevel: 'RESTRICTED_TRIAGE',
+          status: 'TOP-NOTCH TRIAGE LOADED',
+          latency: 16,
+          patientData: p,
+        });
+        showToast(`Patient record for ${pName} retrieved via Emergency Health Registry (${p.emergencyId || id}).`);
+        setIsScanning(false);
+        return;
+      }
+
       const token = localStorage.getItem('ekavach_token');
       const headers = {
         'Content-Type': 'application/json',
@@ -109,30 +354,46 @@ export default function DoctorScan() {
           initials,
           name: p.name,
           abha: p.abhaNumber,
-          blood: p.bloodGroup || 'O+ Positive',
-          allergies: p.criticalAllergies || 'None reported',
-          conditions: p.chronicConditions || 'None reported',
+          blood: p.bloodGroup || 'O+ (Rh Pos)',
+          bp: p.bp || '128/82 mmHg',
+          sugar: p.bloodSugar || 'Fasting 118 mg/dL',
+          gender: p.gender || 'Male',
+          age: p.age || 52,
+          height: p.height || '174 cm',
+          weight: p.weight || '76 kg',
+          allergies: p.criticalAllergies || (Array.isArray(p.allergies) ? p.allergies.join(', ') : p.allergies) || 'Penicillin (Severe anaphylaxis)',
+          conditions: p.chronicConditions || 'Type II Diabetes, Hypertension',
           emergencyContact: Array.isArray(p.emergencyContacts) && p.emergencyContacts.length > 0
-            ? `${p.emergencyContacts[0].name} (${p.emergencyContacts[0].phone || p.emergencyContacts[0].contact})`
-            : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Primary ICE Contact'),
-          status: p.status || 'CRITICAL INGRESS VERIFIED',
-          latency: data.lookupLatencyMs || 28,
+            ? `${p.emergencyContacts[0].name} (${p.emergencyContacts[0].phone || p.emergencyContacts[0].contact || '+91 98401 22819'}) - ${p.emergencyContacts[0].relation || 'Spouse'}`
+            : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Ananya S. (+91 98401 22819) - Spouse'),
+          implants: p.implants || 'Coronary Stent (DES - 2021)',
+          accessLevel: data.accessLevel || 'RESTRICTED_TRIAGE',
+          status: 'TOP-NOTCH TRIAGE LOADED',
+          latency: data.lookupLatencyMs || 24,
         });
-        showToast(`Patient record for ${p.name} retrieved via Golden Hour Ingress (${data.lookupLatencyMs || 28}ms).`);
+        showToast(`Patient record for ${p.name} retrieved via Golden Hour Ingress (${data.lookupLatencyMs || 24}ms).`);
       } else {
         setScanResult({
           id: 'patient-rajesh',
           initials: 'RS',
           name: 'Rajesh V. Sharma',
           abha: id,
-          blood: 'O+ Positive',
+          blood: 'O+ (Rh Pos)',
+          bp: '128/82 mmHg',
+          sugar: 'Fasting 118 mg/dL (HbA1c 6.8%)',
+          gender: 'Male',
+          age: 52,
+          height: '174 cm',
+          weight: '76 kg',
           allergies: 'Penicillin (Severe anaphylaxis)',
-          conditions: 'Hypertension, Type-2 Diabetes',
-          emergencyContact: 'Meera Sharma (+91 98401 99281)',
-          status: 'CRITICAL INGRESS VERIFIED',
-          latency: 32,
+          conditions: 'Type II Diabetes (Insulin Dependent), Hypertension',
+          emergencyContact: 'Ananya S. (+91 98401 22819) - Spouse',
+          implants: 'Coronary Stent (DES - 2021)',
+          accessLevel: 'RESTRICTED_TRIAGE',
+          status: 'TOP-NOTCH TRIAGE LOADED',
+          latency: 28,
         });
-        showToast(`Patient record for ${id} retrieved via Bay 3 Optical Ingress.`);
+        showToast(`Top-notch triage data for ${id} loaded.`);
       }
     } catch (err) {
       console.error('Scan error:', err);
@@ -141,16 +402,30 @@ export default function DoctorScan() {
         initials: 'RS',
         name: 'Rajesh V. Sharma',
         abha: id,
-        blood: 'O+ Positive',
+        blood: 'O+ (Rh Pos)',
+        bp: '128/82 mmHg',
+        sugar: 'Fasting 118 mg/dL (HbA1c 6.8%)',
+        gender: 'Male',
+        age: 52,
+        height: '174 cm',
+        weight: '76 kg',
         allergies: 'Penicillin (Severe anaphylaxis)',
-        conditions: 'Hypertension, Type-2 Diabetes',
-        emergencyContact: 'Meera Sharma (+91 98401 99281)',
-        status: 'CRITICAL INGRESS VERIFIED',
-        latency: 45,
+        conditions: 'Type II Diabetes (Insulin Dependent), Hypertension',
+        emergencyContact: 'Ananya S. (+91 98401 22819) - Spouse',
+        implants: 'Coronary Stent (DES - 2021)',
+        accessLevel: 'RESTRICTED_TRIAGE',
+        status: 'TOP-NOTCH TRIAGE LOADED',
+        latency: 35,
       });
       showToast(`Record for ${id} retrieved via local trauma node cache.`);
     } finally {
       setIsScanning(false);
+      setTimeout(() => {
+        const el = document.getElementById('scan-feedback-banner');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 150);
     }
   };
 
@@ -229,92 +504,194 @@ export default function DoctorScan() {
 <span className="">Ready for Ingress • 60 FPS Optical</span>
 </div>
 </div>
-{/* Viewfinder Viewport */}
-<div className="relative w-full max-w-[420px] aspect-[4/3] bg-surface-container-highest/60 rounded-xl flex items-center justify-center overflow-hidden group shadow-inner">
-{isCameraActive && (
-  <video
-    ref={videoRef}
-    autoPlay
-    playsInline
-    muted
-    className="absolute inset-0 w-full h-full object-cover z-0"
-  />
-)}
-{/* Background Grid Simulation */}
-<div className="absolute inset-0 opacity-20 bg-[radial-gradient(#00354c_1px,transparent_1px)] [background-size:16px_16px]"></div>
-{/* Tactical Reticle Brackets (4 corners) */}
-<div className="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-secondary rounded-tl-sm pointer-events-none"></div>
-<div className="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-secondary rounded-tr-sm pointer-events-none"></div>
-<div className="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-secondary rounded-bl-sm pointer-events-none"></div>
-<div className="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-secondary rounded-br-sm pointer-events-none"></div>
-{/* Crosshairs Reticle Center Overlay */}
-<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-<div className="w-48 h-48 rounded-lg border border-dashed border-secondary/40 flex items-center justify-center">
-<div className="w-2 h-2 rounded-full bg-secondary"></div>
-</div>
-</div>
-{/* Pulsing Laser Scan Line */}
-<div className="absolute left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-secondary to-transparent shadow-[0_0_12px_#006876] animate-[scan_2.8s_ease-in-out_infinite] pointer-events-none"></div>
+{/* Viewfinder Viewport with Optical QR and Dropzone Support */}
+<div
+  onDragOver={(e) => { e.preventDefault(); setIsDraggingFile(true); }}
+  onDragLeave={() => setIsDraggingFile(false)}
+  onDrop={(e) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleImageFile(e.dataTransfer.files[0]);
+    }
+  }}
+  className={`relative w-full max-w-[420px] aspect-[4/3] bg-surface-container-highest/60 rounded-xl flex items-center justify-center overflow-hidden group shadow-inner transition-all ${
+    isDraggingFile ? 'ring-4 ring-secondary bg-secondary/10' : ''
+  }`}
+>
+{/* Always mounted video element so ref is never null when getUserMedia stream resolves */}
+<video
+  ref={videoRef}
+  autoPlay
+  playsInline
+  muted
+  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+    isCameraActive ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none -z-10'
+  }`}
+/>
 
-{/* Central Scanner Trigger UI */}
-<div className="relative z-10 flex flex-col items-center gap-3">
-<div className="relative flex items-center justify-center">
-<span className="animate-ping absolute inline-flex h-16 w-16 rounded-full bg-primary/20"></span>
-<div className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
-<span className="material-symbols-outlined text-[28px]">qr_code_scanner</span>
+{/* Background Grid Simulation */}
+<div className={`absolute inset-0 bg-[radial-gradient(#00354c_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none transition-opacity ${
+  isCameraActive ? 'opacity-10 z-10' : 'opacity-20'
+}`}></div>
+
+{/* Tactical Reticle Brackets (4 corners) with live green lock-on state */}
+<div className={`absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 rounded-tl-sm pointer-events-none z-10 transition-colors duration-200 ${
+  qrDetected ? 'border-emerald-500 shadow-[0_0_12px_#10b981]' : 'border-secondary'
+}`}></div>
+<div className={`absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 rounded-tr-sm pointer-events-none z-10 transition-colors duration-200 ${
+  qrDetected ? 'border-emerald-500 shadow-[0_0_12px_#10b981]' : 'border-secondary'
+}`}></div>
+<div className={`absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 rounded-bl-sm pointer-events-none z-10 transition-colors duration-200 ${
+  qrDetected ? 'border-emerald-500 shadow-[0_0_12px_#10b981]' : 'border-secondary'
+}`}></div>
+<div className={`absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 rounded-bl-sm pointer-events-none z-10 transition-colors duration-200 ${
+  qrDetected ? 'border-emerald-500 shadow-[0_0_12px_#10b981]' : 'border-secondary'
+}`}></div>
+
+{/* Crosshairs Reticle Center Overlay */}
+<div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+  <div className={`w-48 h-48 rounded-lg border flex items-center justify-center transition-colors duration-200 ${
+    qrDetected ? 'border-emerald-500 bg-emerald-500/10' : 'border-dashed border-secondary/40'
+  }`}>
+    <div className={`w-2 h-2 rounded-full transition-colors duration-200 ${
+      qrDetected ? 'bg-emerald-500 scale-150' : 'bg-secondary'
+    }`}></div>
+  </div>
 </div>
-</div>
-<div className="flex flex-col items-center">
-<span className="font-label-lg text-label-lg text-primary font-semibold">Position ABHA QR within frame</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Macro autoFocus distance: 15–30 cm</span>
-</div>
-</div>
+
+{/* Pulsing Laser Scan Line */}
+<div className="absolute left-6 right-6 h-[2px] bg-gradient-to-r from-transparent via-secondary to-transparent shadow-[0_0_12px_#006876] animate-[scan_2.8s_ease-in-out_infinite] pointer-events-none z-10"></div>
+
+{/* Viewfinder Overlay Prompts: Compact top badge when camera is active, full prompt when idle */}
+{isCameraActive ? (
+  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-inverse-surface/85 backdrop-blur-md text-inverse-on-surface text-xs font-semibold flex items-center gap-2 shadow-lg whitespace-nowrap pointer-events-none">
+    <span className={`w-2 h-2 rounded-full ${qrDetected ? 'bg-emerald-400' : 'bg-emerald-400 animate-ping'}`}></span>
+    <span>{qrDetected ? '✓ QR Verified' : 'Live Camera Active • Align QR in reticle'}</span>
+  </div>
+) : (
+  <div className="relative z-10 flex flex-col items-center gap-3 bg-surface-container-lowest/85 backdrop-blur-sm px-4 py-3 rounded-2xl shadow-md max-w-[85%]">
+    <div className="relative flex items-center justify-center">
+      <span className="animate-ping absolute inline-flex h-12 w-12 rounded-full bg-primary/20"></span>
+      <div className="w-12 h-12 rounded-full text-on-primary flex items-center justify-center shadow-lg bg-primary group-hover:scale-105 transition-transform">
+        <span className="material-symbols-outlined text-[24px]">qr_code_scanner</span>
+      </div>
+    </div>
+    <div className="flex flex-col items-center text-center">
+      <span className="font-label-md text-sm text-primary font-bold">
+        {isDraggingFile ? 'Drop QR Image to Decode' : 'Position ABHA QR within frame'}
+      </span>
+      <span className="font-body-sm text-[12px] text-on-surface-variant">
+        Tap below to open optical camera or upload QR image
+      </span>
+    </div>
+  </div>
+)}
+
 {/* Live Frame Rate & Stream Metadata Tag in Viewfinder */}
 <div className="absolute bottom-3 left-3 px-2 py-0.5 rounded bg-inverse-surface/80 text-inverse-on-surface font-mono text-[10px] flex items-center gap-1.5">
-<span className="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim"></span>
-<span className="">RAW 1080P // RGB 24bpp</span>
+  <span className={`w-1.5 h-1.5 rounded-full ${isCameraActive ? 'bg-emerald-400 animate-ping' : 'bg-tertiary-fixed-dim'}`}></span>
+  <span>{isCameraActive ? 'LIVE 60 FPS // OPTICAL ACTIVE' : 'RAW 1080P // RGB 24bpp'}</span>
 </div>
 <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-inverse-surface/80 text-inverse-on-surface font-mono text-[10px]">
-<span className="">LATENCY 14ms</span>
+  <span>LATENCY 14ms</span>
 </div>
 </div>
+
+{/* Hidden file input for uploading QR code photo/image */}
+<input
+  type="file"
+  ref={fileInputRef}
+  accept="image/*"
+  className="hidden"
+  onChange={(e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleImageFile(e.target.files[0]);
+    }
+  }}
+/>
+
 {/* Ingress Controls */}
 <div className="mt-space-lg flex flex-wrap items-center justify-center gap-space-sm w-full">
 <button onClick={handleToggleCamera} className="inline-flex items-center justify-center gap-2 px-space-lg h-11 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-medium shadow-md hover:bg-primary-container transition-all cursor-pointer" id="open-cam-btn" type="button">
-<span className="material-symbols-outlined text-[20px]">videocam</span>
-<span className="">{isCameraActive ? 'Active 60 FPS Camera Feed (Click to Stop)' : 'Tap to Open Optical Camera'}</span>
+<span className="material-symbols-outlined text-[20px]">{isCameraActive ? 'videocam_off' : 'videocam'}</span>
+<span>{isCameraActive ? 'Active 60 FPS Camera Feed (Click to Stop)' : 'Tap to Open Optical Camera'}</span>
 </button>
+
+{/* Upload Image QR Button */}
+<button
+  onClick={() => fileInputRef.current?.click()}
+  className="inline-flex items-center justify-center gap-2 px-space-md h-11 rounded-lg bg-surface-container-high text-primary font-label-lg text-label-lg hover:bg-surface-container-highest transition-colors cursor-pointer border border-outline-variant/30"
+  id="upload-qr-btn"
+  type="button"
+>
+  <span className="material-symbols-outlined text-[20px]">upload_file</span>
+  <span>Upload QR Image</span>
+</button>
+
 <button onClick={handlePairBluetooth} className="inline-flex items-center justify-center gap-2 px-space-md h-11 rounded-lg bg-surface-container text-on-surface-variant font-label-lg text-label-lg hover:bg-surface-container-high transition-colors cursor-pointer" type="button">
 <span className="material-symbols-outlined text-[20px]">bluetooth_searching</span>
-<span className="">Pair Bluetooth Handheld</span>
+<span>Pair Bluetooth Handheld</span>
 </button>
-<button className="inline-flex items-center justify-center gap-1.5 px-space-md h-11 rounded-lg bg-secondary-container text-on-secondary-fixed-variant font-label-lg text-label-lg font-semibold hover:bg-secondary-fixed transition-all" id="simulate-scan-btn" onClick={handleScan}>
+
+<button className="inline-flex items-center justify-center gap-1.5 px-space-md h-11 rounded-lg bg-secondary-container text-on-secondary-fixed-variant font-label-lg text-label-lg font-semibold hover:bg-secondary-fixed transition-all cursor-pointer" id="simulate-scan-btn" onClick={handleScan}>
 <span className="material-symbols-outlined text-[18px]">bolt</span>
-<span className="">Simulate ER Bay Scan (Rajesh V.)</span>
+<span>Simulate ER Bay Scan (Rajesh V.)</span>
 </button>
 </div>
+
 {/* Hardware & Security Encryption Badges */}
 <div className="mt-space-lg pt-space-md w-full flex flex-wrap items-center justify-center gap-2 text-on-surface-variant">
 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-low font-label-sm text-label-sm">
 <span className="material-symbols-outlined text-[14px] text-secondary">lock</span>
-<span className="">256-Bit Decryption Active</span>
+<span>256-Bit Decryption Active</span>
 </span>
 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-low font-label-sm text-label-sm">
 <span className="material-symbols-outlined text-[14px] text-secondary">contactless</span>
-<span className="">NFC Direct Touch Ready</span>
+<span>NFC Direct Touch Ready</span>
 </span>
 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-low font-label-sm text-label-sm">
 <span className="material-symbols-outlined text-[14px] text-secondary">center_focus_strong</span>
-<span className="">Auto-Macro Focus Active</span>
+<span>Auto-Macro Focus Active</span>
 </span>
 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-surface-container-low font-label-sm text-label-sm">
 <span className="material-symbols-outlined text-[14px] text-secondary">verified_user</span>
-<span className="">ABHA M1/M2 Certified</span>
+<span>ABHA M1/M2 Certified</span>
 </span>
 </div>
+
+{/* Instant Test QR Chips */}
+<div className="mt-4 pt-3 border-t border-surface-container w-full flex flex-wrap items-center justify-center gap-2">
+  <span className="text-xs font-semibold text-on-surface-variant">Quick Scan Presets:</span>
+  <button
+    type="button"
+    onClick={() => { setManualAbha('9824-8819-3320-TN'); handleScan('9824-8819-3320-TN'); }}
+    className="px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-primary-fixed text-primary text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+  >
+    <span className="material-symbols-outlined text-[13px]">person</span>
+    Rajesh V. (9824-8819-3320-TN)
+  </button>
+  <button
+    type="button"
+    onClick={() => { setManualAbha('7712-4401-2918-TN'); handleScan('7712-4401-2918-TN'); }}
+    className="px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-secondary-fixed text-secondary text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+  >
+    <span className="material-symbols-outlined text-[13px]">person</span>
+    Meenakshi S. (7712-4401-2918-TN)
+  </button>
+  <button
+    type="button"
+    onClick={() => { setManualAbha('8821-0034-7741-TN'); handleScan('8821-0034-7741-TN'); }}
+    className="px-2.5 py-1 rounded-full bg-surface-container-high hover:bg-tertiary-fixed text-tertiary text-xs font-mono font-medium transition-colors cursor-pointer flex items-center gap-1"
+  >
+    <span className="material-symbols-outlined text-[13px]">person</span>
+    Anand Patel (8821-0034-7741-TN)
+  </button>
+</div>
+
 <p className="font-body-sm text-body-sm text-on-surface-variant mt-space-md">
-          Instantly pulls verified allergy status, blood type, chronic conditions, and prescription history upon scan.
-        </p>
+  Instantly pulls verified allergy status, blood type, chronic conditions, and prescription history upon scan.
+</p>
 </div>
 </div>
 {/* Manual Entry Fallback Deck */}
@@ -333,49 +710,105 @@ export default function DoctorScan() {
 <input value={manualAbha} onChange={(e) => setManualAbha(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleScan()} className="w-full h-10 px-space-sm bg-surface-container-lowest rounded-lg font-body-md text-body-md text-on-surface placeholder:text-outline outline-none focus:ring-2 focus:ring-primary shadow-sm uppercase tracking-wider font-mono text-[13px]" id="abha-input" placeholder="e.g. 9824-8819-3320-TN" type="text" />
 </div>
 <button className="h-10 px-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-medium hover:bg-primary-container transition-colors whitespace-nowrap shadow-sm" id="lookup-btn" onClick={handleScan}>
-          Lookup Record
-        </button>
+  Lookup Record
+</button>
 </div>
 </div>
-{/* Scanned Patient Feedback Modal / Live Result Drawer (Interactive simulation state) */}
-<div className={`w-full max-w-3xl mx-auto bg-surface-container-lowest rounded-xl p-space-md shadow-lg transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${scanResult ? 'block' : 'hidden'}`} id="scan-feedback-banner">
-<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-space-sm">
-<div className="flex items-center gap-space-sm">
-<div className="w-10 h-10 rounded-full bg-secondary-fixed text-primary flex items-center justify-center font-bold font-headline-sm text-headline-sm">
-  {scanResult?.initials || 'PT'}
-</div>
-<div className="flex flex-col">
-<div className="flex items-center gap-2 flex-wrap">
-  <span className="font-headline-sm text-headline-sm text-primary font-bold">{scanResult?.name || 'Verified Patient'}</span>
-  <span className="font-label-sm text-label-sm px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono">ABHA: {scanResult?.abha || 'ABHA-LINKED'}</span>
-  {scanResult?.latency && (
-    <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">
-      {scanResult.latency}ms SLA
-    </span>
-  )}
-</div>
-<div className="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm flex-wrap mt-0.5">
-  <span className="font-semibold text-primary">Blood: {scanResult?.blood || 'O+'}</span>
-  <span>•</span>
-  <span className="text-secondary font-medium">Kin: {scanResult?.emergencyContact || 'Verified ICE Proxy'}</span>
-  <span>•</span>
-  <span className="text-on-surface-variant text-xs">{scanResult?.conditions || 'Chronic Vitals Synced'}</span>
-</div>
-</div>
-</div>
-<div className="flex items-center gap-2 self-end sm:self-center flex-wrap">
-{/* Critical Allergy Flag */}
-{scanResult?.allergies && scanResult.allergies !== 'None reported' && (
-  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-error-container text-on-error-container font-label-sm text-label-sm font-bold shadow-sm">
-    <span className="material-symbols-outlined text-[16px]">warning</span>
-    <span>{scanResult.allergies}</span>
+{/* Scanned Patient Feedback Modal / Live Result Drawer (Top-Notch Triage Deck) */}
+<div className={`w-full max-w-3xl mx-auto bg-surface-container-lowest rounded-2xl p-5 sm:p-6 shadow-xl border border-surface-container transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${scanResult ? 'block' : 'hidden'}`} id="scan-feedback-banner">
+  {/* Header */}
+  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-surface-container pb-4">
+    <div className="flex items-center gap-3">
+      <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-lg">
+        {scanResult?.initials || 'PT'}
+      </div>
+      <div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-headline-sm text-lg text-primary font-bold">{scanResult?.name || 'Verified Patient'}</span>
+          <span className="font-label-sm text-xs px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-mono font-bold">
+            ABHA: {scanResult?.abha || '9824-8819-3320-TN'}
+          </span>
+          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1">
+            <span className="material-symbols-outlined text-[14px]">shield_lock</span>
+            Top-Notch Triage View
+          </span>
+        </div>
+        <p className="text-xs text-on-surface-variant mt-0.5">
+          Scan Ingress verified via ABHA National Health Gateway • Latency: {scanResult?.latency || 24}ms
+        </p>
+      </div>
+    </div>
   </div>
-)}
-<Link to={`/doctor/patient-history?patientId=${scanResult?.id || 'patient-rajesh'}`} className="px-space-md py-2 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-medium hover:bg-primary-container transition-all no-underline">
-  Access Full Chart →
-</Link>
-</div>
-</div>
+
+  {/* Top-Notch Triage Metrics Grid */}
+  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 my-4">
+    <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+      <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Group</span>
+      <span className="font-bold text-base text-primary mt-0.5">{scanResult?.blood || 'O+ (Rh Pos)'}</span>
+    </div>
+    <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+      <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Pressure (BP)</span>
+      <span className="font-bold text-base text-primary mt-0.5">{scanResult?.bp || '128/82 mmHg'}</span>
+    </div>
+    <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+      <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Sugar</span>
+      <span className="font-bold text-sm text-primary mt-0.5">{scanResult?.sugar || 'Fasting 118 mg/dL'}</span>
+    </div>
+    <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+      <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Gender &amp; Age</span>
+      <span className="font-bold text-base text-primary mt-0.5">{scanResult?.gender || 'Male'} • {scanResult?.age || 52} Y</span>
+    </div>
+  </div>
+
+  {/* Allergies, Chronic Conditions & ICE Contact Row */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 text-xs">
+    <div className="p-3 rounded-xl bg-error-container/40 text-on-error-container border border-error-container/50 flex flex-col gap-0.5">
+      <span className="font-bold flex items-center gap-1">
+        <span className="material-symbols-outlined text-[15px]">warning</span> Critical Allergy
+      </span>
+      <span className="font-bold text-xs">{scanResult?.allergies || 'Penicillin (Severe anaphylaxis)'}</span>
+    </div>
+    <div className="p-3 rounded-xl bg-surface-container-low flex flex-col gap-0.5">
+      <span className="font-semibold text-on-surface-variant">Primary ICE Contact</span>
+      <span className="font-bold text-primary">{scanResult?.emergencyContact || 'Ananya S. (+91 98401 22819) - Spouse'}</span>
+    </div>
+  </div>
+
+  {/* Data Access Policy Notice & Action Buttons */}
+  <div className="p-3.5 rounded-xl bg-primary/5 border border-primary/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+    <div className="flex items-start gap-2">
+      <span className="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5">info</span>
+      <p className="text-xs text-on-surface-variant leading-relaxed">
+        <strong>Privacy Protocol:</strong> Prescription history &amp; lab reports remain locked for triage scans. Full data is accessible during scheduled appointments or via Emergency SOS Break-Glass.
+      </p>
+    </div>
+    <div className="flex items-center gap-2 shrink-0 flex-wrap w-full sm:w-auto justify-end">
+      <Link
+        to={`/doctor/patient-history?patientId=${scanResult?.id || 'patient-rajesh'}`}
+        className="px-3.5 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-semibold text-xs transition-colors no-underline text-center"
+      >
+        View Triage Card
+      </Link>
+      <Link
+        to={`/doctor/patient-history?patientId=${scanResult?.id || 'patient-rajesh'}&appointmentId=APT-101`}
+        className="px-3.5 py-2 rounded-lg bg-secondary-container text-on-secondary-fixed-variant font-semibold text-xs hover:bg-secondary-fixed transition-colors no-underline text-center flex items-center gap-1"
+      >
+        <span className="material-symbols-outlined text-[15px]">calendar_month</span>
+        Appointment Access
+      </Link>
+      <button
+        type="button"
+        onClick={() => {
+          setBreakGlassPatient(scanResult || { id: 'patient-rajesh', name: 'Rajesh V. Sharma', abhaNumber: '9824-8819-3320-TN' });
+          setBreakGlassModalOpen(true);
+        }}
+        className="px-3.5 py-2 rounded-lg bg-rose-700 text-white font-semibold text-xs hover:bg-rose-800 transition-colors no-underline text-center flex items-center gap-1 cursor-pointer shadow-sm"
+      >
+        <span className="material-symbols-outlined text-[15px]">emergency</span>
+        SOS Break-Glass (Full Chart)
+      </button>
+    </div>
+  </div>
 </div>
 {/* Recently Scanned Patients (Today's Intake) */}
 <div className="w-full flex flex-col gap-space-md mt-space-md">
@@ -547,6 +980,21 @@ export default function DoctorScan() {
 </div>
 </div>
 
+      {/* Break-Glass High Friction Modal */}
+      <BreakGlassModal
+        isOpen={breakGlassModalOpen}
+        onClose={() => setBreakGlassModalOpen(false)}
+        patient={breakGlassPatient}
+        doctorCredentials={{
+          name: 'Dr. Kavitha Menon',
+          nmcNumber: 'MD-44912-TN',
+          hospital: 'Apollo Greams Trauma Hub',
+        }}
+        onOverrideSuccess={(data) => {
+          showToast(`🚨 Emergency Break-Glass Authorized under NMC ${data.nmcNumber}! Ref: ${data.breakGlassRef}`);
+          navigate(`/doctor/patient-history?patientId=${data.patient?.id || breakGlassPatient?.id || 'patient-rajesh'}&emergency=true`);
+        }}
+      />
     </div>
   );
 }

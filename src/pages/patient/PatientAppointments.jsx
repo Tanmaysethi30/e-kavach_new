@@ -195,7 +195,7 @@ export default function PatientAppointments() {
         relation: 'Self',
       }));
     }
-  }, [user, bookingFor]);
+  }, [user?.id, user?.name, user?.phone, user?.abhaNumber, bookingFor]);
 
   // Handle switching booking for Self vs Other
   const handleBookingForChange = (target) => {
@@ -894,7 +894,7 @@ export default function PatientAppointments() {
                   >
                     {doctors.map((doc) => (
                       <option key={doc.id} value={doc.id}>
-                        {doc.name} • {doc.specialization || doc.title} ({doc.department}) — {doc.hospital}
+                        {doc.name} • {doc.specialization || doc.title} ({doc.department}) — {typeof doc.hospital === 'object' && doc.hospital !== null ? (doc.hospital.name || doc.hospital.hospital_name) : doc.hospital}
                       </option>
                     ))}
                   </select>

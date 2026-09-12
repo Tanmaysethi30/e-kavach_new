@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { savePatientToRegistry } from '../../utils/emergencyRegistry';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -478,6 +479,16 @@ export default function PatientSettings() {
         profileCompleted: true,
       };
 
+      const mergedPatientData = {
+        ...currentUser,
+        ...profile,
+        ...updatedUserFields,
+      };
+
+      // Automatically register/update patient emergency registry
+      // Retains existing Patient Emergency ID and updates clinical triage payload
+      savePatientToRegistry(mergedPatientData);
+
       if (updateProfileDetails) {
         updateProfileDetails(updatedUserFields);
       } else {
@@ -498,7 +509,7 @@ export default function PatientSettings() {
     } catch (err) {
       console.warn('Profile sync fallback to local:', err);
     }
-    triggerSignal('Patient profile & medical details successfully saved! Verified with ABDM Registry.');
+    triggerSignal('Patient profile & medical details successfully saved! Emergency QR automatically generated & synced.');
     setTimeout(() => {
       navigate('/patient/dashboard');
     }, 1200);

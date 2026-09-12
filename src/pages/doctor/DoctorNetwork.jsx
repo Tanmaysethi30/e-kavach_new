@@ -506,7 +506,7 @@ export default function DoctorNetwork() {
                         )}
                       </div>
                       <p className="font-body-md text-body-md text-on-surface font-medium truncate">
-                        {c.specialty} <span className="text-outline mx-1">•</span> <span className="text-on-surface-variant">{c.hospital}</span>
+                        {c.specialty} <span className="text-outline mx-1">•</span> <span className="text-on-surface-variant">{typeof c.hospital === 'object' && c.hospital !== null ? (c.hospital.name || c.hospital.hospital_name) : c.hospital}</span>
                       </p>
                       <div className="flex flex-wrap items-center gap-2 mt-2">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">

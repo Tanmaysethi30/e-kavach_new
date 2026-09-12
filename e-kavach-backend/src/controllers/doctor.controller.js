@@ -151,8 +151,17 @@ class DoctorController {
   async getPatientHistory(req, res, next) {
     try {
       const { patientId } = req.params;
-      const history = await doctorService.getPatientHistory(patientId);
+      const history = await doctorService.getPatientHistory(patientId, req.user, req.query);
       res.json({ success: true, ...history });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async emergencyBreakGlass(req, res, next) {
+    try {
+      const result = await doctorService.emergencyBreakGlass(req.body, req.user);
+      res.json(result);
     } catch (err) {
       next(err);
     }

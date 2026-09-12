@@ -269,7 +269,7 @@ Provide:
 4. Discharge / Transition Protocol & Red-Flag Warnings`;
 
       const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3.8-flash',
         contents: prompt,
         config: {
           systemInstruction: 'You are E-KAVACH Clinical AI Specialist generating accurate, high-impact clinical summaries for emergency triage and hospital discharge.',
@@ -280,7 +280,7 @@ Provide:
       if (response && response.text) {
         return {
           success: true,
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.8-flash',
           patient: { name: patientName, abhaNumber },
           summary: response.text,
           timestamp: new Date().toISOString(),

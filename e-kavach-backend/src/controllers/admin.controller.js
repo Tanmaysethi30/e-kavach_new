@@ -104,8 +104,11 @@ class AdminController {
 
   async createDoctor(req, res, next) {
     try {
-      const doctor = await adminService.createDoctor(req.body);
-      res.status(201).json({ success: true, message: 'Doctor profile created successfully', doctor });
+      const doctor = await adminService.createDoctor(req.body, req.user);
+      const message = doctor.linked
+        ? 'Existing doctor profile found and successfully linked to hospital'
+        : 'Doctor profile created successfully and linked to hospital';
+      res.status(201).json({ success: true, message, doctor });
     } catch (err) {
       next(err);
     }

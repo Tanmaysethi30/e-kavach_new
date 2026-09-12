@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeConsentRequests, subscribeAppointments } from '../../services/telemetry';
+import BreakGlassModal from '../../components/doctor/BreakGlassModal';
 
 export default function HealthHistory() {
   const navigate = useNavigate();
@@ -26,6 +27,14 @@ export default function HealthHistory() {
 
   // Doctor Mode & Loaded Patient State
   const [loadedPatient, setLoadedPatient] = useState(null);
+  const [accessLevel, setAccessLevel] = useState('FULL'); // 'FULL' | 'RESTRICTED_TRIAGE'
+  const [accessReason, setAccessReason] = useState('');
+  const [hasActiveAppointment, setHasActiveAppointment] = useState(false);
+  const [isEmergencyAccess, setIsEmergencyAccess] = useState(false);
+  const [triageData, setTriageData] = useState(null);
+  const [isBreakingGlass, setIsBreakingGlass] = useState(false);
+  const [breakGlassModalOpen, setBreakGlassModalOpen] = useState(false);
+  const [breakGlassOverrideData, setBreakGlassOverrideData] = useState(null);
   const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
   const [rxMedicines, setRxMedicines] = useState('');
   const [rxDiagnosis, setRxDiagnosis] = useState('');
@@ -69,26 +78,43 @@ export default function HealthHistory() {
     } catch (_e) {}
   };
 
-  const fetchHistoryRecords = async () => {
+  const fetchHistoryRecords = async (overrideParams = {}) => {
     try {
       const token = getToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       if (isDoctorMode) {
-        const fetchUrl = targetPatientId
-          ? `/api/doctor/patient-history/${targetPatientId}`
-          : '/api/doctor/patient-history/patient-rajesh';
+        const pId = targetPatientId || 'patient-rajesh';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (overrideParams.emergency !== undefined) {
+          if (overrideParams.emergency) urlParams.set('emergency', 'true');
+          else urlParams.delete('emergency');
+        }
+        if (overrideParams.appointmentId) {
+          urlParams.set('appointmentId', overrideParams.appointmentId);
+        }
+
+        const queryStr = urlParams.toString() ? `?${urlParams.toString()}` : '';
+        const fetchUrl = `/api/doctor/patient-history/${pId}${queryStr}`;
         const res = await fetch(fetchUrl, { headers });
         if (res.ok) {
           const data = await res.json();
           if (data.patient) {
             setLoadedPatient(data.patient);
           }
+          if (data.triageData) {
+            setTriageData(data.triageData);
+          }
+          setAccessLevel(data.accessLevel || 'FULL');
+          setAccessReason(data.accessReason || '');
+          setHasActiveAppointment(!!data.hasActiveAppointment);
+          setIsEmergencyAccess(!!data.isEmergency);
           if (data.records && data.records.length > 0) {
             setCustomRecords(data.records);
           }
         }
       } else {
+        setAccessLevel('FULL');
         const res = await fetch('/api/patient/health-history', { headers });
         if (res.ok) {
           const data = await res.json();
@@ -98,6 +124,31 @@ export default function HealthHistory() {
         }
       }
     } catch (_e) {}
+  };
+
+  const handleBreakGlassSuccess = (data) => {
+    showToast(`🚨 ABDM Break-Glass Authorized by Dr. ${data.doctorName} (NMC: ${data.nmcNumber})! Ref: ${data.breakGlassRef}`);
+    setAccessLevel('FULL');
+    setIsEmergencyAccess(true);
+    setAccessReason('EMERGENCY_OVERRIDE');
+    setBreakGlassOverrideData(data);
+    if (data.patient) setLoadedPatient(data.patient);
+    if (data.records) setCustomRecords(data.records);
+    const url = new URL(window.location);
+    url.searchParams.set('emergency', 'true');
+    window.history.replaceState({}, '', url);
+  };
+
+  const handleEmergencyBreakGlass = () => {
+    setBreakGlassModalOpen(true);
+  };
+
+  const handleUnlockWithAppointment = (appointmentId = 'APT-101') => {
+    const url = new URL(window.location);
+    url.searchParams.set('appointmentId', appointmentId);
+    window.history.replaceState({}, '', url);
+    fetchHistoryRecords({ appointmentId });
+    showToast(`Unlocked full clinical record with verified appointment ${appointmentId}.`);
   };
 
   const handleIssuePrescription = async (e) => {
@@ -832,71 +883,174 @@ export default function HealthHistory() {
           </div>
         </div>
 
-        {/* Doctor Clinical Chart Banner */}
+        {/* Doctor Clinical Chart Banner & Triage Access Barrier */}
         {isDoctorMode && (
-          <div className="p-4 rounded-xl bg-surface-container-lowest border border-surface-container shadow-sm flex flex-col gap-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-surface-container pb-3">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-lg">
-                  {loadedPatient?.name ? loadedPatient.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'RS'}
+          <div className="flex flex-col gap-4">
+            {/* Top-Notch Triage Deck Card */}
+            <div className="p-5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-sm flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-surface-container pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-lg">
+                    {loadedPatient?.name ? loadedPatient.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'RS'}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="font-headline-sm text-lg font-bold text-primary">
+                        {loadedPatient?.name || 'Rajesh V. Sharma'}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-xs font-mono font-bold">
+                        ABHA: {loadedPatient?.abhaNumber || '9824-8819-3320-TN'}
+                      </span>
+                      {accessLevel === 'RESTRICTED_TRIAGE' ? (
+                        <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-xs font-semibold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">shield_lock</span>
+                          Restricted Triage Ingress
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[14px]">verified_user</span>
+                          {isEmergencyAccess ? 'Emergency Break-Glass Authorized' : hasActiveAppointment ? 'Appointment Access Verified' : 'Full Clinical Ingress Granted'}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-1 flex-wrap">
+                      <span>Gender/Age: <strong>{triageData?.gender || loadedPatient?.gender || 'Male'} • {triageData?.age || loadedPatient?.age || 52} Y</strong></span>
+                      <span>•</span>
+                      <span>Kin Contact: <strong>{triageData?.emergencyContacts?.[0]?.phone || loadedPatient?.phone || '+91 98401 22819'} ({triageData?.emergencyContacts?.[0]?.relation || 'Spouse'})</strong></span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-headline-sm text-lg font-bold text-primary">
-                      {loadedPatient?.name || 'Rajesh V. Sharma'}
-                    </h2>
-                    <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-xs font-mono font-bold">
-                      ABHA: {loadedPatient?.abhaNumber || '9824-8819-3320-TN'}
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">
-                      Consent: GOLDEN HOUR OVERRIDE
-                    </span>
+
+                {accessLevel === 'FULL' && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setPrescriptionModalOpen(true)}
+                      className="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-sm font-semibold hover:bg-primary-container transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">prescriptions</span>
+                      Issue Digital Rx
+                    </button>
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-1 flex-wrap">
-                    <span>Blood Group: <strong className="text-primary">{loadedPatient?.bloodGroup || 'O+ Positive'}</strong></span>
-                    <span>•</span>
-                    <span>Gender/Age: <strong>{loadedPatient?.gender || 'Male'} • {loadedPatient?.age || 52} Y</strong></span>
-                    <span>•</span>
-                    <span>Kin Contact: <strong>{loadedPatient?.phone || '+91 98401 22819'}</strong></span>
-                  </div>
+                )}
+              </div>
+
+              {/* Top-Notch Triage Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                  <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Group</span>
+                  <span className="font-bold text-sm text-primary mt-0.5">{triageData?.bloodGroup || loadedPatient?.bloodGroup || 'O+ (Rh Pos)'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                  <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Pressure (BP)</span>
+                  <span className="font-bold text-sm text-primary mt-0.5">{triageData?.bp || loadedPatient?.bp || '128/82 mmHg'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                  <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Sugar</span>
+                  <span className="font-bold text-sm text-primary mt-0.5">{triageData?.bloodSugar || loadedPatient?.bloodSugar || 'Fasting 118 mg/dL'}</span>
+                </div>
+                <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                  <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Height &amp; Weight</span>
+                  <span className="font-bold text-sm text-primary mt-0.5">{triageData?.height || loadedPatient?.height || '174 cm'} • {triageData?.weight || loadedPatient?.weight || '76 kg'}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPrescriptionModalOpen(true)}
-                  className="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-sm font-semibold hover:bg-primary-container transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[18px]">prescriptions</span>
-                  Issue Digital Rx
-                </button>
+
+              {/* Allergies, Chronic Conditions & Implants */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="p-2.5 rounded-lg bg-error-container/40 text-on-error-container flex flex-col border border-error-container">
+                  <span className="font-semibold flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">warning</span> Critical Allergy
+                  </span>
+                  <span className="font-bold text-xs">
+                    {Array.isArray(triageData?.allergies) ? triageData.allergies.join(', ') : (triageData?.allergies || loadedPatient?.allergies?.[0] || 'Penicillin (Severe anaphylaxis)')}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col">
+                  <span className="text-on-surface-variant font-medium">Chronic Conditions</span>
+                  <span className="font-bold text-xs text-primary">
+                    {Array.isArray(triageData?.chronicConditions) ? triageData.chronicConditions.join(', ') : (loadedPatient?.chronicConditions?.join(', ') || 'Hypertension, Type 2 Diabetes')}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col">
+                  <span className="text-on-surface-variant font-medium">Surgical Implants</span>
+                  <span className="font-bold text-xs text-on-surface">
+                    {triageData?.implants || loadedPatient?.implants || 'Coronary Stent (DES - 2021)'}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Clinical Alerts & Real-Life Bedside Monitoring Indicator */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-2.5 rounded-lg bg-error-container/40 text-on-error-container flex flex-col border border-error-container">
-                <span className="font-semibold flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px]">warning</span> Critical Allergy
-                </span>
-                <span className="font-bold text-xs truncate">
-                  {loadedPatient?.allergies?.[0] || 'Penicillin (Severe anaphylaxis)'}
-                </span>
+            {/* Active Emergency Break-Glass Alert Banner */}
+            {isEmergencyAccess && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950 via-red-950 to-rose-900 text-white border-2 border-rose-500 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-rose-600 border border-rose-400 flex items-center justify-center shrink-0 shadow-lg animate-pulse">
+                    <span className="material-symbols-outlined text-[26px] text-white">emergency</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-bold uppercase tracking-wider bg-rose-800 px-2 py-0.5 rounded font-mono text-rose-100 border border-rose-600">
+                        🚨 ABDM EMERGENCY BREAK-GLASS ACTIVE
+                      </span>
+                      <span className="text-[11px] font-mono text-rose-200">
+                        Ref: {breakGlassOverrideData?.breakGlassRef || 'EK-BG-TRAUMA-771'}
+                      </span>
+                      <span className="text-[11px] font-mono text-amber-300 font-bold">
+                        NMC: {breakGlassOverrideData?.nmcNumber || 'MD-44912-TN'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-rose-100 mt-1 leading-relaxed max-w-2xl">
+                      Full clinical ingress authorized by <strong>{breakGlassOverrideData?.doctorName || 'Dr. Kavitha Menon'}</strong> for <strong>{breakGlassOverrideData?.condition || 'Acute Hemodynamic Shock / Polytrauma'}</strong>. All actions are indelibly recorded under Section 29 with SHA-256 audit entry.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+                  <span className="px-3 py-1.5 rounded-lg bg-black/40 text-rose-200 font-mono text-[11px] border border-rose-700">
+                    AUDIT: {breakGlassOverrideData?.auditRecordId || 'AUDIT-8914-COMMIT'}
+                  </span>
+                </div>
               </div>
-              <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col">
-                <span className="text-on-surface-variant font-medium">Chronic Conditions</span>
-                <span className="font-bold text-sm text-primary">
-                  {loadedPatient?.chronicConditions?.join(', ') || 'Hypertension, Type 2 Diabetes'}
-                </span>
+            )}
+
+            {/* Privacy & Access Barrier Banner when in Restricted Triage Mode */}
+            {accessLevel === 'RESTRICTED_TRIAGE' && (
+              <div className="p-5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-800 text-amber-950 dark:text-amber-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">lock</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-base">Restricted Triage Mode Active</h3>
+                      <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-bold uppercase tracking-wider border border-rose-300 font-mono">
+                        ABDM PRIVACY LOCKED
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-800 dark:text-amber-200 mt-1 max-w-xl leading-relaxed">
+                      Detailed prescription regimens, diagnostic laboratory reports, and historical consultation notes are restricted under ABDM clinical privacy guidelines. Full access is granted during scheduled appointments or via Emergency SOS Break-Glass.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2.5 flex-wrap self-end md:self-center shrink-0">
+                  <button
+                    onClick={() => handleUnlockWithAppointment('APT-101')}
+                    className="px-3.5 py-2 rounded-lg bg-secondary-container text-on-secondary-fixed-variant font-semibold text-xs hover:bg-secondary-fixed transition-colors flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">calendar_month</span>
+                    Consult Appointment
+                  </button>
+                  <button
+                    onClick={handleEmergencyBreakGlass}
+                    className="px-3.5 py-2 rounded-lg bg-rose-700 text-white font-semibold text-xs hover:bg-rose-800 transition-colors flex items-center gap-1.5 shadow-md cursor-pointer"
+                    type="button"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">emergency</span>
+                    Emergency Break-Glass Override
+                  </button>
+                </div>
               </div>
-              <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col justify-center">
-                <span className="text-on-surface-variant font-medium flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[14px] text-secondary">monitor_heart</span> Bedside Hardware Status
-                </span>
-                <span className="text-xs text-on-surface font-semibold mt-0.5">
-                  Vitals Monitored Bedside in Real-Life
-                </span>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -1222,39 +1376,66 @@ export default function HealthHistory() {
                             {rx.hospital && (
                               <>
                                 <span className="text-outline-variant">•</span>
-                                <span className="font-body-sm text-body-sm text-on-surface-variant">{rx.hospital}</span>
+                                <span className="font-body-sm text-body-sm text-on-surface-variant">
+                                  {typeof rx.hospital === 'object' && rx.hospital !== null ? (rx.hospital.name || rx.hospital.hospital_name) : rx.hospital}
+                                </span>
                               </>
                             )}
                           </div>
                           <h2 className="font-headline-sm text-headline-sm text-primary font-semibold flex items-center gap-2">
                             <span>{rx.title}</span>
                             {isUploaded && <span className="material-symbols-outlined text-primary text-[18px]">attachment</span>}
+                            {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' && (
+                              <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 text-[10px] font-bold uppercase tracking-wider border border-rose-300 font-mono">
+                                LOCKED • RESTRICTED TRIAGE
+                              </span>
+                            )}
                           </h2>
-                          <p className="font-body-sm text-body-sm text-on-surface-variant">
-                            {rx.regimen || rx.notes || 'Prescription details logged.'}
-                          </p>
+                          {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' ? (
+                            <p className="font-body-sm text-xs text-rose-700 dark:text-rose-300 italic flex items-center gap-1.5 mt-1">
+                              <span className="material-symbols-outlined text-[14px]">lock</span>
+                              <span>Prescription dosage &amp; clinical instructions masked. Engage Break-Glass to view.</span>
+                            </p>
+                          ) : (
+                            <p className="font-body-sm text-body-sm text-on-surface-variant">
+                              {rx.regimen || rx.notes || 'Prescription details logged.'}
+                            </p>
+                          )}
                         </div>
                         <div className="flex sm:flex-col items-end justify-between gap-space-sm shrink-0">
                           <span className={`px-space-xs py-space-2xs rounded-full ${rx.status === 'Active' ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-primary/10 text-primary'} font-label-sm text-label-sm font-semibold`}>
                             {rx.status || rx.recordType || 'Active'}
                           </span>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <button
-                              onClick={() => handleAnalyzeDocument(rx)}
-                              className="inline-flex items-center gap-1 font-label-sm text-xs text-tertiary font-bold hover:underline cursor-pointer"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">psychology</span>
-                              <span>Analyze with Gemini</span>
-                            </button>
-                            <button
-                              onClick={() => setSelectedRecord(rx)}
-                              className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary hover:text-primary-container font-medium cursor-pointer"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">description</span>
-                              <span>Details</span>
-                            </button>
+                            {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' ? (
+                              <button
+                                onClick={() => setBreakGlassModalOpen(true)}
+                                className="inline-flex items-center gap-1 text-xs text-rose-700 dark:text-rose-300 font-bold hover:underline bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-lg border border-rose-300 cursor-pointer"
+                                type="button"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">emergency</span>
+                                <span>Break-Glass to Unlock</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleAnalyzeDocument(rx)}
+                                  className="inline-flex items-center gap-1 font-label-sm text-xs text-tertiary font-bold hover:underline cursor-pointer"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">psychology</span>
+                                  <span>Analyze with Gemini</span>
+                                </button>
+                                <button
+                                  onClick={() => setSelectedRecord(rx)}
+                                  className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary hover:text-primary-container font-medium cursor-pointer"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">description</span>
+                                  <span>Details</span>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1307,47 +1488,74 @@ export default function HealthHistory() {
                             {diag.hospital && (
                               <>
                                 <span className="text-outline-variant">•</span>
-                                <span className="font-body-sm text-body-sm text-on-surface-variant">{diag.hospital}</span>
+                                <span className="font-body-sm text-body-sm text-on-surface-variant">
+                                  {typeof diag.hospital === 'object' && diag.hospital !== null ? (diag.hospital.name || diag.hospital.hospital_name) : diag.hospital}
+                                </span>
                               </>
                             )}
                           </div>
                           <h2 className="font-headline-sm text-headline-sm text-primary font-semibold flex items-center gap-2">
                             <span>{diag.title}</span>
                             {isUploaded && <span className="material-symbols-outlined text-primary text-[18px]">attachment</span>}
+                            {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' && (
+                              <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 text-[10px] font-bold uppercase tracking-wider border border-rose-300 font-mono">
+                                LOCKED • RESTRICTED TRIAGE
+                              </span>
+                            )}
                           </h2>
-                          <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                            {diag.notes || 'No notes available.'}
-                          </p>
+                          {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' ? (
+                            <p className="font-body-sm text-xs text-rose-700 dark:text-rose-300 italic flex items-center gap-1.5 mt-1">
+                              <span className="material-symbols-outlined text-[14px]">lock</span>
+                              <span>Clinical consultation &amp; diagnosis notes masked. Engage Break-Glass to view.</span>
+                            </p>
+                          ) : (
+                            <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                              {diag.notes || 'No notes available.'}
+                            </p>
+                          )}
                         </div>
                         <div className="flex sm:flex-col items-end justify-between gap-space-sm shrink-0">
                           <span className={`px-space-xs py-space-2xs rounded-full ${diag.status === 'Resolved' ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-primary/10 text-primary'} font-label-sm text-label-sm font-semibold`}>
                             {diag.status || diag.recordType || 'Ongoing'}
                           </span>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <button
-                              onClick={() => handleAnalyzeDocument(diag)}
-                              className="inline-flex items-center gap-1 text-xs text-tertiary font-bold hover:underline cursor-pointer"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">psychology</span>
-                              <span>Analyze with Gemini</span>
-                            </button>
-                            <button
-                              onClick={() =>
-                                setSelectedRecord({
-                                  title: diag.title,
-                                  doctor: `${diag.doctor || 'Physician'} ${diag.hospital ? `(${diag.hospital})` : ''}`,
-                                  date: dateDisplay,
-                                  status: diag.status || 'Active Record',
-                                  notes: diag.notes || 'No additional notes.',
-                                })
-                              }
-                              className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary hover:text-primary-container font-medium cursor-pointer"
-                              type="button"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">clinical_notes</span>
-                              <span>View Diagnostic Record</span>
-                            </button>
+                            {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' ? (
+                              <button
+                                onClick={() => setBreakGlassModalOpen(true)}
+                                className="inline-flex items-center gap-1 text-xs text-rose-700 dark:text-rose-300 font-bold hover:underline bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-lg border border-rose-300 cursor-pointer"
+                                type="button"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">emergency</span>
+                                <span>Break-Glass to Unlock</span>
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleAnalyzeDocument(diag)}
+                                  className="inline-flex items-center gap-1 text-xs text-tertiary font-bold hover:underline cursor-pointer"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">psychology</span>
+                                  <span>Analyze with Gemini</span>
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setSelectedRecord({
+                                      title: diag.title,
+                                      doctor: `${diag.doctor || 'Physician'} ${diag.hospital ? `(${diag.hospital})` : ''}`,
+                                      date: dateDisplay,
+                                      status: diag.status || 'Active Record',
+                                      notes: diag.notes || 'No additional notes.',
+                                    })
+                                  }
+                                  className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary hover:text-primary-container font-medium cursor-pointer"
+                                  type="button"
+                                >
+                                  <span className="material-symbols-outlined text-[16px]">clinical_notes</span>
+                                  <span>View Diagnostic Record</span>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1411,9 +1619,21 @@ export default function HealthHistory() {
                               {doc.recordType || 'LAB_REPORT'}
                             </span>
                             <span className="text-xs font-mono text-outline">{dateStr}</span>
+                            {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' && (
+                              <span className="px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200 text-[10px] font-bold uppercase tracking-wider border border-rose-300 font-mono">
+                                LOCKED • RESTRICTED TRIAGE
+                              </span>
+                            )}
                           </div>
                           <h4 className="font-bold text-primary text-base mt-1 line-clamp-1">{doc.title}</h4>
-                          <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{doc.notes || 'No notes provided.'}</p>
+                          {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' ? (
+                            <p className="text-xs text-rose-700 dark:text-rose-300 italic mt-0.5 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[13px]">lock</span>
+                              <span>Document contents protected under ABDM. Engage Break-Glass to view or analyze.</span>
+                            </p>
+                          ) : (
+                            <p className="text-xs text-on-surface-variant line-clamp-2 mt-0.5">{doc.notes || 'No notes provided.'}</p>
+                          )}
                         </div>
                       </div>
 
@@ -1428,34 +1648,47 @@ export default function HealthHistory() {
                     </div>
 
                     <div className="pt-2 border-t border-surface-container-low flex items-center justify-between text-xs flex-wrap gap-2">
-                      <button
-                        onClick={() => handleAnalyzeDocument(doc)}
-                        className="px-2.5 py-1 rounded-md bg-tertiary-container text-on-tertiary-container font-bold text-xs inline-flex items-center gap-1 hover:bg-tertiary-fixed transition-colors"
-                        type="button"
-                      >
-                        <span className="material-symbols-outlined text-[15px]">psychology</span>
-                        Analyze with Gemini
-                      </button>
-                      <div className="flex items-center gap-2">
+                      {isDoctorMode && accessLevel === 'RESTRICTED_TRIAGE' ? (
                         <button
-                          onClick={() => setSelectedRecord(doc)}
-                          className="px-2.5 py-1 rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-xs"
+                          onClick={() => setBreakGlassModalOpen(true)}
+                          className="px-3 py-1.5 rounded-lg bg-rose-700 text-white font-bold text-xs inline-flex items-center gap-1 hover:bg-rose-800 transition-colors shadow-xs"
                           type="button"
                         >
-                          Details
+                          <span className="material-symbols-outlined text-[15px]">emergency</span>
+                          Break-Glass to Unlock Document
                         </button>
-                        {doc.fileUrl && (
-                          <a
-                            href={doc.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1 rounded-md bg-primary text-on-primary font-semibold text-xs inline-flex items-center gap-1 hover:bg-primary-container transition-colors no-underline"
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleAnalyzeDocument(doc)}
+                            className="px-2.5 py-1 rounded-md bg-tertiary-container text-on-tertiary-container font-bold text-xs inline-flex items-center gap-1 hover:bg-tertiary-fixed transition-colors"
+                            type="button"
                           >
-                            <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                            View File
-                          </a>
-                        )}
-                      </div>
+                            <span className="material-symbols-outlined text-[15px]">psychology</span>
+                            Analyze with Gemini
+                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setSelectedRecord(doc)}
+                              className="px-2.5 py-1 rounded-md bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-xs"
+                              type="button"
+                            >
+                              Details
+                            </button>
+                            {doc.fileUrl && (
+                              <a
+                                href={doc.fileUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1 rounded-md bg-primary text-on-primary font-semibold text-xs inline-flex items-center gap-1 hover:bg-primary-container transition-colors no-underline"
+                              >
+                                <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                                View File
+                              </a>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -1567,6 +1800,19 @@ export default function HealthHistory() {
           </button>
         </aside>
       </div>
+
+      {/* Break-Glass High Friction Modal */}
+      <BreakGlassModal
+        isOpen={breakGlassModalOpen}
+        onClose={() => setBreakGlassModalOpen(false)}
+        patient={loadedPatient || { id: targetPatientId || 'patient-rajesh', name: 'Rajesh V. Sharma', abhaNumber: '9824-8819-3320-TN' }}
+        doctorCredentials={{
+          name: currentUser?.name || 'Dr. Kavitha Menon',
+          nmcNumber: 'MD-44912-TN',
+          hospital: 'Apollo Greams Trauma Hub',
+        }}
+        onOverrideSuccess={handleBreakGlassSuccess}
+      />
     </div>
   );
 }

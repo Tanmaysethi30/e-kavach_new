@@ -32,7 +32,7 @@ export default function DoctorSettings() {
         address: currentUser.address || prev.address,
       }));
     }
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.name, currentUser?.phone, currentUser?.email, currentUser?.licenseId, currentUser?.hospital]);
 
   const [toastMessage, setToastMessage] = useState(null);
   const [activeTab, setActiveTab] = useState('sec-profile');

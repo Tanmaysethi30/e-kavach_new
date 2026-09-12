@@ -1,324 +1,803 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import LiveRoutingMap from '../../components/patient/LiveRoutingMap';
+import HospitalMap from '../../components/patient/HospitalMap';
+import HospitalList from '../../components/patient/HospitalList';
+import EmergencySosModal from '../../components/patient/EmergencySosModal';
+import { useAuth } from '../../context/AuthContext';
+import { detectClientIpLocation } from '../../utils/geolocation';
 
 export default function EmergencyAccess() {
   const navigate = useNavigate();
-  const [beaconStatus, setBeaconStatus] = useState(null);
-  const triggerBeacon = (target) => {
-    setBeaconStatus(`Telemetry Ingress Signal Dispatched: Test packet securely routed to ${target} via ABDM Gateway (0.18s latency).`);
-    setTimeout(() => setBeaconStatus(null), 4000);
+  const { currentUser } = useAuth();
+
+  // Active View Tab: 'map' | 'contacts' | 'telemetry'
+  const [activeTab, setActiveTab] = useState('map');
+
+  // Hospitals state
+  const [hospitals, setHospitals] = useState([]);
+  const [selectedHospital, setSelectedHospital] = useState(null);
+  const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
+
+  // Live Patient Location state
+  const [userLocation, setUserLocation] = useState({
+    lat: 22.7196,
+    lng: 75.8577,
+    areaName: 'Indore',
+    city: 'Indore',
+    isDetected: false,
+    label: 'Detecting Live System Geolocation...',
+  });
+
+  const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(false);
+  const watchIdRef = useRef(null);
+
+  // Route state (OpenStreetMap & OSRM road geometry + steps)
+  const [routeData, setRouteData] = useState(null);
+  const [isLoadingRoute, setIsLoadingRoute] = useState(false);
+
+  // SOS Modal state
+  const [sosModalOpen, setSosModalOpen] = useState(false);
+  const [sosTargetHospital, setSosTargetHospital] = useState(null);
+
+  // Toast feedback state
+  const [toastMessage, setToastMessage] = useState(null);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
   };
+
+  // 1. Fetch Hospitals from backend (Supports coordinate inputs and text queries)
+  const fetchHospitals = useCallback(async (locationInput, forceSelectNearest = false) => {
+    setIsLoadingHospitals(true);
+    try {
+      let queryParam = '';
+      if (typeof locationInput === 'string') {
+        queryParam = `location=${encodeURIComponent(locationInput)}`;
+      } else if (locationInput && typeof locationInput.lat === 'number') {
+        queryParam = `lat=${locationInput.lat}&lng=${locationInput.lng}`;
+      } else if (typeof locationInput === 'object' && locationInput?.location) {
+        queryParam = `location=${encodeURIComponent(locationInput.location)}`;
+      } else {
+        queryParam = `lat=22.7196&lng=75.8577`;
+      }
+
+      const url = `/api/patient/emergency-hospitals?${queryParam}&radius=7`;
+      const res = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(currentUser?.token ? { Authorization: `Bearer ${currentUser.token}` } : {}),
+        },
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        if (data.userLocation) {
+          setUserLocation((prev) => ({
+            ...prev,
+            ...data.userLocation,
+            lat: data.userLocation.lat,
+            lng: data.userLocation.lng,
+            areaName: data.userLocation.areaName || data.userLocation.city || prev.areaName,
+            city: data.userLocation.city || prev.city,
+            displayName: data.userLocation.displayName || prev.displayName,
+            isDetected: true,
+            label: data.userLocation.areaName
+              ? `${data.userLocation.areaName}, ${data.userLocation.city || ''}`
+              : `${data.userLocation.lat.toFixed(4)}° N, ${data.userLocation.lng.toFixed(4)}° E`,
+          }));
+        }
+
+        if (Array.isArray(data.hospitals)) {
+          setHospitals(data.hospitals);
+          // Automatically select the nearest hospital in the user's immediate vicinity
+          if (data.hospitals.length > 0) {
+            setSelectedHospital((prev) => {
+              if (forceSelectNearest || !prev) return data.hospitals[0];
+              const updated = data.hospitals.find((h) => h.id === prev.id);
+              return updated || data.hospitals[0];
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch emergency hospitals:', err);
+    } finally {
+      setIsLoadingHospitals(false);
+    }
+  }, [currentUser?.id, currentUser?.city]);
+
+  // 2. Fetch Real OSRM Road Path when hospital or patient location changes
+  const fetchRoute = useCallback(async (fromLat, fromLng, toHospital) => {
+    if (!toHospital || !fromLat || !fromLng) return;
+    const toLat = toHospital.geoLat || toHospital.lat;
+    const toLng = toHospital.geoLng || toHospital.lng;
+    if (!toLat || !toLng) return;
+
+    setIsLoadingRoute(true);
+    try {
+      const res = await fetch(
+        `/api/patient/route?fromLat=${fromLat}&fromLng=${fromLng}&toLat=${toLat}&toLng=${toLng}`
+      );
+      const data = await res.json();
+      if (data.success) {
+        setRouteData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch road route:', err);
+    } finally {
+      setIsLoadingRoute(false);
+    }
+  }, []);
+
+  // Update route whenever userLocation or selectedHospital changes
+  useEffect(() => {
+    if (selectedHospital && userLocation?.lat && userLocation?.lng) {
+      fetchRoute(userLocation.lat, userLocation.lng, selectedHospital);
+    }
+  }, [selectedHospital?.id, selectedHospital?.geoLat, selectedHospital?.geoLng, userLocation?.lat, userLocation?.lng, fetchRoute]);
+
+  // 3. AUTOMATIC LIVE GEOLOCATION SYNC ON COMPONENT MOUNT
+  useEffect(() => {
+    let hasAcquiredGps = false;
+
+    // A. Start client-side IP Geolocation immediately (Fast 200ms ISP detection)
+    async function initClientIpLocation() {
+      try {
+        const clientLoc = await detectClientIpLocation();
+        if (clientLoc && !hasAcquiredGps) {
+          const coords = {
+            lat: clientLoc.lat,
+            lng: clientLoc.lng,
+            areaName: clientLoc.city || 'Detected City',
+            city: clientLoc.city,
+            isDetected: true,
+            label: clientLoc.label,
+          };
+          setUserLocation(coords);
+          fetchHospitals(coords, true);
+        }
+      } catch (err) {
+        console.warn('Client IP detection warning:', err);
+      }
+    }
+    initClientIpLocation();
+
+    // B. Start real-time browser GPS tracking
+    if (navigator.geolocation) {
+      setIsLiveGpsTracking(true);
+
+      // Fast high-accuracy GPS acquisition
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          hasAcquiredGps = true;
+          const coords = {
+            lat: parseFloat(pos.coords.latitude.toFixed(5)),
+            lng: parseFloat(pos.coords.longitude.toFixed(5)),
+            isDetected: true,
+            label: `Live GPS Position (±${Math.round(pos.coords.accuracy)}m High-Precision)`,
+          };
+          setUserLocation((prev) => ({ ...prev, ...coords }));
+          fetchHospitals(coords, true);
+          showToast(`📍 High-Precision Live Location Locked`);
+        },
+        (err) => {
+          console.warn('Browser GPS permission/timeout:', err.message);
+          setIsLiveGpsTracking(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+      );
+
+      // Continuous Watch Position
+      try {
+        const id = navigator.geolocation.watchPosition(
+          (pos) => {
+            const coords = {
+              lat: parseFloat(pos.coords.latitude.toFixed(5)),
+              lng: parseFloat(pos.coords.longitude.toFixed(5)),
+              isDetected: true,
+              label: `Live Moving GPS Position (±${Math.round(pos.coords.accuracy)}m)`,
+            };
+            setUserLocation((prev) => {
+              const latDiff = Math.abs(prev.lat - coords.lat);
+              const lngDiff = Math.abs(prev.lng - coords.lng);
+              if (latDiff > 0.003 || lngDiff > 0.003) {
+                fetchHospitals(coords, false);
+                return coords;
+              }
+              return prev;
+            });
+          },
+          (err) => console.warn('Watch position warning:', err.message),
+          { enableHighAccuracy: true, maximumAge: 15000 }
+        );
+        watchIdRef.current = id;
+      } catch (e) {
+        console.warn('Watch position not available:', e);
+      }
+    }
+
+    return () => {
+      if (watchIdRef.current !== null && navigator.geolocation?.clearWatch) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, [fetchHospitals]);
+
+  // Request real Browser GPS coordinates manually
+  const handleRequestGpsLocation = () => {
+    if (!navigator.geolocation) {
+      showToast('Geolocation is not supported by your browser environment.');
+      return;
+    }
+
+    showToast('Acquiring high-precision live GPS coordinates...');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const newCoords = {
+          lat: parseFloat(pos.coords.latitude.toFixed(5)),
+          lng: parseFloat(pos.coords.longitude.toFixed(5)),
+          isDetected: true,
+          label: `Live GPS Position (±${Math.round(pos.coords.accuracy)}m Accuracy)`,
+        };
+        setUserLocation((prev) => ({ ...prev, ...newCoords }));
+        fetchHospitals(newCoords, true);
+        showToast(`Live GPS Synced: ${newCoords.lat}° N, ${newCoords.lng}° E`);
+      },
+      (err) => {
+        console.warn('Geolocation error:', err.message);
+        showToast('Could not access live GPS. Using current coordinates.');
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  // Reset to default central reference
+  const handleResetLocation = () => {
+    const defaultCoords = {
+      lat: 22.7196,
+      lng: 75.8577,
+      areaName: 'Indore City',
+      city: 'Indore',
+      isDetected: false,
+      label: 'Indore Reference (22.7196° N, 75.8577° E)',
+    };
+    setUserLocation(defaultCoords);
+    fetchHospitals(defaultCoords, true);
+    showToast('Reset to Central Medical Grid');
+  };
+
+  // Update location from map pin drop or search
+  const handleUpdateUserLocation = (newCoords) => {
+    setUserLocation((prev) => ({
+      ...prev,
+      ...newCoords,
+      isDetected: true,
+    }));
+    fetchHospitals(newCoords, true);
+    showToast(`Patient position updated to ${newCoords.areaName || `${newCoords.lat}° N, ${newCoords.lng}° E`}`);
+  };
+
+  // Open SOS Modal for hospital
+  const handleOpenSos = (hosp) => {
+    setSosTargetHospital(hosp || selectedHospital || hospitals[0]);
+    setSosModalOpen(true);
+  };
+
   return (
-    <div className="w-full">
-      {/* Dynamic Beacon Toast Feedback */}
-      {beaconStatus && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-space-sm px-space-md py-space-sm bg-primary text-on-primary rounded-xl shadow-xl transition-all">
-          <span className="material-symbols-outlined text-[20px] text-teal-tactical">cell_tower</span>
-          <div className="flex flex-col">
-            <span className="font-label-lg text-label-lg font-semibold">Emergency Beacon Broadcast</span>
-            <span className="font-body-sm text-body-sm text-surface-variant">{beaconStatus}</span>
-          </div>
+    <div className="w-full flex flex-col gap-6 pb-12">
+      {/* Dynamic Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white rounded-2xl shadow-2xl border border-blue-400/40 transition-all animate-bounce-short">
+          <span className="material-symbols-outlined text-[20px] text-blue-400">my_location</span>
+          <span className="font-label-md text-xs font-semibold">{toastMessage}</span>
           <button
-            onClick={() => setBeaconStatus(null)}
-            className="ml-space-md text-surface-variant hover:text-on-primary transition-colors cursor-pointer"
             type="button"
+            onClick={() => setToastMessage(null)}
+            className="text-white/60 hover:text-white ml-2 cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <span className="material-symbols-outlined text-[16px]">close</span>
           </button>
         </div>
       )}
 
-{/* Breadcrumb and Live Operational Ingress Bar */}
-<div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 mb-6 border-b border-outline-variant/30">
-  <div className="flex flex-col gap-1">
-    <div className="flex items-center gap-2 text-xs font-semibold text-secondary uppercase tracking-wider">
-      <span className="material-symbols-outlined text-[16px] text-teal-tactical">shield_person</span>
-      <span className="">Patient Preferences &amp; Safety Protocols</span>
-    </div>
-    <h1 className="font-headline-lg text-2xl md:text-3xl font-bold text-primary tracking-tight">Emergency Contacts &amp; SOS Dispatch</h1>
-    <p className="font-body-md text-xs md:text-sm text-on-surface-variant max-w-2xl">Manage your emergency contacts, triage escalation pipeline, and ABDM SOS broadcast preferences.</p>
-  </div>
-  <div className="flex items-center gap-3 shrink-0">
-    <div className="flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-teal-tactical/30 shadow-sm">
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-tactical opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-tactical"></span>
-      </span>
-      <span className="font-label-sm text-[11px] text-primary font-bold tracking-tight">ABDM Cloud Sync: Active</span>
-    </div>
-    <button onClick={() => triggerBeacon('ABDM Preferences Vault')} type="button" className="px-4 py-2 bg-primary hover:bg-navy-accent text-white font-headline-sm text-xs font-bold rounded-xl shadow-sm transition-all flex items-center gap-1.5 cursor-pointer">
-      <span className="material-symbols-outlined text-[16px] text-teal-tactical">check_circle</span>
-      <span className="">Save All Preferences</span>
-    </button>
-  </div>
-</div><div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-5 border-b border-outline-variant/20 mb-6">
-<div className="flex items-center gap-2 text-on-surface-variant text-xs">
-<span className="font-label-md">Patient Portal</span>
-<span className="material-symbols-outlined text-[14px]">chevron_right</span>
-<span className="font-label-md">System Preferences</span>
-<span className="material-symbols-outlined text-[14px]">chevron_right</span>
-<span className="font-label-md text-primary font-semibold">Emergency Contacts &amp; Telemetry Command</span>
-</div>
-<div className="flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-teal-tactical/30 shadow-sm">
-<span className="relative flex h-2 w-2">
-<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-tactical opacity-75"></span>
-<span className="relative inline-flex rounded-full h-2 w-2 bg-teal-tactical"></span>
-</span>
-<span className="font-label-sm text-[11px] text-primary font-bold tracking-tight">ABDM Tactical Beacon: LIVE (0.18s Telemetry)</span>
-</div>
-</div>
-{/* Main Layout: Navigation Column + Bento Grid */}
-<div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-{/* MINI SIDEBAR TABS (Left Col - 3 cols) */}
-<aside className="lg:col-span-3 flex flex-col gap-4">
-<div className="bg-surface-container-lowest p-2 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col gap-1">
-<div className="px-3 py-2">
-<span className="font-label-sm text-[11px] uppercase tracking-wider text-on-surface-variant font-bold">System Configuration</span>
-</div>
-<Link to="/patient/settings" className="flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors no-underline">
-<div className="flex items-center gap-2.5">
-<span className="material-symbols-outlined text-[18px]">account_circle</span>
-<span className="font-label-lg text-xs font-medium">Profile</span>
-</div>
-</Link>
-<Link to="/patient/abha" className="flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors no-underline">
-<div className="flex items-center gap-2.5">
-<span className="material-symbols-outlined text-[18px]">fingerprint</span>
-<span className="font-label-lg text-xs font-medium">Health ID &amp; ABHA</span>
-</div>
-</Link>
-{/* Active Settings Item */}
-<div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-primary text-on-primary font-semibold shadow-sm transition-colors cursor-default">
-<div className="flex items-center gap-2.5">
-<span className="material-symbols-outlined text-[18px] text-teal-tactical">cell_tower</span>
-<span className="font-label-lg text-xs">Emergency Contacts</span>
-</div>
-<span className="bg-teal-tactical/20 text-teal-tactical font-label-sm text-[10px] px-2 py-0.5 rounded-full font-bold">2 Synced</span>
-</div>
-<Link to="/patient/notifications" className="flex items-center justify-between px-3 py-2 rounded-xl text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors no-underline">
-<div className="flex items-center gap-2.5">
-<span className="material-symbols-outlined text-[18px]">notifications_active</span>
-<span className="font-label-lg text-xs font-medium">Notifications</span>
-</div>
-<span className="bg-surface-container text-on-surface-variant font-label-sm text-[10px] px-1.5 py-0.5 rounded-md">Auto</span>
-</Link>
+      {/* 1. Header & Live Telemetry Ingress Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-outline-variant/30">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2 text-xs font-semibold text-secondary uppercase tracking-wider">
+            <span className="material-symbols-outlined text-[16px] text-blue-600">navigation</span>
+            <span>ABDM National Health Network • Leaflet &amp; OpenStreetMap OSRM Live Routing</span>
+          </div>
+          <h1 className="font-headline-lg text-2xl md:text-3xl font-bold text-primary tracking-tight">
+            Hospital ER Live Map &amp; Real-Time Road Navigation
+          </h1>
+          <p className="font-body-md text-xs md:text-sm text-on-surface-variant max-w-3xl">
+            Automatically synchronized to your real-time system location. Finds nearest hospitals within 7km using OpenStreetMap Overpass and Nominatim, and calculates live OSRM driving routes, ETA, and turn-by-turn navigation steps.
+          </p>
+        </div>
 
+        {/* Global Action CTAs */}
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-blue-400/30 shadow-xs">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-600"></span>
+            </span>
+            <span className="font-label-sm text-[11px] text-primary font-bold tracking-tight">
+              Live GPS Synced: {hospitals.length} Hospitals
+            </span>
+          </div>
 
+          <button
+            type="button"
+            onClick={() => handleOpenSos(selectedHospital || hospitals[0])}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-headline-sm text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+          >
+            <span className="material-symbols-outlined text-[18px]">cell_tower</span>
+            <span>Dispatch 108 SOS</span>
+          </button>
+        </div>
+      </div>
 
-</div>
-{/* Diagnostic Telemetry Quick-Run Card */}
-<div className="bg-surface-container-lowest p-4 rounded-2xl border border-outline-variant/30 shadow-sm flex flex-col gap-3">
-<div className="flex items-center justify-between">
-<span className="font-label-sm text-[10px] uppercase tracking-wider font-bold text-secondary">Dispatch Health</span>
-<span className="flex items-center gap-1 text-[11px] font-semibold text-teal-tactical">
-<span className="w-1.5 h-1.5 rounded-full bg-teal-tactical"></span> 99.99% Up
-              </span>
-</div>
-<div className="p-2.5 bg-surface-container-low rounded-xl flex items-center justify-between text-xs">
-<span className="text-on-surface-variant font-medium">Heartbeat Ping</span>
-<span className="font-mono font-bold text-primary">0.18 ms</span>
-</div>
-<div className="p-2.5 bg-surface-container-low rounded-xl flex items-center justify-between text-xs">
-<span className="text-on-surface-variant font-medium">FIPS Key Status</span>
-<span className="font-mono font-bold text-teal-tactical">Armed &amp; Valid</span>
-</div>
-<button onClick={() => triggerBeacon('Node GREAMS-BAY-03 (FIPS Armed)')} className="w-full py-2 bg-surface-container-high hover:bg-surface-container text-primary font-label-md text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 border border-outline-variant/40 cursor-pointer" type="button">
-<span className="material-symbols-outlined text-[16px] text-teal-tactical">wifi_tethering</span>
-<span className="">Self-Test Ingress Pulse</span>
-</button>
-</div>
-</aside>
-{/* BENTO GRID CONTAINER (Right Col - 9 cols) */}
-<div className="lg:col-span-9 flex flex-col gap-6">
-{/* MODULE 1: PRIMARY HERO BENTO (Active Dispatch Beacon & Trauma Network) */}
-<div className="bg-gradient-to-br from-[#00354c] via-[#004d6c] to-[#00283a] rounded-3xl p-6 text-white shadow-md relative overflow-hidden border border-white/10">
-{/* Background Decorative Grid Lines */}
-<div className="absolute inset-0 bg-[radial-gradient(#02C39A_1px,transparent_1px)] [background-size:20px_20px] opacity-10 pointer-events-none"></div>
-<div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-white/10">
-<div className="flex flex-col gap-1.5 max-w-xl">
-<div className="flex items-center gap-2">
-<span className="bg-teal-tactical/20 border border-teal-tactical/40 text-teal-tactical px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase inline-flex items-center gap-1">
-<span className="w-1.5 h-1.5 rounded-full bg-teal-tactical animate-pulse"></span> Tactical Telemetry OS
-                  </span>
-<span className="text-white/60 text-xs font-mono">NODE: TN-CH-992</span>
-</div>
-<h1 className="font-headline-lg text-2xl md:text-3xl font-bold tracking-tight text-white mt-1">
-                  Active Dispatch Beacon &amp; Trauma Network
-                </h1>
-<p className="font-body-md text-xs md:text-sm text-slate-200 leading-relaxed">
-                  Real-time algorithmic dispatch matrix connected to ABDM National Registry and local Golden-Hour emergency bays. Instant broadcast on triage trigger.
-                </p>
-</div>
-{/* Top Quick Action CTA */}
-<div className="flex items-center gap-3 shrink-0">
-<button className="px-4 py-2.5 bg-teal-tactical hover:bg-teal-tactical/90 text-primary font-headline-sm text-xs font-bold rounded-xl shadow-lg transition-transform active:scale-95 flex items-center gap-2" onClick={() => triggerBeacon('Master Network Broadcast')} type="button">
-<span className="material-symbols-outlined text-[18px]">satellite_alt</span>
-<span className="">Broadcast Test Ping</span>
-</button>
-</div>
-</div>
-{/* Hero Bento Sub-Stats (3-Column Tactical Telemetry Strip) */}
-<div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 pt-5">
-{/* Sub-metric 1 */}
-<div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 flex items-center gap-3.5">
-<div className="w-11 h-11 rounded-xl bg-teal-tactical/20 text-teal-tactical flex items-center justify-center shrink-0 border border-teal-tactical/30">
-<span className="material-symbols-outlined text-[24px]">speed</span>
-</div>
-<div className="flex flex-col">
-<span className="text-[11px] text-slate-300 font-medium">Ingress Ping Latency</span>
-<div className="flex items-baseline gap-1.5">
-<span className="font-headline-md text-xl font-bold text-white tracking-tight">0.18s</span>
-<span className="text-[10px] text-teal-tactical font-semibold flex items-center gap-0.5">
-<span className="material-symbols-outlined text-[12px]">bolt</span> Sub-second
+      {/* 2. Top Navigation Tabs */}
+      <div className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTab('map')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'map'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">map</span>
+            <span>Live Map &amp; OSRM Road Path</span>
+            <span className="px-1.5 py-0.2 text-[10px] rounded-full bg-blue-500/20 text-blue-400 font-mono">
+              {hospitals.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('contacts')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'contacts'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">contact_phone</span>
+            <span>Emergency Contacts &amp; Next-of-Kin</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('telemetry')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'telemetry'
+                ? 'bg-primary text-white shadow-sm'
+                : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[18px]">monitor_heart</span>
+            <span>ABDM Ingress Diagnostics</span>
+          </button>
+        </div>
+
+        {/* Patient Health ID QR Shortcut */}
+        <Link
+          to="/patient/abha"
+          className="hidden md:flex items-center gap-1.5 text-xs font-bold text-primary hover:text-navy-accent bg-surface-container-lowest px-3 py-1.5 rounded-xl border border-outline-variant/30 hover:border-primary/40 no-underline"
+        >
+          <span className="material-symbols-outlined text-[16px] text-teal-tactical">badge</span>
+          <span>My Health ID QR</span>
+        </Link>
+      </div>
+
+      {/* 3. MAIN VIEW: REAL-LIFE MAP & HOSPITALS */}
+      {activeTab === 'map' && (
+        <div className="flex flex-col gap-6">
+          {/* Main 2-Column Section: Left Hospital List / Directions + Right Real-Life Map */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Column: Hospital Data List & OSRM Turn-by-Turn (5 cols on Desktop) */}
+            <div className="lg:col-span-5 w-full">
+              <HospitalList
+                hospitals={hospitals}
+                selectedHospital={selectedHospital}
+                onSelectHospital={(hosp) => setSelectedHospital(hosp)}
+                userLocation={userLocation}
+                onRequestGpsLocation={handleRequestGpsLocation}
+                onResetLocation={handleResetLocation}
+                onOpenSos={handleOpenSos}
+                isLoading={isLoadingHospitals}
+                routeData={routeData}
+                isLoadingRoute={isLoadingRoute}
+                isLiveGpsTracking={isLiveGpsTracking}
+              />
+            </div>
+
+            {/* Right Column: Live OpenStreetMap & OSRM Driving Route Map (7 cols on Desktop) */}
+            <div className="lg:col-span-7 w-full flex flex-col gap-4">
+              <LiveRoutingMap
+                patientLocation={userLocation}
+                hospitalLocation={selectedHospital}
+                nearbyHospitals={hospitals}
+                onSelectHospital={(hosp) => setSelectedHospital(hosp)}
+                onLocationChange={handleUpdateUserLocation}
+                onOpenSos={handleOpenSos}
+                onTriggerGps={handleRequestGpsLocation}
+                isLoading={isLoadingHospitals}
+              />
+            </div>
+          </div>
+
+          {/* 4. Selected Hospital Full Bed & Clinical Details Bar */}
+          {selectedHospital && (
+            <div className="bg-surface-container-lowest p-5 md:p-6 rounded-3xl border border-outline-variant/40 shadow-sm flex flex-col gap-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-outline-variant/20">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md">
+                    <span className="material-symbols-outlined text-[24px]">local_hospital</span>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="bg-blue-100 text-blue-900 text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
+                        {selectedHospital.code}
+                      </span>
+                      <span className="bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {selectedHospital.accreditation || 'NABH / JCI Accredited'}
+                      </span>
+                      <span className="text-xs text-on-surface-variant font-mono">
+                        GPS: {selectedHospital.geoLat.toFixed(4)}° N, {selectedHospital.geoLng.toFixed(4)}° E
+                      </span>
+                    </div>
+                    <h2 className="font-headline-lg text-lg md:text-xl font-bold text-primary mt-1">
+                      {selectedHospital.name}
+                    </h2>
+                    <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-0.5">
+                      <span className="material-symbols-outlined text-[15px] text-secondary">location_on</span>
+                      {selectedHospital.address}, {selectedHospital.city}, {selectedHospital.state} - {selectedHospital.pincode}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Google Road Real Distance & Ambulance ETA */}
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="p-3 bg-blue-50/80 rounded-2xl border border-blue-200/60 flex flex-col items-end">
+                    <span className="text-[10px] text-blue-800 font-bold uppercase tracking-wider">
+                      Google Road Path
                     </span>
-</div>
-</div>
-</div>
-{/* Sub-metric 2 */}
-<div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 flex items-center gap-3.5">
-<div className="w-11 h-11 rounded-xl bg-white/10 text-cyan-200 flex items-center justify-center shrink-0 border border-white/15">
-<span className="material-symbols-outlined text-[24px]">local_hospital</span>
-</div>
-<div className="flex flex-col">
-<span className="text-[11px] text-slate-300 font-medium">Connected Trauma Bays</span>
-<div className="flex items-baseline gap-1.5">
-<span className="font-headline-md text-base font-bold text-white tracking-tight truncate">Apollo Greams &amp; Fortis</span>
-</div>
-<span className="text-[10px] text-slate-400">Level-1 Trauma Certified</span>
-</div>
-</div>
-{/* Sub-metric 3 */}
-<div className="bg-white/5 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 flex items-center gap-3.5">
-<div className="w-11 h-11 rounded-xl bg-teal-tactical/20 text-teal-tactical flex items-center justify-center shrink-0 border border-teal-tactical/30">
-<span className="material-symbols-outlined text-[24px]">ambulance</span>
-</div>
-<div className="flex flex-col">
-<span className="text-[11px] text-slate-300 font-medium">108 Fleet Sync</span>
-<div className="flex items-baseline gap-1.5">
-<span className="font-headline-md text-xl font-bold text-teal-tactical">Continuous</span>
-<span className="w-2 h-2 rounded-full bg-teal-tactical animate-ping"></span>
-</div>
-<span className="text-[10px] text-slate-300">Auto-Handshake Armed</span>
-</div>
-</div>
-</div>
-</div>
-{/* MODULE 2: BENTO GRID OF CONTACT TILES (Priority 1 & Priority 2 Side-by-Side) */}
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-{/* Bento Tile: Priority 1 Contact (Ananya S. Sharma) */}
-<div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/30 shadow-sm flex flex-col justify-between relative group hover:border-primary/40 transition-all">
-<div className="flex flex-col gap-4">
-{/* Header badge & timing */}
-<div className="flex items-center justify-between">
-<span className="bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 uppercase tracking-wider">
-<span className="material-symbols-outlined text-[13px] text-teal-tactical">verified_user</span> Primary Next-of-Kin
-                  </span>
-<span className="bg-surface-container text-primary font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-outline-variant/30">
-                    Tier-1 (0s Delay)
-                  </span>
-</div>
-{/* Contact Identity */}
-<div className="flex items-start gap-3.5">
-<div className="w-12 h-12 rounded-2xl bg-surface-container-high text-primary flex items-center justify-center font-headline-md text-lg font-bold shrink-0 border border-outline-variant/20">
-                    AS
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="font-headline-md text-xl font-extrabold text-blue-700 font-mono">
+                        {routeData?.distanceKm || selectedHospital.distanceKm} km
+                      </span>
+                      <span className="text-[11px] font-bold text-emerald-700 font-mono">
+                        (~{routeData?.durationMins || selectedHospital.ambulanceMins}m Drive)
+                      </span>
+                    </div>
                   </div>
-<div className="flex flex-col min-w-0">
-<div className="flex items-center gap-1.5">
-<h3 className="font-headline-sm text-base font-bold text-on-surface truncate">Ananya S. Sharma</h3>
-</div>
-<span className="text-xs text-on-surface-variant font-medium">Spouse • Legal Power of Attorney</span>
-<span className="text-xs font-mono font-bold text-primary mt-1">+91 98401 22819</span>
-</div>
-</div>
-{/* Visual Permission Badges */}
-<div className="flex flex-wrap gap-1.5 pt-1">
-<span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
-<span className="material-symbols-outlined text-[13px] text-teal-tactical">gavel</span> Full DPOA Consent
-                  </span>
-<span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
-<span className="material-symbols-outlined text-[13px] text-secondary">sms</span> Live SMS Telemetry
-                  </span>
-<span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
-<span className="material-symbols-outlined text-[13px] text-teal-tactical">vital_signs</span> ICU Break-Glass
-                  </span>
-</div>
-</div>
-{/* Actions Strip */}
-<div className="pt-5 mt-4 border-t border-outline-variant/20 flex items-center justify-between gap-2">
-<button onClick={() => triggerBeacon('Priority 1 Contact (Ananya S. Sharma)')} className="flex-1 py-2 px-3 bg-surface-container-low hover:bg-surface-container text-primary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/30 cursor-pointer" type="button">
-<span className="material-symbols-outlined text-[16px] text-teal-tactical">cell_tower</span>
-<span className="">Simulate Beacon</span>
-</button>
-<button onClick={() => triggerBeacon('Carrier Voice Line (+91 98401 22819)')} className="py-2 px-3 bg-surface-container-low hover:bg-surface-container text-secondary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1 transition-colors border border-outline-variant/30 cursor-pointer" title="Direct Line Verification" type="button">
-<span className="material-symbols-outlined text-[16px]">call</span>
-<span className="">Test Ring</span>
-</button>
-<button onClick={() => navigate('/patient/settings')} className="p-2 text-on-surface-variant hover:text-primary rounded-xl hover:bg-surface-container transition-colors cursor-pointer" title="Edit Contact" type="button">
-<span className="material-symbols-outlined text-[18px]">tune</span>
-</button>
-</div>
-</div>
-{/* Bento Tile: Priority 2 Contact (Dr. Vijay Sharma) */}
-<div className="bg-surface-container-lowest rounded-3xl p-5 border border-outline-variant/30 shadow-sm flex flex-col justify-between relative group hover:border-primary/40 transition-all">
-<div className="flex flex-col gap-4">
-{/* Header badge & timing */}
-<div className="flex items-center justify-between">
-<span className="bg-surface-container-highest text-secondary text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 uppercase tracking-wider">
-<span className="material-symbols-outlined text-[13px] text-teal-tactical">medical_services</span> Secondary Medical Proxy
-                  </span>
-<span className="bg-surface-container text-secondary font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-outline-variant/30">
-                    Tier-2 (+2m Delay)
-                  </span>
-</div>
-{/* Contact Identity */}
-<div className="flex items-start gap-3.5">
-<div className="w-12 h-12 rounded-2xl bg-surface-container-high text-secondary flex items-center justify-center font-headline-md text-lg font-bold shrink-0 border border-outline-variant/20">
-                    VS
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenSos(selectedHospital)}
+                    className="px-5 py-3 bg-rose-600 hover:bg-rose-700 text-white font-headline-sm text-xs font-bold rounded-2xl shadow-md transition-transform active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">cell_tower</span>
+                    <span>Pre-Alert Hospital</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Comprehensive Bed & Resource Matrix */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {/* 1. ICU Beds */}
+                <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/20 flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">ICU Beds</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span
+                      className={`text-lg font-extrabold font-mono ${
+                        selectedHospital.icuBedsAvailable > 0 ? 'text-emerald-700' : 'text-rose-600'
+                      }`}
+                    >
+                      {selectedHospital.icuBedsAvailable}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">/ {selectedHospital.icuBedsTotal}</span>
                   </div>
-<div className="flex flex-col min-w-0">
-<div className="flex items-center gap-1.5">
-<h3 className="font-headline-sm text-base font-bold text-on-surface truncate">Dr. Vijay Sharma</h3>
-</div>
-<span className="text-xs text-on-surface-variant font-medium">Brother • Cardiologist, Apollo (NMC-7419)</span>
-<span className="text-xs font-mono font-bold text-primary mt-1">+91 94440 18234</span>
-</div>
-</div>
-{/* Visual Permission Badges */}
-<div className="flex flex-wrap gap-1.5 pt-1">
-<span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
-<span className="material-symbols-outlined text-[13px] text-teal-tactical">health_and_safety</span> Clinical Consult Proxy
-                  </span>
-<span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
-<span className="material-symbols-outlined text-[13px] text-secondary">history_edu</span> Diagnostics Access
-                  </span>
-<span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
-<span className="material-symbols-outlined text-[13px] text-teal-tactical">update</span> 2-min Fallback Relay
-                  </span>
-</div>
-</div>
-{/* Actions Strip */}
-<div className="pt-5 mt-4 border-t border-outline-variant/20 flex items-center justify-between gap-2">
-<button onClick={() => triggerBeacon('Priority 2 Contact (Dr. Vijay Sharma)')} className="flex-1 py-2 px-3 bg-surface-container-low hover:bg-surface-container text-primary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/30 cursor-pointer" type="button">
-<span className="material-symbols-outlined text-[16px] text-teal-tactical">cell_tower</span>
-<span className="">Simulate Beacon</span>
-</button>
-<button onClick={() => triggerBeacon('Carrier Voice Line (+91 94440 18234)')} className="py-2 px-3 bg-surface-container-low hover:bg-surface-container text-secondary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1 transition-colors border border-outline-variant/30 cursor-pointer" title="Direct Line Verification" type="button">
-<span className="material-symbols-outlined text-[16px]">call</span>
-<span className="">Test Ring</span>
-</button>
-<button onClick={() => navigate('/patient/settings')} className="p-2 text-on-surface-variant hover:text-primary rounded-xl hover:bg-surface-container transition-colors cursor-pointer" title="Edit Contact" type="button">
-<span className="material-symbols-outlined text-[18px]">tune</span>
-</button>
-</div>
-</div>
-</div>
-{/* MODULE 3 & 4: DUAL BENTO ROW (Enrollment Drawer + Ingress Policy Rules) */}
+                  <div className="w-full bg-surface-container-high h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div
+                      className={`h-full ${selectedHospital.icuBedsAvailable > 0 ? 'bg-emerald-600' : 'bg-rose-600'}`}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          Math.round((selectedHospital.icuBedsAvailable / (selectedHospital.icuBedsTotal || 1)) * 100)
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
 
-{/* MODULE 5: DISPATCH ACTIVITY LOG & AUDIT MICRO-FEED */}
+                {/* 2. Trauma Bays */}
+                <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/20 flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Trauma Bays</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-lg font-extrabold font-mono text-primary">
+                      {selectedHospital.emergencyBedsAvailable || 4}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">/ {selectedHospital.emergencyBedsTotal || 12}</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 font-semibold mt-1">Ready for Ingress</span>
+                </div>
 
-</div>
-</div>
+                {/* 3. Total Ward Beds */}
+                <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/20 flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Ward Capacity</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-lg font-extrabold font-mono text-primary">
+                      {selectedHospital.availableBeds}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">/ {selectedHospital.totalBeds}</span>
+                  </div>
+                  <span className="text-[10px] text-on-surface-variant mt-1">Operational</span>
+                </div>
 
+                {/* 4. Ventilators */}
+                <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/20 flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Ventilators</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-lg font-extrabold font-mono text-primary">
+                      {selectedHospital.ventilatorsAvailable || 4}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">/ {selectedHospital.ventilatorsTotal || 18}</span>
+                  </div>
+                  <span className="text-[10px] text-teal-700 font-semibold mt-1">Calibrated</span>
+                </div>
+
+                {/* 5. Oxygen Capacity */}
+                <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/20 flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">O2 Pipeline</span>
+                  <div className="flex items-baseline gap-1 mt-1">
+                    <span className="text-lg font-extrabold font-mono text-teal-700">
+                      {selectedHospital.oxygenBedsAvailable ?? selectedHospital.oxygenBeds ?? 120}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">Beds</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 font-semibold mt-1">
+                    {selectedHospital.traumaBayReady !== false ? 'Trauma Bay Ready' : 'Standby'}
+                  </span>
+                </div>
+
+                {/* 6. Blood Bank & 24x7 */}
+                <div className="p-3 bg-surface-container-low rounded-2xl border border-outline-variant/20 flex flex-col">
+                  <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-wider">Blood Bank</span>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="material-symbols-outlined text-[18px] text-rose-600">bloodtype</span>
+                    <span className="font-bold text-xs text-rose-800">Armed (O-, A+, B+)</span>
+                  </div>
+                  <span className="text-[10px] text-emerald-700 font-semibold mt-1">24x7 Cross-Match</span>
+                </div>
+              </div>
+
+              {/* Direct Emergency Contact Strip */}
+              <div className="p-4 bg-surface-container-low/80 rounded-2xl border border-outline-variant/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-5 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-on-surface-variant font-medium">ER Direct:</span>
+                    <a
+                      href={`tel:${selectedHospital.contactNumbers?.er || '+914428290200'}`}
+                      className="font-mono font-bold text-rose-700 hover:underline flex items-center gap-1"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">call</span>
+                      {selectedHospital.contactNumbers?.er || '+91 44 2829 0200'}
+                    </a>
+                  </div>
+                  {(selectedHospital.contactNumbers?.reception || selectedHospital.reception) && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-on-surface-variant font-medium">Reception Desk:</span>
+                      <a
+                        href={`tel:${selectedHospital.contactNumbers?.reception || selectedHospital.reception}`}
+                        className="font-mono font-bold text-primary hover:underline flex items-center gap-1"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">desk</span>
+                        {selectedHospital.contactNumbers?.reception || selectedHospital.reception}
+                      </a>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="text-on-surface-variant font-medium">108 Ambulance:</span>
+                    <a href="tel:108" className="font-mono font-bold text-rose-700 hover:underline">
+                      108
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lat = selectedHospital.geoLat;
+                      const lng = selectedHospital.geoLng;
+                      const uLat = userLocation?.lat || 13.0827;
+                      const uLng = userLocation?.lng || 80.2707;
+                      window.open(`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${uLat},${uLng};${lat},${lng}`, '_blank');
+                    }}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">navigation</span>
+                    Open in OpenStreetMap
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigate('/patient/appointments')}
+                    className="px-3 py-2 bg-primary hover:bg-slate-800 text-white font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">event_available</span>
+                    Book OPD Slot
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 5. TAB 2: EMERGENCY CONTACTS & NEXT-OF-KIN */}
+      {activeTab === 'contacts' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Priority 1 Contact (Ananya S. Sharma) */}
+          <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="bg-primary text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-[13px] text-teal-tactical">verified_user</span> Primary Next-of-Kin
+                </span>
+                <span className="bg-surface-container text-primary font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-outline-variant/30">
+                  Tier-1 (0s Delay)
+                </span>
+              </div>
+              <div className="flex items-start gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-surface-container-high text-primary flex items-center justify-center font-headline-md text-lg font-bold shrink-0 border border-outline-variant/20">
+                  AS
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <h3 className="font-headline-sm text-base font-bold text-on-surface truncate">Ananya S. Sharma</h3>
+                  <span className="text-xs text-on-surface-variant font-medium">Spouse • Legal Power of Attorney</span>
+                  <span className="text-xs font-mono font-bold text-primary mt-1">+91 98401 22819</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
+                  <span className="material-symbols-outlined text-[13px] text-teal-tactical">gavel</span> Full DPOA Consent
+                </span>
+                <span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
+                  <span className="material-symbols-outlined text-[13px] text-secondary">sms</span> Live SMS Telemetry
+                </span>
+                <span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
+                  <span className="material-symbols-outlined text-[13px] text-teal-tactical">vital_signs</span> ICU Break-Glass
+                </span>
+              </div>
+            </div>
+            <div className="pt-5 mt-4 border-t border-outline-variant/20 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => showToast('Simulated live broadcast sent to Ananya S. Sharma (+91 98401 22819)')}
+                className="flex-1 py-2 px-3 bg-surface-container-low hover:bg-surface-container text-primary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/30 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px] text-teal-tactical">cell_tower</span>
+                Simulate Beacon
+              </button>
+              <a
+                href="tel:+919840122819"
+                className="py-2 px-3 bg-surface-container-low hover:bg-surface-container text-secondary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1 transition-colors border border-outline-variant/30 no-underline"
+              >
+                <span className="material-symbols-outlined text-[16px]">call</span>
+                Call
+              </a>
+            </div>
+          </div>
+
+          {/* Priority 2 Contact (Dr. Vijay Sharma) */}
+          <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="bg-surface-container-highest text-secondary text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-[13px] text-teal-tactical">medical_services</span> Secondary Medical Proxy
+                </span>
+                <span className="bg-surface-container text-secondary font-mono text-[11px] font-bold px-2.5 py-0.5 rounded-full border border-outline-variant/30">
+                  Tier-2 (+2m Delay)
+                </span>
+              </div>
+              <div className="flex items-start gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-surface-container-high text-secondary flex items-center justify-center font-headline-md text-lg font-bold shrink-0 border border-outline-variant/20">
+                  VS
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <h3 className="font-headline-sm text-base font-bold text-on-surface truncate">Dr. Vijay Sharma</h3>
+                  <span className="text-xs text-on-surface-variant font-medium">Brother • Cardiologist, Apollo (NMC-7419)</span>
+                  <span className="text-xs font-mono font-bold text-primary mt-1">+91 94440 18234</span>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
+                  <span className="material-symbols-outlined text-[13px] text-teal-tactical">health_and_safety</span> Clinical Consult Proxy
+                </span>
+                <span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
+                  <span className="material-symbols-outlined text-[13px] text-secondary">history_edu</span> Diagnostics Access
+                </span>
+                <span className="bg-surface-container-low text-primary text-[11px] font-medium px-2 py-1 rounded-lg flex items-center gap-1 border border-outline-variant/30">
+                  <span className="material-symbols-outlined text-[13px] text-teal-tactical">update</span> 2-min Fallback Relay
+                </span>
+              </div>
+            </div>
+            <div className="pt-5 mt-4 border-t border-outline-variant/20 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => showToast('Simulated live broadcast sent to Dr. Vijay Sharma (+91 94440 18234)')}
+                className="flex-1 py-2 px-3 bg-surface-container-low hover:bg-surface-container text-primary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/30 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px] text-teal-tactical">cell_tower</span>
+                Simulate Beacon
+              </button>
+              <a
+                href="tel:+919444018234"
+                className="py-2 px-3 bg-surface-container-low hover:bg-surface-container text-secondary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1 transition-colors border border-outline-variant/30 no-underline"
+              >
+                <span className="material-symbols-outlined text-[16px]">call</span>
+                Call
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. TAB 3: ABDM INGRESS DIAGNOSTICS & TELEMETRY LOGS */}
+      {activeTab === 'telemetry' && (
+        <div className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/40 shadow-sm flex flex-col gap-4">
+          <div className="flex items-center justify-between pb-3 border-b border-outline-variant/20">
+            <div>
+              <h2 className="font-headline-sm text-base font-bold text-primary">ABDM Emergency Audit &amp; Telemetry Feed</h2>
+              <p className="text-xs text-on-surface-variant">Real-time audit log of emergency passes, triage pings, and hospital location queries.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => showToast('Diagnostics re-verified: Zero packet loss')}
+              className="px-3 py-1.5 bg-surface-container-high hover:bg-surface-container text-primary text-xs font-bold rounded-xl flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-[14px]">refresh</span>
+              Run Diagnostics
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/20">
+              <span className="text-[11px] text-on-surface-variant uppercase font-bold">Network Ping Latency</span>
+              <div className="font-headline-md text-xl font-mono font-bold text-primary mt-1">0.18 ms</div>
+              <span className="text-[10px] text-teal-700 font-semibold">Sub-3s SLA Compliant</span>
+            </div>
+            <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/20">
+              <span className="text-[11px] text-on-surface-variant uppercase font-bold">Encrypted Token</span>
+              <div className="font-headline-md text-base font-mono font-bold text-primary mt-1">EK-TR-88190-V4</div>
+              <span className="text-[10px] text-emerald-700 font-semibold">AES-256 Armed</span>
+            </div>
+            <div className="p-4 bg-surface-container-low rounded-2xl border border-outline-variant/20">
+              <span className="text-[11px] text-on-surface-variant uppercase font-bold">Connected Nodes</span>
+              <div className="font-headline-md text-xl font-mono font-bold text-primary mt-1">{hospitals.length} Trauma Hubs</div>
+              <span className="text-[10px] text-emerald-700 font-semibold">100% Ingress Reach</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency SOS Modal */}
+      <EmergencySosModal
+        isOpen={sosModalOpen}
+        onClose={() => setSosModalOpen(false)}
+        hospital={sosTargetHospital || selectedHospital || hospitals[0]}
+        userLocation={userLocation}
+        patientData={currentUser}
+      />
     </div>
   );
 }

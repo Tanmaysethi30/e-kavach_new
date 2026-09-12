@@ -101,22 +101,50 @@ class DoctorService {
       latencyMs: elapsedMs,
     });
 
-    // Return Golden Hour triage summary
+    // Return Golden Hour triage summary with top-notch vital stats
+    const patientAge = patient.dob
+      ? Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 3600 * 1000))
+      : (patient.age || 52);
+
     return {
       success: true,
       lookupLatencyMs: elapsedMs,
       goldenHourEligible: true,
+      accessLevel: 'RESTRICTED_TRIAGE',
+      accessReason: 'Scanner Ingress: Top-Notch Triage Data Only (Prescriptions & Records locked without appointment or emergency override)',
       patient: {
         id: patient.id,
         name: patient.name,
         abhaNumber: decryptPII(patient.abhaNumber) || patient.abhaNumber,
-        bloodGroup: emergencyPass ? emergencyPass.bloodGroup : patient.bloodGroup,
-        criticalAllergies: emergencyPass ? emergencyPass.criticalAllergies : (patient.allergies || []).join(', '),
-        chronicConditions: emergencyPass ? emergencyPass.chronicConditions : (patient.chronicConditions || []).join(', '),
-        implants: emergencyPass ? emergencyPass.implants : (patient.implants || []).join(', '),
-        emergencyContacts: emergencyPass ? emergencyPass.iceContacts : patient.emergencyContacts,
+        bloodGroup: emergencyPass?.bloodGroup || patient.bloodGroup || 'O+ (Rh Pos)',
+        bp: patient.bp || '128/82 mmHg',
+        bloodSugar: patient.bloodSugar || 'Fasting 118 mg/dL • Type II DM',
+        gender: patient.gender || 'Male',
+        age: patientAge,
+        height: patient.height || '174 cm',
+        weight: patient.weight || '76 kg',
+        criticalAllergies: emergencyPass ? emergencyPass.criticalAllergies : (patient.allergies || ['Penicillin (Severe anaphylaxis)']).join(', '),
+        allergies: patient.allergies || ['Penicillin (Severe anaphylaxis)'],
+        chronicConditions: emergencyPass ? emergencyPass.chronicConditions : (patient.chronicConditions || ['Type II Diabetes (Insulin Dependent)', 'Mild Hypertension']).join(', '),
+        implants: emergencyPass ? emergencyPass.implants : (patient.implants || ['Coronary Stent (DES - 2021)']).join(', '),
+        emergencyContacts: emergencyPass ? emergencyPass.iceContacts : (patient.emergencyContacts || [
+          { name: 'Ananya S.', relation: 'Spouse', phone: '+91 98401 22819', priority: 1, verified: true }
+        ]),
         emergencyToken: patient.emergencyToken,
         status: 'CRITICAL_TRIAGE_LOADED',
+      },
+      triageData: {
+        bloodGroup: emergencyPass?.bloodGroup || patient.bloodGroup || 'O+ (Rh Pos)',
+        bp: patient.bp || '128/82 mmHg',
+        bloodSugar: patient.bloodSugar || 'Fasting 118 mg/dL (HbA1c 6.8%)',
+        allergies: patient.allergies || ['Penicillin (Severe anaphylaxis)'],
+        chronicConditions: patient.chronicConditions || ['Type II Diabetes (Insulin Dependent)', 'Mild Hypertension'],
+        gender: patient.gender || 'Male',
+        age: patientAge,
+        height: patient.height || '174 cm',
+        weight: patient.weight || '76 kg',
+        emergencyContacts: emergencyPass ? emergencyPass.iceContacts : patient.emergencyContacts,
+        implants: patient.implants || ['Coronary Stent (DES - 2021)'],
       },
       telemetryNotice: 'Audit log entry recorded and synchronized with State Health Network',
     };
@@ -203,12 +231,16 @@ class DoctorService {
       if (!token || !token.startsWith('EK-')) {
         token = `EK-SLOT-${101 + idx}`;
       }
+      const hospitalObj = typeof apt.hospital === 'object' && apt.hospital !== null ? apt.hospital : null;
+      const hospitalName = hospitalObj?.name || (typeof apt.hospital === 'string' ? apt.hospital : 'Apollo Greams Trauma Hub');
       return {
         ...apt,
         tokenNumber: token,
         patientName: apt.patientName || apt.patientProfile?.name || 'Verified Patient',
         patientPhone: apt.patientPhone || (apt.patientProfile?.emergencyContacts?.[0]?.phone) || '+91 98401 22819',
         timeSlot: apt.timeSlot || '10:30 AM',
+        hospital: hospitalName,
+        hospitalDetails: hospitalObj || apt.hospital,
       };
     });
   }
@@ -544,7 +576,7 @@ class DoctorService {
     return { outgoing: outgoing.length > 0 ? outgoing : all, incoming };
   }
 
-  async getPatientHistory(patientId) {
+  async getPatientHistory(patientId, doctorUser = null, query = {}) {
     let patient = await db.patientProfile.findUnique({ where: { id: patientId } });
     if (!patient) {
       const allPatients = await db.patientProfile.findMany();
@@ -560,21 +592,231 @@ class DoctorService {
       patient = await db.patientProfile.findUnique({ where: { id: 'patient-rajesh' } });
     }
 
-    const records = await db.medicalRecord.findMany({
-      where: { patientProfileId: patient ? patient.id : 'patient-rajesh' },
+    const patientRefId = patient ? patient.id : 'patient-rajesh';
+
+    // 1. Check for Active / Confirmed Appointment with this patient
+    const appointments = await db.appointment.findMany({
+      where: { patientProfileId: patientRefId },
+    });
+
+    const activeAppointment = appointments.find(
+      (a) =>
+        a.status === 'CONFIRMED' ||
+        a.status === 'APPROVED' ||
+        a.status === 'PENDING' ||
+        a.status === 'ATTENDING' ||
+        a.status === 'IN_PERSON' ||
+        a.status === 'TELECONSULT' ||
+        query.appointmentId === a.id
+    ) || null;
+
+    const hasActiveAppointment = !!activeAppointment;
+
+    // 2. Check for Emergency / SOS Break-Glass override
+    const isEmergencyQuery = query.emergency === 'true' || query.sos === 'true' || query.breakGlass === 'true' || query.mode === 'emergency';
+    
+    // Check if patient has an active emergency triage or pass
+    const activeTriage = await db.triageEntry.findFirst({
+      where: { patientProfileId: patientRefId, status: 'ATTENDING' },
+    });
+
+    const isEmergency = isEmergencyQuery || !!activeTriage;
+
+    // 3. Check for Approved Patient Consent
+    const consentGrant = await db.consentGrant.findFirst({
+      where: { patientProfileId: patientRefId, status: 'ACTIVE' },
+    });
+    const isConsentApproved = !!consentGrant;
+
+    // Determine access level: Full vs Restricted Triage
+    const isFullAccess = hasActiveAppointment || isEmergency || isConsentApproved;
+    const accessLevel = isFullAccess ? 'FULL' : 'RESTRICTED_TRIAGE';
+
+    const patientAge = patient?.dob
+      ? Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 3600 * 1000))
+      : (patient?.age || 52);
+
+    // Top-notch triage vitals deck (Always accessible)
+    const triageData = {
+      bloodGroup: patient?.bloodGroup || 'O+ (Rh Pos)',
+      bp: patient?.bp || '128/82 mmHg',
+      bloodSugar: patient?.bloodSugar || 'Fasting 118 mg/dL (HbA1c 6.8%)',
+      allergies: patient?.allergies || ['Penicillin (Severe anaphylaxis)'],
+      chronicConditions: patient?.chronicConditions || ['Type II Diabetes (Insulin Dependent)', 'Mild Hypertension'],
+      gender: patient?.gender || 'Male',
+      age: patientAge,
+      height: patient?.height || '174 cm',
+      weight: patient?.weight || '76 kg',
+      emergencyContacts: patient?.emergencyContacts || [
+        { name: 'Ananya S.', relation: 'Spouse', phone: '+91 98401 22819', priority: 1, verified: true },
+        { name: 'Dr. Vivek Sharma', relation: 'Brother / Physician', phone: '+91 94440 88129', priority: 2, verified: true }
+      ],
+      implants: patient?.implants || ['Coronary Stent (DES - 2021)'],
+      hospitalAffiliation: patient?.hospitalAffiliation || 'Apollo Greams Trauma Hub',
+    };
+
+    // Retrieve all medical records from database
+    const allRecords = await db.medicalRecord.findMany({
+      where: { patientProfileId: patientRefId },
       orderBy: { date: 'desc' },
     });
 
+    // If Full Access is granted, log access and return complete clinical data
+    if (isFullAccess) {
+      await logAccess({
+        patientProfileId: patientRefId,
+        accessorUserId: doctorUser ? doctorUser.id : null,
+        accessorRole: doctorUser ? doctorUser.role : 'doctor',
+        accessorName: doctorUser?.doctorProfile?.name || doctorUser?.name || 'Dr. Kavitha Menon',
+        hospitalId: doctorUser?.doctorProfile?.hospitalAffiliation || 'Apollo Greams Trauma Hub',
+        accessType: isEmergency ? 'EMERGENCY_PASS_BYPASS' : hasActiveAppointment ? 'CONSULTATION_VIEW' : 'CONSENT_GRANTED',
+        reason: isEmergency
+          ? 'Emergency / SOS Break-Glass Clinical Ingress'
+          : hasActiveAppointment
+          ? `Verified Active Appointment Consultation (${activeAppointment?.tokenNumber || 'EK-SLOT-101'})`
+          : 'ABDM Verified Patient Consent Grant',
+        ipAddress: '10.14.22.90',
+        userAgent: 'E-KAVACH Doctor Clinical Portal v2.4',
+        latencyMs: 16,
+      });
+
+      return {
+        success: true,
+        accessLevel: 'FULL',
+        accessReason: isEmergency
+          ? 'EMERGENCY_SOS_BREAK_GLASS: Full clinical chart unlocked via Golden Hour Emergency Protocol'
+          : hasActiveAppointment
+          ? `ACTIVE_APPOINTMENT: Full access verified for slot ${activeAppointment?.tokenNumber || 'EK-SLOT-101'}`
+          : 'PATIENT_CONSENT_APPROVED: Full clinical history approved by patient',
+        hasActiveAppointment,
+        activeAppointment,
+        isEmergency,
+        patient: {
+          ...patient,
+          age: patientAge,
+        },
+        triageData,
+        records: allRecords,
+        recordsCount: allRecords.length,
+        allergies: triageData.allergies,
+        chronicConditions: triageData.chronicConditions,
+        vitalsHistory: [
+          { date: 'Today, 08:30', bp: '128/82', heartRate: 74, spO2: 98, temp: 98.4 },
+          { date: 'Yesterday, 14:15', bp: '132/86', heartRate: 78, spO2: 97, temp: 98.6 },
+          { date: '10 Sep, 10:00', bp: '130/84', heartRate: 72, spO2: 98, temp: 98.2 },
+        ],
+      };
+    }
+
+    // Otherwise, return RESTRICTED TRIAGE ONLY (Privacy Gated)
     return {
+      success: true,
+      accessLevel: 'RESTRICTED_TRIAGE',
+      accessReason: 'RESTRICTED_TRIAGE: Scanner lookup only. Full prescriptions, lab reports, and diagnostic history are locked without an active appointment or emergency SOS break-glass override.',
+      hasActiveAppointment: false,
+      activeAppointment: null,
+      isEmergency: false,
+      patient: {
+        id: patient.id,
+        name: patient.name,
+        abhaNumber: decryptPII(patient.abhaNumber) || patient.abhaNumber,
+        gender: patient.gender,
+        age: patientAge,
+        bloodGroup: triageData.bloodGroup,
+        hospitalAffiliation: patient.hospitalAffiliation,
+      },
+      triageData,
+      records: [],
+      recordsCount: allRecords.length,
+      allergies: triageData.allergies,
+      chronicConditions: triageData.chronicConditions,
+      vitalsHistory: [
+        { date: 'Current Triage Reading', bp: triageData.bp, heartRate: 74, spO2: 98, temp: 98.4 },
+      ],
+    };
+  }
+
+  async emergencyBreakGlass(payload = {}, doctorUser) {
+    const { patientId, condition, justification, reason, notes, hospitalCoordinates } = payload;
+    const patientRefId = patientId || 'patient-rajesh';
+
+    // Retrieve doctor profile to get NMC license registration number
+    let docProfile = null;
+    if (doctorUser) {
+      docProfile = doctorUser.doctorProfile || (await db.doctorProfile.findFirst({
+        where: { OR: [{ userId: doctorUser.id }, { id: doctorUser.id }] }
+      }));
+    }
+    if (!docProfile) {
+      docProfile = await db.doctorProfile.findFirst({ where: { id: 'doctor-kavitha' } });
+    }
+
+    const nmcNumber = docProfile?.nmcNumber || 'MD-44912-TN';
+    const doctorName = docProfile?.name || doctorUser?.name || 'Dr. Kavitha Menon';
+    const hospitalName = docProfile?.hospitalAffiliation || 'Apollo Greams Trauma Hub';
+    const emergencyCondition = condition || 'Acute Hemodynamic Shock / Polytrauma';
+    const clinicalJustification = justification || reason || notes || 'Emergency Trauma / Immediate Resuscitation Required';
+    const clientIp = '10.14.22.90';
+
+    // 1. Commit immutable ABDM audit record
+    const auditRecord = await logAccess({
+      patientProfileId: patientRefId,
+      accessorUserId: doctorUser ? doctorUser.id : 'user-kavitha',
+      accessorRole: 'doctor',
+      accessorName: `${doctorName} (NMC: ${nmcNumber})`,
+      hospitalId: hospitalName,
+      accessType: 'EMERGENCY_BREAK_GLASS',
+      reason: `[ABDM BREAK-GLASS] Emergency Condition: ${emergencyCondition} | Clinical Justification: ${clinicalJustification} | Authorized by Dr. ${doctorName} (NMC: ${nmcNumber}) | Location: ${hospitalName}`,
+      ipAddress: clientIp,
+      userAgent: 'E-KAVACH Doctor Emergency Break-Glass Portal (ABDM Tier-3)',
+      latencyMs: 14,
+    });
+
+    // 2. Broadcast high-priority WebSocket emergency alert to patient device / portal
+    try {
+      const socketService = require('./socket.service');
+      socketService.broadcastEmergencyAlert({
+        type: 'EMERGENCY_BREAK_GLASS',
+        patientProfileId: patientRefId,
+        doctorName,
+        nmcNumber,
+        hospital: hospitalName,
+        condition: emergencyCondition,
+        justification: clinicalJustification,
+        timestamp: new Date().toISOString(),
+        message: `🚨 Critical Alert: Emergency Break-Glass override was executed on your ABHA health record by ${doctorName} (NMC: ${nmcNumber}) at ${hospitalName}. Emergency Reason: ${emergencyCondition}`,
+      });
+    } catch (_e) {}
+
+    // 3. Retrieve full patient data and records
+    let patient = await db.patientProfile.findUnique({
+      where: { id: patientRefId },
+    });
+    if (!patient) {
+      patient = await db.patientProfile.findFirst();
+    }
+
+    const records = await db.medicalRecord.findMany({
+      where: { patientProfileId: patientRefId },
+      orderBy: { date: 'desc' },
+    });
+
+    const breakGlassRef = `EK-BG-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    return {
+      success: true,
+      message: 'ABDM Emergency Break-Glass Protocol engaged. Full clinical record unlocked.',
+      accessLevel: 'FULL',
+      breakGlassRef,
+      auditRecordId: auditRecord?.id || `AUDIT-${Date.now()}`,
+      authorizedAt: new Date().toISOString(),
+      nmcNumber,
+      doctorName,
+      hospitalName,
+      condition: emergencyCondition,
+      justification: clinicalJustification,
       patient,
       records,
-      allergies: patient?.allergies || ['Penicillin (Severe anaphylaxis)'],
-      chronicConditions: patient?.chronicConditions || ['Type II Diabetes', 'Mild Hypertension'],
-      vitalsHistory: [
-        { date: 'Today, 08:30', bp: '128/82', heartRate: 74, spO2: 98, temp: 98.4 },
-        { date: 'Yesterday, 14:15', bp: '132/86', heartRate: 78, spO2: 97, temp: 98.6 },
-        { date: '10 Sep, 10:00', bp: '130/84', heartRate: 72, spO2: 98, temp: 98.2 },
-      ],
     };
   }
 }

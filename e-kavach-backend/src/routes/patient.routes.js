@@ -5,8 +5,12 @@ const aiController = require('../controllers/ai.controller');
 const { authenticateToken, requireRole } = require('../middleware/auth');
 const upload = require('../middleware/upload');
 
-// Publicly browseable doctors list and quick ID creation + booking
+// Publicly browseable doctors list, hospitals list, road routing and quick ID creation + booking
 router.get('/doctors', (req, res, next) => patientController.getDoctors(req, res, next));
+router.get('/hospitals', (req, res, next) => patientController.getNearbyHospitals(req, res, next));
+router.get('/emergency-hospitals', (req, res, next) => patientController.getNearbyHospitals(req, res, next));
+router.get('/route', (req, res, next) => patientController.getRoute(req, res, next));
+router.get('/ip-location', (req, res, next) => patientController.getIpLocation(req, res, next));
 router.post('/quick-id-and-book', (req, res, next) => patientController.quickIdAndBook(req, res, next));
 
 // Golden-Hour Emergency Triage Scan (Sub-3-second emergency SLA)

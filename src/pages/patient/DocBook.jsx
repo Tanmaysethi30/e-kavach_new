@@ -117,7 +117,7 @@ export default function DocBook() {
       }));
       setHasIdOption('existing');
     }
-  }, [user]);
+  }, [user?.id, user?.name, user?.phone]);
 
   // Open booking modal for a specific doctor
   const openBookingForDoctor = (doc) => {
@@ -528,7 +528,7 @@ export default function DocBook() {
                   <div className="space-y-2 py-3 border-y border-slate-100 text-xs text-slate-600">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-slate-400">local_hospital</span>
-                      <span className="truncate">{doc.hospital}</span>
+                      <span className="truncate">{typeof doc.hospital === 'object' && doc.hospital !== null ? (doc.hospital.name || doc.hospital.hospital_name) : doc.hospital}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -745,7 +745,7 @@ export default function DocBook() {
                 </span>
                 <h3 className="text-xl font-bold text-slate-900 mt-0.5">Book with {selectedDoctor.name}</h3>
                 <div className="text-xs text-slate-500 mt-0.5">
-                  {selectedDoctor.specialization} • {selectedDoctor.hospital}
+                  {selectedDoctor.specialization} • {typeof selectedDoctor.hospital === 'object' && selectedDoctor.hospital !== null ? (selectedDoctor.hospital.name || selectedDoctor.hospital.hospital_name) : selectedDoctor.hospital}
                 </div>
               </div>
               <button

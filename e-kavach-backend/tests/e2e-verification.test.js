@@ -205,4 +205,69 @@ test('E-KAVACH Extended End-to-End System & Lifecycle Verification', async (t) =
       assert.ok(Array.isArray(res.body.requests));
     });
   });
+
+  await t.test('6. Hospital Admin Doctor Management, Linking & Deletion Lifecycle', async (t6) => {
+    let createdDocId = null;
+    const testNmc = `TN-MC-TEST-${Math.floor(10000 + Math.random() * 90000)}`;
+
+    // 6a. Admin creates a new doctor profile
+    await t6.test('Hospital Admin can register a new physician', async () => {
+      const res = await request(app)
+        .post('/api/admin/doctors')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Ananya Sharma',
+          nmc: testNmc,
+          specialty: 'Neurology',
+          ward: 'Neuro ICU',
+          status: 'Available',
+          degrees: 'MBBS, DM Neuro',
+        });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.doctor.linked, false);
+      assert.equal(res.body.doctor.specialization, 'Neurology');
+      createdDocId = res.body.doctor.id;
+    });
+
+    // 6b. Adding doctor with identical NMC number updates and links to hospital
+    await t6.test('Adding physician with identical NMC links to existing profile', async () => {
+      const res = await request(app)
+        .post('/api/admin/doctors')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({
+          name: 'Dr. Ananya Sharma',
+          nmc: testNmc,
+          specialty: 'Pediatric Neurology',
+          ward: 'Children Neuro Wing',
+          status: 'In Consult',
+        });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.doctor.linked, true);
+      assert.equal(res.body.doctor.id, createdDocId);
+      assert.equal(res.body.doctor.specialization, 'Pediatric Neurology');
+    });
+
+    // 6c. Non-hospital roles cannot add or delete doctors (RBAC)
+    await t6.test('Patient cannot delete a doctor (403 Forbidden)', async () => {
+      const res = await request(app)
+        .delete(`/api/admin/doctors/${createdDocId}`)
+        .set('Authorization', `Bearer ${patientToken}`);
+
+      assert.equal(res.status, 403);
+    });
+
+    // 6d. Hospital Admin can delete doctor
+    await t6.test('Hospital Admin can delete doctor', async () => {
+      const res = await request(app)
+        .delete(`/api/admin/doctors/${createdDocId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+    });
+  });
 });

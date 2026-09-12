@@ -137,6 +137,17 @@ export function initTelemetrySocket() {
       });
     });
 
+    socketInstance.on('emergency:alert', (data) => {
+      console.log('🚨 [CLIENT WS] Real-time emergency alert received:', data);
+      emergencyAlertListeners.forEach((fn) => {
+        try {
+          fn(data);
+        } catch (e) {
+          console.error('Error in emergency alert listener:', e);
+        }
+      });
+    });
+
     socketInstance.on('disconnect', () => {
       console.warn('⚠️ Real-time telemetry disconnected. Retrying...');
       currentTelemetry.connected = false;
@@ -156,6 +167,17 @@ const appointmentListeners = new Set();
 const consentListeners = new Set();
 const triageListeners = new Set();
 const referralListeners = new Set();
+const emergencyAlertListeners = new Set();
+
+export function subscribeEmergencyAlert(callback) {
+  emergencyAlertListeners.add(callback);
+  if (!socketInstance) {
+    initTelemetrySocket();
+  }
+  return () => {
+    emergencyAlertListeners.delete(callback);
+  };
+}
 
 export function subscribeConsentRequests(callback) {
   consentListeners.add(callback);

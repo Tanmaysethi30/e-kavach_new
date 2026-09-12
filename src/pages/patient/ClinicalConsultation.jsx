@@ -300,7 +300,9 @@ export default function ClinicalConsultation() {
                       <span>Active Consult</span>
                     </span>
                   </div>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant truncate">{activeDoc.hospital}</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                    {typeof activeDoc.hospital === 'object' && activeDoc.hospital !== null ? (activeDoc.hospital.name || activeDoc.hospital.hospital_name) : activeDoc.hospital}
+                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-space-xs shrink-0">

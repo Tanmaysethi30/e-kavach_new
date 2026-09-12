@@ -185,7 +185,7 @@ export default function AdminDashboard() {
       if (unsubTriage) unsubTriage();
       if (unsubReferral) unsubReferral();
     };
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.registration_id]);
 
   const showToast = (msg) => {
     setToastMessage(msg);

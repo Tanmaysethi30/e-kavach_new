@@ -22,6 +22,7 @@ router.post('/prescription', (req, res, next) => doctorController.issuePrescript
 router.post('/referrals', (req, res, next) => doctorController.createReferral(req, res, next));
 router.get('/referrals', (req, res, next) => doctorController.getReferrals(req, res, next));
 router.get('/patient-history/:patientId', (req, res, next) => doctorController.getPatientHistory(req, res, next));
+router.post('/emergency-break-glass', emergencyLimiter, (req, res, next) => doctorController.emergencyBreakGlass(req, res, next));
 router.patch('/records/:id/verify', (req, res, next) => doctorController.verifyRecord(req, res, next));
 
 module.exports = router;
