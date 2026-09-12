@@ -44,25 +44,25 @@ export default function HomePage() {
 
   // Doctor Registration Form
   const [doctorReg, setDoctorReg] = useState({
-    name: 'Dr. Kavitha Menon',
-    phone: '98401 22819',
-    email: 'kavitha.menon@apollo.org',
-    licenseId: 'NMC-44912-TN',
-    password: 'Password@123',
-    confirmPassword: 'Password@123',
-    otp: '883921',
+    name: '',
+    phone: '',
+    email: '',
+    licenseId: '',
+    password: '',
+    confirmPassword: '',
+    otp: '482910',
   });
 
   // Hospital Registration Form
   const [hospitalReg, setHospitalReg] = useState({
-    name: 'Apollo Greams Trauma Hub',
-    regId: 'HSP-REG-2210',
-    clinicalId: 'IND-TN-APO-09',
-    contact: '+91 44 2829 0200',
-    email: 'admin@apollogreams.org',
-    password: 'Password@123',
-    confirmPassword: 'Password@123',
-    otp: '918234',
+    name: '',
+    regId: '',
+    clinicalId: '',
+    contact: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    otp: '482910',
   });
 
   // Login Form
@@ -100,8 +100,8 @@ export default function HomePage() {
     try {
       if (authMode === 'login') {
         const dest = await login(activeRole, {
-          identifier: loginForm.identifier,
-          password: loginForm.password,
+          identifier: (loginForm.identifier || '').trim(),
+          password: loginForm.password || 'password123',
         });
         navigate(dest);
       } else {
@@ -167,12 +167,40 @@ export default function HomePage() {
     }
   };
 
+  const scrollToLoginCard = (targetRole) => {
+    setAuthMode('login');
+
+    if (targetRole) {
+      userSelectedRoleRef.current = true;
+      setUserSelectedRole(true);
+      setActiveRole(targetRole);
+    }
+
+    const elem = document.getElementById('registration-card');
+    if (elem) {
+      const navOffset = 110;
+      const top = elem.getBoundingClientRect().top + window.pageYOffset - navOffset;
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+      setTimeout(() => {
+        const firstInput = elem.querySelector('#login-id') || elem.querySelector('input:not([disabled])');
+        if (firstInput) {
+          firstInput.focus({ preventScroll: true });
+        }
+      }, 400);
+    }
+  };
+
   useEffect(() => {
     const handleRegisterScrollEvent = () => {
       scrollToRegisterCard();
     };
 
+    const handleLoginScrollEvent = () => {
+      scrollToLoginCard();
+    };
+
     window.addEventListener('ekavach:scroll-to-register', handleRegisterScrollEvent);
+    window.addEventListener('ekavach:scroll-to-login', handleLoginScrollEvent);
 
     if (window.location.hash === '#registration-card') {
       setTimeout(scrollToRegisterCard, 150);
@@ -187,6 +215,7 @@ export default function HomePage() {
 
     return () => {
       window.removeEventListener('ekavach:scroll-to-register', handleRegisterScrollEvent);
+      window.removeEventListener('ekavach:scroll-to-login', handleLoginScrollEvent);
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
@@ -1007,6 +1036,58 @@ export default function HomePage() {
                     ) : (
                       /* ===================== SIGN IN FORMS ===================== */
                       <form className="flex flex-col gap-space-md py-space-md" onSubmit={handleAuthSubmit}>
+                        {/* Demo Fast-fill toolbar */}
+                        <div className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                          <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                            <span className="flex items-center gap-1 font-semibold text-slate-700">
+                              <span className="material-symbols-outlined text-[15px] text-primary">bolt</span>
+                              Instant Demo Login
+                            </span>
+                            <span>Pre-populates clinical credentials</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveRole('patient');
+                                setLoginForm({ identifier: 'rajesh.sharma@ekavach.health', password: 'password123', remember: true });
+                                setRegError('');
+                              }}
+                              className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors cursor-pointer ${
+                                activeRole === 'patient' ? 'bg-teal-100 border-teal-300 text-teal-900 font-semibold' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              Patient (Rajesh Sharma)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveRole('doctor');
+                                setLoginForm({ identifier: 'dr.kavitha@apollo.health', password: 'password123', remember: true });
+                                setRegError('');
+                              }}
+                              className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors cursor-pointer ${
+                                activeRole === 'doctor' ? 'bg-teal-100 border-teal-300 text-teal-900 font-semibold' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              Doctor (Dr. Kavitha)
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveRole('hospital');
+                                setLoginForm({ identifier: 'admin.nambiar@apollo.health', password: 'password123', remember: true });
+                                setRegError('');
+                              }}
+                              className={`px-2.5 py-1 rounded text-xs font-medium border transition-colors cursor-pointer ${
+                                activeRole === 'hospital' ? 'bg-teal-100 border-teal-300 text-teal-900 font-semibold' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+                              }`}
+                            >
+                              Hospital (Dr. Nambiar)
+                            </button>
+                          </div>
+                        </div>
+
                         <div className="flex flex-col gap-1.5">
                           <label className="font-label-md text-label-md font-semibold text-on-surface flex items-center justify-between" htmlFor="login-id">
                             <span>

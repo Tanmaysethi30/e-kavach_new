@@ -1,29 +1,16 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import path from 'path';
+import { createRequire } from 'module';
 import { createServer as createViteServer } from 'vite';
+
+const nodeRequire = createRequire(import.meta.url);
+const backendApp = nodeRequire('./e-kavach-backend/src/app.js');
+const socketService = nodeRequire('./e-kavach-backend/src/services/socket.service.js');
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
-
-  // Dynamically load backend express app and socket service
-  let backendApp: any;
-  let socketService: any;
-
-  try {
-    // In Node CommonJS or tsx with createRequire
-    const { createRequire } = await import('module');
-    const req = createRequire(import.meta.url);
-    backendApp = req('./e-kavach-backend/src/app.js');
-    socketService = req('./e-kavach-backend/src/services/socket.service.js');
-  } catch (_e) {
-    // Fallback for direct CJS execution
-    // @ts-ignore
-    backendApp = require('./e-kavach-backend/src/app.js');
-    // @ts-ignore
-    socketService = require('./e-kavach-backend/src/services/socket.service.js');
-  }
 
   // Mount backend API routes, Prometheus /metrics, and static uploads first
   app.use((req: Request, res: Response, next: NextFunction) => {

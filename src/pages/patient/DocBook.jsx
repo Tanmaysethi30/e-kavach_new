@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeAppointments } from '../../services/telemetry';
-import { saveAppointmentToFirestore } from '../../services/firebase';
 import AppointmentSlipModal from '../../components/common/AppointmentSlipModal';
 
 export default function DocBook() {
@@ -196,9 +195,6 @@ export default function DocBook() {
       const result = await response.json();
       if (result.success || response.ok) {
         const apt = result.appointment;
-        if (apt) {
-          saveAppointmentToFirestore(apt).catch((e) => console.warn('Firestore sync notice:', e));
-        }
         setConfirmedBooking(apt);
         setIsBookingOpen(false);
         showToast(`Consultation slot confirmed with ${selectedDoctor.name}! Token #${apt?.tokenNumber || 'EK-SLOT'}`);

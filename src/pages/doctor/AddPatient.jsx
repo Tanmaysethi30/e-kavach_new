@@ -64,10 +64,13 @@ export default function AddPatient() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.fullName.trim()) return;
 
+    setIsSubmitting(true);
     const initials = formData.fullName
       .trim()
       .split(' ')
@@ -76,12 +79,50 @@ export default function AddPatient() {
       .toUpperCase()
       .slice(0, 2);
 
-    const randomId = '#EK-' + Math.floor(1000 + Math.random() * 9000);
+    let assignedId = 'patient-' + Date.now();
+    let tempId = '#EK-' + Math.floor(1000 + Math.random() * 9000);
+    let abhaNumber = '9824-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) + '-TN';
+
+    try {
+      const token = localStorage.getItem('ekavach_token');
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      };
+
+      const res = await fetch('/api/doctor/patients', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: formData.fullName.trim(),
+          bloodGroup: formData.bloodGroup || 'O+ Positive',
+          gender: formData.gender || 'Not Specified',
+          condition: formData.initialNotes || 'Routine Emergency Ingress',
+          bayNumber: 'Bay 03',
+          triageColor: 'YELLOW',
+          priorityLevel: 'Priority 2 (Urgent)'
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.profile) {
+          assignedId = data.profile.id;
+          if (data.profile.abhaNumber) abhaNumber = data.profile.abhaNumber;
+        }
+      }
+    } catch (err) {
+      console.warn('API registration warning:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+
     const newPatientRecord = {
-      id: Date.now().toString(),
+      id: assignedId,
       initials: initials || 'PT',
       name: formData.fullName.trim(),
-      tempId: randomId,
+      tempId,
+      abhaNumber,
       status: 'Admitted Bay 03',
       phone: '+91 ' + (formData.contactNumber || '98400 00000'),
       timeText: 'Added just now',
@@ -93,7 +134,7 @@ export default function AddPatient() {
     setRecentPatients(prev => [newPatientRecord, ...prev]);
     setLastAddedPatient(newPatientRecord);
     setSubmitted(true);
-    showToast(`Patient ${formData.fullName} onboarded with ID ${randomId}`);
+    showToast(`Patient ${formData.fullName} onboarded with ID ${tempId}`);
 
     // Reset form
     setFormData({
@@ -361,7 +402,7 @@ export default function AddPatient() {
         </div>
       </div>
       <div className="flex items-center gap-space-sm self-end sm:self-center pl-12 sm:pl-0">
-        <button onClick={() => navigate('/doctor/patient-history')} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container text-primary hover:bg-primary hover:text-on-primary font-label-md text-label-md font-medium transition-all group cursor-pointer" type="button">
+        <button onClick={() => navigate(`/doctor/patient-history?patientId=${pt.id}`)} className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-surface-container text-primary hover:bg-primary hover:text-on-primary font-label-md text-label-md font-medium transition-all group cursor-pointer" type="button">
           <span>View Chart</span>
           <span className="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">chevron_right</span>
         </button>

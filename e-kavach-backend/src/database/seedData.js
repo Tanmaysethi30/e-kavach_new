@@ -389,6 +389,15 @@ const seedUsers = [
     passwordHash: DEFAULT_PASSWORD_HASH,
     role: 'hospital',
     status: 'ACTIVE'
+  },
+  {
+    id: 'user-admin-naman',
+    registration_id: 'REG-ADM-NAMAN-0001',
+    email: 'namanjain82670@gmail.com',
+    phone: '+91 98000 00001',
+    passwordHash: DEFAULT_PASSWORD_HASH,
+    role: 'hospital',
+    status: 'ACTIVE'
   }
 ];
 
@@ -546,6 +555,18 @@ const seedHospitalAdminProfiles = [
     title: 'Hospital Administrator',
     designation: 'Chief Medical Officer & Hospital Administrator',
     tag: 'VERIFIED ADMIN'
+  },
+  {
+    id: 'admin-naman',
+    userId: 'user-admin-naman',
+    registration_id: 'REG-ADM-NAMAN-0001',
+    registrationId: 'REG-ADM-NAMAN-0001',
+    hospitalId: 'hosp-apollo-greams',
+    hospitalRegistrationId: 'REG-HOSP-APOLLO-0842',
+    name: 'Naman Jain',
+    title: 'System Super Administrator',
+    designation: 'National Health Grid Super Administrator',
+    tag: 'SUPER ADMIN'
   }
 ];
 

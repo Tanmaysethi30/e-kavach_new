@@ -34,6 +34,9 @@ class MetricsService {
 
     // Background interval to record periodic telemetry snapshots
     this.historyInterval = setInterval(() => this.recordSnapshot(), 2000);
+    if (this.historyInterval && typeof this.historyInterval.unref === 'function') {
+      this.historyInterval.unref();
+    }
   }
 
   seedInitialHistory() {

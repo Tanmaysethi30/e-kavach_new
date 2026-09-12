@@ -94,6 +94,9 @@ class SocketService {
         });
       }
     }, 3000);
+    if (this.heartbeatInterval && typeof this.heartbeatInterval.unref === 'function') {
+      this.heartbeatInterval.unref();
+    }
   }
 }
 

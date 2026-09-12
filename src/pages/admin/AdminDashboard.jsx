@@ -113,9 +113,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       abha: '9824-8819-TN',
       priority: 'Critical (Priority 1)',
       condition: 'Acute Myocardial Infarction',
-      vitals: 'SpO2 88% • BP 190/115 • ST Elevation',
-      heartRate: '112 bpm',
-      respRate: '24 /min',
+      vitals: 'Trauma Bay 02 • Bedside Cardiac Observation',
       bay: 'Bay 02',
       doctor: 'Dr. Kavitha Menon',
       role: 'Cardiology Response Lead'
@@ -125,9 +123,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       abha: '7712-4401-TN',
       priority: 'Urgent (Priority 2)',
       condition: 'Polytrauma / Compound Fracture',
-      vitals: 'Right Femur • Hemodynamically Stable',
-      heartRate: '84 bpm',
-      respRate: '18 /min',
+      vitals: 'Trauma Bay 04 • Orthopedic Bedside Observation',
       bay: 'Bay 04',
       doctor: 'Dr. Arvind Swaminathan',
       role: 'Orthopedic Trauma Consult'
@@ -137,9 +133,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       abha: '4402-9918-TN',
       priority: 'Stable (Priority 3)',
       condition: 'Deep Laceration / Suture',
-      vitals: 'Left Forearm • Local Anesthesia Active',
-      heartRate: '72 bpm',
-      respRate: '16 /min',
+      vitals: 'Trauma Bay 06 • Minor Procedure Bay',
       bay: 'Bay 06',
       doctor: 'Dr. Priya Sundaram',
       role: 'Emergency Medical Officer'
@@ -255,22 +249,15 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 my-4">
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
-                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Heart Rate</div>
-                <div className="text-lg font-bold text-error flex items-center justify-center gap-1 mt-1">
-                  <span className="material-symbols-outlined text-base animate-pulse">favorite</span>
-                  {activeTelemetryPatient.heartRate}
+            <div className="p-3 my-4 bg-surface-container-lowest rounded-lg border border-surface-container flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-secondary text-[20px]">monitor_heart</span>
+                <div>
+                  <div className="font-semibold text-primary">Bedside Clinical Monitoring</div>
+                  <div className="text-on-surface-variant text-[11px]">Vitals monitored in real-life at bedside hardware console</div>
                 </div>
               </div>
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
-                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">SpO2</div>
-                <div className="text-lg font-bold text-primary mt-1">94%</div>
-              </div>
-              <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
-                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Respiration</div>
-                <div className="text-lg font-bold text-secondary mt-1">{activeTelemetryPatient.respRate}</div>
-              </div>
+              <span className="px-2.5 py-1 rounded bg-surface-container text-primary font-bold text-xs">{activeTelemetryPatient.bay}</span>
             </div>
 
             <div className="p-3 bg-[#e6f7f4] rounded-lg text-xs text-[#008774] flex items-center justify-between">

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeAppointments } from '../../services/telemetry';
-import { saveAppointmentToFirestore } from '../../services/firebase';
 import AppointmentSlipModal from '../../components/common/AppointmentSlipModal';
 
 export default function PatientAppointments() {
@@ -27,12 +26,12 @@ export default function PatientAppointments() {
   // Booking Form State
   const [formData, setFormData] = useState({
     // Patient details
-    patientName: user?.name || 'Rajesh V. Sharma',
+    patientName: user?.name || user?.fullName || '',
     relation: 'Self', // 'Self' | 'Spouse' | 'Father' | 'Mother' | 'Son' | 'Daughter' | 'Dependent' | 'Other'
-    patientAge: '54',
-    patientGender: 'Male',
-    patientPhone: user?.phone || '+91 98401 22819',
-    patientAbha: user?.abhaNumber || '9824-8819-3320-TN',
+    patientAge: user?.age || '45',
+    patientGender: user?.gender || 'Male',
+    patientPhone: user?.phone || '',
+    patientAbha: user?.abhaNumber || user?.id || '',
     // Clinical service selection
     doctorId: 'doctor-kavitha',
     diagnosticTest: '2D Echocardiography & Color Doppler',
@@ -204,12 +203,12 @@ export default function PatientAppointments() {
     if (target === 'SELF') {
       setFormData((prev) => ({
         ...prev,
-        patientName: user?.name || 'Rajesh V. Sharma',
+        patientName: user?.name || user?.fullName || '',
         relation: 'Self',
-        patientAge: '54',
-        patientGender: 'Male',
-        patientPhone: user?.phone || '+91 98401 22819',
-        patientAbha: user?.abhaNumber || '9824-8819-3320-TN',
+        patientAge: user?.age || '45',
+        patientGender: user?.gender || 'Male',
+        patientPhone: user?.phone || '',
+        patientAbha: user?.abhaNumber || user?.id || '',
       }));
     } else {
       setFormData((prev) => ({
@@ -293,9 +292,6 @@ export default function PatientAppointments() {
       const result = await response.json();
       if (result.success || response.ok) {
         const apt = result.appointment;
-        if (apt) {
-          saveAppointmentToFirestore(apt).catch((e) => console.warn('Firestore sync notice:', e));
-        }
         setLastBookedToken(apt);
         showToast(
           `Slot reserved! Token #${apt?.tokenNumber || 'EK-SLOT'} for ${formData.patientName} (${formData.relation})`

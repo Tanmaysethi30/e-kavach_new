@@ -14,6 +14,7 @@ const patientRoutes = require('./routes/patient.routes');
 const doctorRoutes = require('./routes/doctor.routes');
 const adminRoutes = require('./routes/admin.routes');
 const healthRoutes = require('./routes/health.routes');
+const aiRoutes = require('./routes/ai.routes');
 
 const app = express();
 
@@ -57,12 +58,21 @@ if (env.NODE_ENV !== 'test') {
 // Serve uploaded documents statically
 app.use('/uploads', express.static(path.resolve(env.UPLOAD_DIR)));
 
+// Forward root health and metrics
+app.get('/health', (req, res) => res.redirect('/api/health'));
+app.get('/metrics', (req, res) => {
+  const metricsService = require('./services/metrics.service');
+  res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(metricsService.formatPrometheusMetrics());
+});
+
 // Mount API routes
 app.use('/api', healthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/patient', patientRoutes);
 app.use('/api/doctor', doctorRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error handlers
 app.use(notFoundHandler);

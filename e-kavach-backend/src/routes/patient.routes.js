@@ -9,6 +9,42 @@ const upload = require('../middleware/upload');
 router.get('/doctors', (req, res, next) => patientController.getDoctors(req, res, next));
 router.post('/quick-id-and-book', (req, res, next) => patientController.quickIdAndBook(req, res, next));
 
+// Golden-Hour Emergency Triage Scan (Sub-3-second emergency SLA)
+router.get('/golden-hour-scan', async (req, res, next) => {
+  try {
+    const token = req.query.token || req.query.passToken;
+    const doctorService = require('../services/doctor.service');
+    const result = await doctorService.scanPatient({ passToken: token }, null);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Verifiable ABHA Card Payload & QR Matrix
+router.get('/abha/card', async (req, res, next) => {
+  try {
+    const patientService = require('../services/patient.service');
+    const patientId = req.query.patientId || 'patient-rajesh';
+    const abha = await patientService.getAbhaDetails(patientId);
+    const pass = await patientService.getEmergencyPass(patientId);
+    res.json({
+      success: true,
+      card: {
+        ...abha,
+        bloodGroup: pass?.bloodGroup || 'O+ (Rh Pos)',
+        criticalAllergies: pass?.criticalAllergies || 'Penicillin (Severe anaphylaxis)',
+        chronicConditions: pass?.chronicConditions || 'Type II Diabetes, Mild Hypertension',
+        implants: pass?.implants || 'Coronary Stent (DES - 2021)',
+        emergencyToken: pass?.passToken || 'EK-TR-88190-V4',
+        qrPayload: abha?.qrPayload || `EKAVACH:ABHA:9824-8819-3320-TN:TOKEN:EK-TR-88190-V4`,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // All subsequent patient endpoints require authentication
 router.use(authenticateToken);
 

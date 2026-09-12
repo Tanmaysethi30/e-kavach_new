@@ -396,6 +396,40 @@ class DoctorService {
 
     return newRecord;
   }
+
+  async getPatientHistory(patientId) {
+    let patient = await db.patientProfile.findUnique({ where: { id: patientId } });
+    if (!patient) {
+      const allPatients = await db.patientProfile.findMany();
+      patient = allPatients.find(
+        (p) =>
+          p.id === patientId ||
+          p.abhaNumber === patientId ||
+          p.phone === patientId ||
+          (p.name && p.name.toLowerCase().includes((patientId || '').toLowerCase()))
+      );
+    }
+    if (!patient) {
+      patient = await db.patientProfile.findUnique({ where: { id: 'patient-rajesh' } });
+    }
+
+    const records = await db.medicalRecord.findMany({
+      where: { patientProfileId: patient ? patient.id : 'patient-rajesh' },
+      orderBy: { date: 'desc' },
+    });
+
+    return {
+      patient,
+      records,
+      allergies: patient?.allergies || ['Penicillin (Severe anaphylaxis)'],
+      chronicConditions: patient?.chronicConditions || ['Type II Diabetes', 'Mild Hypertension'],
+      vitalsHistory: [
+        { date: 'Today, 08:30', bp: '128/82', heartRate: 74, spO2: 98, temp: 98.4 },
+        { date: 'Yesterday, 14:15', bp: '132/86', heartRate: 78, spO2: 97, temp: 98.6 },
+        { date: '10 Sep, 10:00', bp: '130/84', heartRate: 72, spO2: 98, temp: 98.2 },
+      ],
+    };
+  }
 }
 
 module.exports = new DoctorService();

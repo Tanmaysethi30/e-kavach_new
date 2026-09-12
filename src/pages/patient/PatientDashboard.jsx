@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,13 +9,63 @@ export default function PatientDashboard() {
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
   const [chatInput, setChatInput] = useState('');
+  const [appointments, setAppointments] = useState([]);
+  const [healthRecords, setHealthRecords] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  const patientName = currentUser?.name || currentUser?.fullName || 'Patient';
+
   const [chatMessages, setChatMessages] = useState([
     {
       id: 1,
       role: 'ai',
-      text: 'Rajesh, your next fasting glucose check is due in 2 days. Would you like to log readings or ask about prescription interactions?',
+      text: `${patientName}, your E-KAVACH Trauma & Clinical Assistant is active. You can check medication interactions, triage questions, or ask about hospital access anytime.`,
     },
   ]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        setLoadingData(true);
+        const token = localStorage.getItem('ekavach_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+        // Fetch live appointments
+        const aptRes = await fetch('/api/patient/appointments', { headers });
+        if (aptRes.ok) {
+          const aptData = await aptRes.json();
+          if (aptData.success && Array.isArray(aptData.appointments)) {
+            setAppointments(aptData.appointments);
+          }
+        }
+
+        // Fetch health history records
+        const recRes = await fetch('/api/patient/health-history', { headers });
+        if (recRes.ok) {
+          const recData = await recRes.json();
+          if (recData.success && Array.isArray(recData.records)) {
+            setHealthRecords(recData.records);
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching dashboard records:', e);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [currentUser]);
+
+  // Compute next upcoming appointment
+  const nextAppointment = appointments.find(
+    (a) => a.status === 'CONFIRMED' || a.status === 'PENDING'
+  );
+
+  // Compute prescription list from health records
+  const prescriptions = healthRecords.filter(
+    (r) => r.type === 'PRESCRIPTION' || r.recordType === 'PRESCRIPTION'
+  );
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -282,13 +332,35 @@ export default function PatientDashboard() {
 </div>
 <div className="flex flex-col">
 <span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Next Appointment</span>
-<span className="font-headline-sm text-headline-sm text-on-surface font-semibold">Tomorrow, 10:30 AM</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Dr. Kavitha Menon (Cardiology) • Apollo Greams</span>
+{nextAppointment ? (
+  <>
+    <span className="font-headline-sm text-headline-sm text-on-surface font-semibold">
+      {nextAppointment.scheduledAt ? new Date(nextAppointment.scheduledAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : 'Scheduled'}, {nextAppointment.timeSlot || nextAppointment.slot || 'Pending Slot'}
+    </span>
+    <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+      {nextAppointment.doctor?.name || nextAppointment.doctorName || 'Dr. Kavitha Menon'} ({nextAppointment.department || nextAppointment.doctor?.specialization || 'Clinical'}) • Token: {nextAppointment.token || nextAppointment.id}
+    </span>
+  </>
+) : (
+  <>
+    <span className="font-headline-sm text-headline-sm text-on-surface font-semibold">No Pending Slot</span>
+    <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Ready to schedule routine or emergency checkup</span>
+  </>
+)}
 </div>
 </div>
-<span className="px-space-xs py-space-2xs rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">
-          Confirmed
-        </span>
+{nextAppointment ? (
+  <span className={`px-space-xs py-space-2xs rounded-full font-label-sm text-label-sm font-semibold ${nextAppointment.status === 'CONFIRMED' ? 'bg-tertiary-fixed text-on-tertiary-fixed' : 'bg-amber-100 text-amber-800'}`}>
+    {nextAppointment.status}
+  </span>
+) : (
+  <button
+    onClick={() => navigate('/patient/appointments')}
+    className="px-2.5 py-1 rounded-lg bg-primary text-on-primary text-xs font-medium hover:bg-primary/90 transition-colors cursor-pointer"
+  >
+    Book
+  </button>
+)}
 </div>
 {/* Card 2: Pending Approvals */}
 <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex items-start justify-between">
@@ -297,13 +369,13 @@ export default function PatientDashboard() {
 <span className="material-symbols-outlined text-[24px]">pending_actions</span>
 </div>
 <div className="flex flex-col">
-<span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Pending Approvals</span>
-<span className="font-headline-sm text-headline-sm text-on-surface font-semibold">1 Insurance Pre-Auth</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">PMJAY Scheme renewal • Trauma Rider Stage 2</span>
+<span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">ABDM Grid Status</span>
+<span className="font-headline-sm text-headline-sm text-on-surface font-semibold">Consent Gateway Live</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Golden Hour ER Auto-Approval Enabled • HIPAA/NDHM</span>
 </div>
 </div>
 <span className="px-space-xs py-space-2xs rounded-full bg-[#E4E4FB] text-primary font-label-sm text-label-sm font-semibold">
-          Pending Review
+          Active Sync
         </span>
 </div>
 {/* Card 3: Active Prescriptions */}
@@ -313,14 +385,20 @@ export default function PatientDashboard() {
 <span className="material-symbols-outlined text-[24px]">medication</span>
 </div>
 <div className="flex flex-col">
-<span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Active Prescriptions</span>
-<span className="font-headline-sm text-headline-sm text-on-surface font-semibold">3 Medications Active</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Metformin, Glimepiride, Rosuvastatin</span>
+<span className="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant font-semibold">Clinical Records</span>
+<span className="font-headline-sm text-headline-sm text-on-surface font-semibold">
+  {prescriptions.length > 0 ? `${prescriptions.length} Active Prescriptions` : `${healthRecords.length} Records on File`}
+</span>
+<span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
+  {prescriptions.length > 0
+    ? (prescriptions[0]?.diagnosis || prescriptions[0]?.title || 'Prescription synchronized')
+    : 'Complete digital health dossier accessible'}
+</span>
 </div>
 </div>
-<span className="px-space-xs py-space-2xs rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold">
-          Refill in 12d
-        </span>
+<Link to="/patient/health-history" className="px-space-xs py-space-2xs rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-label-sm font-semibold no-underline hover:opacity-90">
+  View All
+</Link>
 </div>
 </div>
 </div>
@@ -390,7 +468,7 @@ export default function PatientDashboard() {
               </span>
 </div>
 <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-              Instant zero-friction access for ER paramedics &amp; trauma staff via QR or NFC beacon. Grants immediate one-time clinical override for vitals &amp; allergy data.
+              Instant zero-friction access for ER paramedics &amp; trauma staff via QR or NFC beacon. Grants immediate one-time clinical override for medical history &amp; allergy data.
             </p>
 </div>
 </div>
@@ -483,7 +561,7 @@ export default function PatientDashboard() {
 <form onSubmit={(e) => { e.preventDefault(); handleSendChat(); }} className="flex items-center gap-space-xs bg-surface-container-low rounded-lg px-space-sm py-space-2xs">
 <input
   className="bg-transparent border-none outline-none font-body-sm text-body-sm w-full text-on-surface placeholder:text-outline"
-  placeholder="Ask about medications, vitals, or triage..."
+  placeholder="Ask about medications, allergies, or triage..."
   type="text"
   value={chatInput}
   onChange={(e) => setChatInput(e.target.value)}

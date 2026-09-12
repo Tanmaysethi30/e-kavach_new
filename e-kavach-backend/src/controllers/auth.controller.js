@@ -2,7 +2,7 @@ const authService = require('../services/auth.service');
 const { z } = require('zod');
 
 const registerSchema = z.object({
-  email: z.string().email(),
+  email: z.string().optional(),
   phone: z.string().optional(),
   password: z.string().min(6),
   role: z.enum(['patient', 'doctor', 'hospital', 'hospital_admin']).default('patient'),
@@ -161,7 +161,7 @@ class AuthController {
 
   async refresh(req, res, next) {
     try {
-      const token = req.body.refreshToken || req.cookies.ekavach_refresh_token;
+      const token = req.body?.refreshToken || req.cookies?.ekavach_refresh_token;
       const result = await authService.refreshTokens(token);
 
       res.cookie('ekavach_access_token', result.accessToken, {

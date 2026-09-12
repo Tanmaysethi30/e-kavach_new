@@ -7,8 +7,20 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function DoctorLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  const doctorName = currentUser?.name || currentUser?.fullName || 'Dr. Kavitha Menon';
+  const doctorInitials = doctorName
+    .replace(/^Dr\.?\s*/i, '')
+    .split(' ')
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase() || 'KM';
+  const doctorSpecialty = currentUser?.specialization || currentUser?.title || currentUser?.department || 'Chief Interventional Cardio';
+  const doctorHospital = currentUser?.hospital || currentUser?.hospitalAffiliation || 'Apollo Greams Trauma';
+  const doctorIdDisplay = currentUser?.nmcNumber || currentUser?.licenseId || currentUser?.registrationId || 'ID-9942';
 
   const handleSignOut = () => {
     logout();
@@ -66,23 +78,23 @@ export default function DoctorLayout() {
           <div className="bg-gradient-to-br from-slate-50 to-slate-100/70 border border-slate-200/60 rounded-2xl p-3.5 mb-4 flex flex-col gap-2 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar name="Dr. Kavitha Menon" initials="KM" role="doctor" size="md" />
+                <Avatar name={doctorName} initials={doctorInitials} role="doctor" size="md" />
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-label-lg font-semibold text-slate-900 truncate">
-                  Dr. Kavitha Menon
+                  {doctorName}
                 </span>
                 <span className="font-body-sm text-xs text-slate-500 truncate">
-                  Chief Interventional Cardio
+                  {doctorSpecialty}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 text-xs">
-              <span className="text-secondary font-medium truncate">Apollo Greams Trauma</span>
+              <span className="text-secondary font-medium truncate">{doctorHospital}</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600 font-label-sm text-[11px] font-semibold">
                 <span className="material-symbols-outlined text-[12px] text-teal-600">verified</span>
-                ID-9942
+                {doctorIdDisplay}
               </span>
             </div>
           </div>
@@ -190,7 +202,7 @@ export default function DoctorLayout() {
             >
               <span className="material-symbols-outlined text-[19px]">tune</span>
             </Link>
-            <Avatar name="Dr. Kavitha Menon" initials="KM" role="doctor" size="sm" className="ml-1" />
+            <Avatar name={doctorName} initials={doctorInitials} role="doctor" size="sm" className="ml-1" />
             <button
               onClick={handleSignOut}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-error hover:bg-rose-50 transition-colors border border-rose-200/60 ml-1 cursor-pointer"

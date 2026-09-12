@@ -99,7 +99,7 @@ export default function AbhaHealthId() {
 </div>
 <span className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
 <span className="material-symbols-outlined text-[14px] text-secondary">call</span>
-              Primary Mobile: <span className="font-medium text-on-surface">{phoneVal}</span>
+  Primary Mobile: <span className="font-medium text-on-surface">{phoneVal}</span>
 </span>
 </div>
 </div>
@@ -107,23 +107,156 @@ export default function AbhaHealthId() {
 <div className="flex items-center gap-2">
 <span className="w-2.5 h-2.5 rounded-full bg-secondary"></span>
 <span className="font-body-sm text-body-sm text-on-surface">
-              Biometric &amp; Aadhaar Binding: <strong className="font-semibold text-primary">Biometric Tier-1 Token Verified</strong> on 12-Feb-2025 via Greams Trauma Node.
-            </span>
+  Biometric &amp; Aadhaar Binding: <strong className="font-semibold text-primary">Biometric Tier-1 Token Verified</strong> on 12-Feb-2025 via Greams Trauma Node.
+</span>
 </div>
-<button onClick={() => navigate('/patient/privacy')} className="inline-flex items-center gap-1 text-primary hover:text-primary-container font-label-sm text-label-sm font-semibold shrink-0" type="button">
+<button onClick={() => navigate('/patient/privacy')} className="inline-flex items-center gap-1 text-primary hover:text-primary-container font-label-sm text-label-sm font-semibold shrink-0 cursor-pointer" type="button">
 <span className="">View Audit Logs</span>
 <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
 </button>
 </div>
 </div>
 
+{/* Linked Hospital Facilities */}
+<div className="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md">
+  <div className="flex items-center justify-between">
+    <div className="flex items-center gap-2">
+      <span className="material-symbols-outlined text-primary text-[22px]">local_hospital</span>
+      <h2 className="font-headline-sm text-headline-sm text-primary font-semibold">Federated Hospital Facilities (ABDM)</h2>
+    </div>
+    <span className="px-2.5 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-sm text-xs font-semibold">
+      3 Facilities Linked
+    </span>
+  </div>
+  <p className="font-body-sm text-body-sm text-on-surface-variant">
+    Health records from these empanelled providers synchronize bidirectionally with your E-KAVACH emergency telemetry grid.
+  </p>
 
+  <div className="space-y-3">
+    <div className="p-space-md rounded-xl border border-surface-container-highest flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container-low transition-colors">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-teal-50 text-teal-700 flex items-center justify-center font-bold text-sm shrink-0">
+          AG
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-on-surface text-sm">Apollo Hospitals (Greams Road Trauma Hub)</span>
+            <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-semibold">Primary ER Node</span>
+          </div>
+          <p className="text-xs text-on-surface-variant mt-0.5 font-mono">HIP-ID: HIP-IN-TN-CHN-0041 • Last synced: 4 mins ago</p>
+        </div>
+      </div>
+      <button onClick={() => showToast('Sync refreshed for Apollo Hospitals Greams Road.')} className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-medium text-xs self-end sm:self-center cursor-pointer">
+        Sync Now
+      </button>
+    </div>
+
+    <div className="p-space-md rounded-xl border border-surface-container-highest flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container-low transition-colors">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-700 flex items-center justify-center font-bold text-sm shrink-0">
+          AI
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-on-surface text-sm">AIIMS Apex Trauma Center</span>
+            <span className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 text-[11px] font-semibold">National Tertiary</span>
+          </div>
+          <p className="text-xs text-on-surface-variant mt-0.5 font-mono">HIP-ID: HIP-IN-DL-DEL-0001 • Last synced: Yesterday</p>
+        </div>
+      </div>
+      <button onClick={() => showToast('Sync refreshed for AIIMS Apex Trauma Center.')} className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-medium text-xs self-end sm:self-center cursor-pointer">
+        Sync Now
+      </button>
+    </div>
+
+    <div className="p-space-md rounded-xl border border-surface-container-highest flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-surface-container-low transition-colors">
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center font-bold text-sm shrink-0">
+          RG
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-on-surface text-sm">Rajiv Gandhi Government General Hospital</span>
+            <span className="px-2 py-0.5 rounded-full bg-teal-100 text-teal-800 text-[11px] font-semibold">Government Hub</span>
+          </div>
+          <p className="text-xs text-on-surface-variant mt-0.5 font-mono">HIP-ID: HIP-IN-TN-CHN-0009 • Last synced: 2 days ago</p>
+        </div>
+      </div>
+      <button onClick={() => showToast('Sync refreshed for RGGGH.')} className="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-medium text-xs self-end sm:self-center cursor-pointer">
+        Sync Now
+      </button>
+    </div>
+  </div>
+</div>
 
 </div>
+
+{/* Right Column: Emergency Consent & Quick Actions */}
 <div className="lg:col-span-4 flex flex-col gap-space-xl">
+  {/* Golden Hour Consent Override Card */}
+  <div className="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col gap-space-md border-t-4 border-error">
+    <div className="flex items-center gap-2">
+      <span className="material-symbols-outlined text-error text-[24px]">crisis_alert</span>
+      <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Golden Hour Protocol</h3>
+    </div>
+    <p className="font-body-sm text-body-sm text-on-surface-variant">
+      Allows verified emergency doctors to bypass standard OTP consent only during severe trauma or unconsciousness.
+    </p>
+    <div className="p-space-sm rounded-lg bg-surface-container-low flex items-center justify-between">
+      <div className="flex flex-col">
+        <span className="font-semibold text-on-surface text-sm">Emergency Override</span>
+        <span className="text-xs text-secondary font-medium">Always Active (Mandated)</span>
+      </div>
+      <span className="px-2 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">ENABLED</span>
+    </div>
+    <div className="text-xs text-on-surface-variant space-y-1.5">
+      <p className="flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-teal-600 text-[16px]">lock_clock</span>
+        Session automatically expires after 4 hours
+      </p>
+      <p className="flex items-center gap-1.5">
+        <span className="material-symbols-outlined text-teal-600 text-[16px]">receipt_long</span>
+        Immutable audit log sent to registered phone
+      </p>
+    </div>
+  </div>
 
-
-
+  {/* Fast QR Access Card */}
+  <div className="bg-surface-container-lowest rounded-xl shadow-sm p-space-lg flex flex-col items-center text-center gap-3">
+    <span className="font-label-sm text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+      Quick Trauma Wristband / QR Token
+    </span>
+    <div className="p-3 rounded-xl bg-white border border-surface-container-highest shadow-sm">
+      <svg className="w-32 h-32 text-primary" fill="currentColor" viewBox="0 0 100 100">
+        <rect fill="none" height="26" rx="4" stroke="currentColor" strokeWidth="4" width="26" x="5" y="5"></rect>
+        <rect fill="currentColor" height="14" width="14" x="11" y="11"></rect>
+        <rect fill="none" height="26" rx="4" stroke="currentColor" strokeWidth="4" width="26" x="69" y="5"></rect>
+        <rect fill="currentColor" height="14" width="14" x="75" y="11"></rect>
+        <rect fill="none" height="26" rx="4" stroke="currentColor" strokeWidth="4" width="26" x="5" y="69"></rect>
+        <rect fill="currentColor" height="14" width="14" x="11" y="75"></rect>
+        <rect height="6" width="6" x="36" y="8"></rect>
+        <rect height="6" width="8" x="46" y="8"></rect>
+        <rect height="6" width="8" x="36" y="18"></rect>
+        <rect height="8" width="6" x="48" y="20"></rect>
+        <rect height="10" width="10" x="36" y="36"></rect>
+        <rect height="6" width="12" x="52" y="36"></rect>
+        <rect height="8" width="8" x="70" y="36"></rect>
+        <rect height="8" width="8" x="84" y="46"></rect>
+        <rect height="14" width="6" x="36" y="52"></rect>
+        <rect height="8" width="12" x="48" y="48"></rect>
+        <rect height="12" width="8" x="64" y="52"></rect>
+        <rect height="6" width="14" x="46" y="68"></rect>
+        <rect height="12" width="6" x="36" y="78"></rect>
+      </svg>
+    </div>
+    <span className="font-mono text-xs text-primary font-bold tracking-wider">{abhaVal}</span>
+    <button
+      onClick={handleDownloadCard}
+      className="w-full py-2 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:bg-primary/90 transition-colors cursor-pointer"
+    >
+      Download Emergency QR Card
+    </button>
+  </div>
 </div>
 </div>
 <div className={`fixed bottom-6 right-6 px-space-md py-space-sm rounded-lg bg-inverse-surface text-inverse-on-surface shadow-xl flex items-center gap-2 transform transition-all duration-300 z-50 ${toastMessage ? 'translate-y-0 opacity-100' : 'translate-y-24 opacity-0 pointer-events-none'}`} id="toastNotification">

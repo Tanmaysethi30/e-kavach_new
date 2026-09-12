@@ -49,7 +49,7 @@ class AdminController {
 
   async getBeds(req, res, next) {
     try {
-      const hospitalId = req.user?.hospitalId || req.user?.id || 'hosp-apollo-greams';
+      const hospitalId = req.user?.hospitalAdminProfile?.hospitalId || req.user?.hospitalId || req.user?.id;
       const beds = await adminService.getBeds(hospitalId);
       res.json({ success: true, beds });
     } catch (err) {

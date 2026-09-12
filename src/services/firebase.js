@@ -72,8 +72,8 @@ export async function testConnection() {
   }
 }
 
-// Run connectivity check on module load
-testConnection().catch(() => {});
+// Optional connectivity check function (not run automatically)
+// testConnection().catch(() => {});
 
 /**
  * Real-time sync user profile to Firestore

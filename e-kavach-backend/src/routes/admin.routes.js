@@ -7,6 +7,7 @@ router.use(authenticateToken);
 router.use(requireRole('hospital'));
 
 router.get('/dashboard/summary', (req, res, next) => adminController.getDashboardSummary(req, res, next));
+router.get('/summary', (req, res, next) => adminController.getDashboardSummary(req, res, next));
 router.get('/hospital-details', (req, res, next) => adminController.getHospitalDetails(req, res, next));
 router.put('/hospital-details', (req, res, next) => adminController.updateHospitalDetails(req, res, next));
 router.post('/hospital-details', (req, res, next) => adminController.updateHospitalDetails(req, res, next));
@@ -27,5 +28,6 @@ router.delete('/doctors/:id', (req, res, next) => adminController.deleteDoctor(r
 router.get('/patients', (req, res, next) => adminController.getPatients(req, res, next));
 router.post('/patients', (req, res, next) => adminController.createPatient(req, res, next));
 router.get('/hospital-network', (req, res, next) => adminController.getHospitalNetwork(req, res, next));
+router.get('/network', (req, res, next) => adminController.getHospitalNetwork(req, res, next));
 
 module.exports = router;

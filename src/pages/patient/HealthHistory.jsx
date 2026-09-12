@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { subscribeConsentRequests } from '../../services/telemetry';
 
 export default function HealthHistory() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const targetPatientId = searchParams.get('patientId');
+  const { currentUser } = useAuth();
+  const isDoctorMode = currentUser?.role === 'doctor' || !!targetPatientId;
+
   const [activeRecordTab, setActiveRecordTab] = useState('rx'); // 'rx' | 'history' | 'documents'
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
@@ -17,6 +23,14 @@ export default function HealthHistory() {
   const [analyzingRecord, setAnalyzingRecord] = useState(null);
   const [aiAnalysisResult, setAiAnalysisResult] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  // Doctor Mode & Loaded Patient State
+  const [loadedPatient, setLoadedPatient] = useState(null);
+  const [prescriptionModalOpen, setPrescriptionModalOpen] = useState(false);
+  const [rxMedicines, setRxMedicines] = useState('');
+  const [rxDiagnosis, setRxDiagnosis] = useState('');
+  const [rxNotes, setRxNotes] = useState('');
+  const [isIssuingRx, setIsIssuingRx] = useState(false);
 
   // Real-time consent requests state
   const [consentRequests, setConsentRequests] = useState([]);
@@ -59,14 +73,68 @@ export default function HealthHistory() {
     try {
       const token = getToken();
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
-      const res = await fetch('/api/patient/health-history', { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.history && data.history.records) {
-          setCustomRecords(data.history.records);
+
+      if (isDoctorMode) {
+        const fetchUrl = targetPatientId
+          ? `/api/doctor/patient-history/${targetPatientId}`
+          : '/api/doctor/patient-history/patient-rajesh';
+        const res = await fetch(fetchUrl, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.patient) {
+            setLoadedPatient(data.patient);
+          }
+          if (data.records && data.records.length > 0) {
+            setCustomRecords(data.records);
+          }
+        }
+      } else {
+        const res = await fetch('/api/patient/health-history', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.history && data.history.records) {
+            setCustomRecords(data.history.records);
+          }
         }
       }
     } catch (_e) {}
+  };
+
+  const handleIssuePrescription = async (e) => {
+    e.preventDefault();
+    if (!rxMedicines.trim() || !rxDiagnosis.trim()) return;
+    setIsIssuingRx(true);
+    try {
+      const token = getToken();
+      const res = await fetch('/api/doctor/prescription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          patientProfileId: targetPatientId || loadedPatient?.id || 'patient-rajesh',
+          medicines: rxMedicines.trim(),
+          diagnosis: rxDiagnosis.trim(),
+          doctorNotes: rxNotes.trim(),
+        }),
+      });
+      if (res.ok) {
+        showToast('Prescription digitally signed & issued to patient timeline!');
+        setPrescriptionModalOpen(false);
+        setRxMedicines('');
+        setRxDiagnosis('');
+        setRxNotes('');
+        await fetchHistoryRecords();
+        setActiveRecordTab('rx');
+      } else {
+        showToast('Failed to issue prescription. Please check permissions.');
+      }
+    } catch (err) {
+      showToast('Error issuing prescription: ' + err.message);
+    } finally {
+      setIsIssuingRx(false);
+    }
   };
 
   useEffect(() => {
@@ -508,6 +576,83 @@ export default function HealthHistory() {
         </div>
       )}
 
+      {/* Doctor Issue Prescription Modal */}
+      {prescriptionModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-surface-container flex flex-col gap-4">
+            <div className="flex items-center justify-between border-b border-surface-container pb-3">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary text-[24px]">prescriptions</span>
+                <div>
+                  <h3 className="font-headline-sm text-lg font-bold text-primary">Issue Digital Prescription</h3>
+                  <p className="text-xs text-on-surface-variant">Digitally signed via NMC Doctor Credential</p>
+                </div>
+              </div>
+              <button onClick={() => setPrescriptionModalOpen(false)} className="text-on-surface-variant hover:text-on-surface p-1 cursor-pointer">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleIssuePrescription} className="flex flex-col gap-3 text-sm">
+              <div>
+                <label className="block font-semibold mb-1 text-on-surface">Patient</label>
+                <div className="px-3 py-2 rounded-lg bg-surface-container-low font-semibold text-primary">
+                  {loadedPatient?.name || 'Rajesh V. Sharma'} • {loadedPatient?.abhaNumber || '9824-8819-3320-TN'}
+                </div>
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-on-surface">Clinical Diagnosis *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Post-PTCA Follow-up, Uncontrolled Hypertension"
+                  value={rxDiagnosis}
+                  onChange={(e) => setRxDiagnosis(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-surface-container-high bg-surface focus:outline-hidden focus:border-primary text-on-surface"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-on-surface">Medicines &amp; Regimen *</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="e.g. Tab Rosuvastatin 20mg 1-0-0 post-dinner, Tab Aspirin 75mg 0-1-0 post-lunch"
+                  value={rxMedicines}
+                  onChange={(e) => setRxMedicines(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-surface-container-high bg-surface focus:outline-hidden focus:border-primary text-on-surface"
+                />
+              </div>
+              <div>
+                <label className="block font-semibold mb-1 text-on-surface">Doctor Instructions / Dietary Advice</label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Low sodium diet, repeat Lipid profile after 4 weeks."
+                  value={rxNotes}
+                  onChange={(e) => setRxNotes(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-surface-container-high bg-surface focus:outline-hidden focus:border-primary text-on-surface"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-surface-container">
+                <button
+                  type="button"
+                  onClick={() => setPrescriptionModalOpen(false)}
+                  className="px-4 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-semibold text-sm transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isIssuingRx}
+                  className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-container text-on-primary font-semibold text-sm shadow transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <span className="material-symbols-outlined text-[18px]">verified</span>
+                  {isIssuingRx ? 'Signing...' : 'Sign & Issue Prescription'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Record Inspection Modal */}
       {selectedRecord && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
@@ -616,30 +761,44 @@ export default function HealthHistory() {
           <div className="flex flex-col gap-space-2xs">
             <div className="flex items-center gap-space-xs">
               <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight font-bold">
-                Prescriptions &amp; Health History
+                {isDoctorMode ? 'Patient Clinical Chart & Trauma History' : 'Prescriptions & Health History'}
               </h1>
             </div>
             <p className="font-body-md text-body-md text-on-surface-variant">
-              A complete record of your medications, diagnoses, and uploaded medical documents analyzed with Gemini AI.
+              {isDoctorMode
+                ? 'Federated ABDM Health Records, diagnostic reports, and digital prescription issuance console.'
+                : 'A complete record of your medications, diagnoses, and uploaded medical documents analyzed with Gemini AI.'}
             </p>
           </div>
           <div className="flex items-center gap-space-sm flex-wrap">
+            {isDoctorMode && (
+              <button
+                onClick={() => setPrescriptionModalOpen(true)}
+                className="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-lg text-label-lg shadow-sm hover:bg-primary-container transition-colors cursor-pointer"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">prescriptions</span>
+                <span>Issue Digital Rx</span>
+              </button>
+            )}
             <button
               onClick={() => setUploadModalOpen(true)}
-              className="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-primary text-on-primary font-label-lg text-label-lg shadow-sm hover:bg-primary-container transition-colors cursor-pointer"
+              className="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container text-primary font-label-lg text-label-lg shadow-sm hover:bg-surface-container-high transition-colors cursor-pointer"
               type="button"
             >
               <span className="material-symbols-outlined text-[18px]">upload_file</span>
               <span>Upload Medical Document</span>
             </button>
-            <button
-              onClick={handleCopyPatientId}
-              className="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-tertiary-container text-on-tertiary-container font-label-lg text-label-lg shadow-sm hover:bg-tertiary-fixed transition-colors cursor-pointer"
-              type="button"
-            >
-              <span className="material-symbols-outlined text-[18px]">share</span>
-              <span>{copiedId ? 'ID Copied!' : 'Share Patient ID'}</span>
-            </button>
+            {!isDoctorMode && (
+              <button
+                onClick={handleCopyPatientId}
+                className="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-tertiary-container text-on-tertiary-container font-label-lg text-label-lg shadow-sm hover:bg-tertiary-fixed transition-colors cursor-pointer"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">share</span>
+                <span>{copiedId ? 'ID Copied!' : 'Share Patient ID'}</span>
+              </button>
+            )}
             <button
               onClick={handleDownloadFullRecord}
               className="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-lg bg-surface-container text-primary font-label-lg text-label-lg shadow-sm hover:bg-surface-container-high transition-colors cursor-pointer"
@@ -650,6 +809,74 @@ export default function HealthHistory() {
             </button>
           </div>
         </div>
+
+        {/* Doctor Clinical Chart Banner */}
+        {isDoctorMode && (
+          <div className="p-4 rounded-xl bg-surface-container-lowest border border-surface-container shadow-sm flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-surface-container pb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-lg">
+                  {loadedPatient?.name ? loadedPatient.name.split(' ').map((n) => n[0]).join('').slice(0, 2) : 'RS'}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-headline-sm text-lg font-bold text-primary">
+                      {loadedPatient?.name || 'Rajesh V. Sharma'}
+                    </h2>
+                    <span className="px-2 py-0.5 rounded bg-surface-container text-on-surface-variant text-xs font-mono font-bold">
+                      ABHA: {loadedPatient?.abhaNumber || '9824-8819-3320-TN'}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">
+                      Consent: GOLDEN HOUR OVERRIDE
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-1 flex-wrap">
+                    <span>Blood Group: <strong className="text-primary">{loadedPatient?.bloodGroup || 'O+ Positive'}</strong></span>
+                    <span>•</span>
+                    <span>Gender/Age: <strong>{loadedPatient?.gender || 'Male'} • {loadedPatient?.age || 52} Y</strong></span>
+                    <span>•</span>
+                    <span>Kin Contact: <strong>{loadedPatient?.phone || '+91 98401 22819'}</strong></span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPrescriptionModalOpen(true)}
+                  className="px-4 py-2 rounded-lg bg-primary text-on-primary font-label-md text-sm font-semibold hover:bg-primary-container transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">prescriptions</span>
+                  Issue Digital Rx
+                </button>
+              </div>
+            </div>
+
+            {/* Clinical Alerts & Real-Life Bedside Monitoring Indicator */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <div className="p-2.5 rounded-lg bg-error-container/40 text-on-error-container flex flex-col border border-error-container">
+                <span className="font-semibold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px]">warning</span> Critical Allergy
+                </span>
+                <span className="font-bold text-xs truncate">
+                  {loadedPatient?.allergies?.[0] || 'Penicillin (Severe anaphylaxis)'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col">
+                <span className="text-on-surface-variant font-medium">Chronic Conditions</span>
+                <span className="font-bold text-sm text-primary">
+                  {loadedPatient?.chronicConditions?.join(', ') || 'Hypertension, Type 2 Diabetes'}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-lg bg-surface-container-low flex flex-col justify-center">
+                <span className="text-on-surface-variant font-medium flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px] text-secondary">monitor_heart</span> Bedside Hardware Status
+                </span>
+                <span className="text-xs text-on-surface font-semibold mt-0.5">
+                  Vitals Monitored Bedside in Real-Life
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Real-time Data Access Requests & Approval Banner */}
         {consentRequests.some((r) => r.status === 'PENDING_APPROVAL') && (

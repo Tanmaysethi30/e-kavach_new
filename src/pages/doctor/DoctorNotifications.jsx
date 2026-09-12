@@ -267,7 +267,7 @@ export default function DoctorNotifications() {
                     <span className="bg-emerald-50 text-emerald-800 text-[10px] font-semibold px-2 py-0.5 rounded">ABHA Telehealth</span>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    Direct communications from linked ABHA patients, incoming telemedicine video requests, and home telemetry vital updates.
+                    Direct communications from linked ABHA patients, incoming telemedicine video requests, and clinical consultation updates.
                   </p>
                   <div className="flex items-center gap-3 mt-2 text-[11px] text-slate-600">
                     <label className="flex items-center gap-1.5 cursor-pointer">

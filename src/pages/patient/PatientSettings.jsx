@@ -1062,7 +1062,7 @@ export default function PatientSettings() {
               </div>
               <span className="font-headline-sm text-headline-sm text-primary">NHM 108 • Greams Trauma</span>
               <p className="font-body-sm text-body-sm text-on-surface-variant">
-                Apollo Greams Trauma Emergency Bay syncs live vitals upon ingress flag.
+                Apollo Greams Trauma Emergency Bay syncs triage protocol upon ingress flag.
               </p>
             </div>
           </aside>

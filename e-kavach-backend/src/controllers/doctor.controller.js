@@ -1,4 +1,21 @@
 const doctorService = require('../services/doctor.service');
+const db = require('../database/db');
+
+async function resolveDoctorId(req) {
+  if (req.user?.doctorProfile?.id) {
+    return req.user.doctorProfile.id;
+  }
+  if (req.user?.id) {
+    const profile = await db.doctorProfile.findFirst({
+      where: {
+        OR: [{ userId: req.user.id }, { id: req.user.id }],
+      },
+    });
+    if (profile) return profile.id;
+    return req.user.id;
+  }
+  return null;
+}
 
 class DoctorController {
   async getMe(req, res, next) {
@@ -52,7 +69,7 @@ class DoctorController {
 
   async getCredentials(req, res, next) {
     try {
-      const doctorId = req.user.doctorProfile ? req.user.doctorProfile.id : 'doctor-kavitha';
+      const doctorId = await resolveDoctorId(req);
       const credentials = await doctorService.getCredentials(doctorId);
       res.json({ success: true, credentials });
     } catch (err) {
@@ -62,7 +79,7 @@ class DoctorController {
 
   async getAppointments(req, res, next) {
     try {
-      const doctorId = req.user.doctorProfile ? req.user.doctorProfile.id : 'doctor-kavitha';
+      const doctorId = await resolveDoctorId(req);
       const appointments = await doctorService.getAppointments(doctorId);
       res.json({ success: true, appointments });
     } catch (err) {
@@ -105,6 +122,16 @@ class DoctorController {
     try {
       const record = await doctorService.issuePrescription(req.body, req.user);
       res.status(201).json({ success: true, message: 'Prescription issued successfully', record });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getPatientHistory(req, res, next) {
+    try {
+      const { patientId } = req.params;
+      const history = await doctorService.getPatientHistory(patientId);
+      res.json({ success: true, ...history });
     } catch (err) {
       next(err);
     }

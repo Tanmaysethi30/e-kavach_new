@@ -47,6 +47,25 @@ class AIController {
       next(err);
     }
   }
+
+  async clinicalSummary(req, res, next) {
+    try {
+      const patientProfileId = req.body.patientProfileId || req.user?.patientProfile?.id || 'patient-rajesh';
+      const { history, dischargeNotes, vitals, condition } = req.body;
+
+      const result = await aiService.generateClinicalSummary({
+        patientProfileId,
+        history,
+        dischargeNotes,
+        vitals,
+        condition,
+      });
+
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AIController();

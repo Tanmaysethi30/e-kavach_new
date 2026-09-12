@@ -15,47 +15,9 @@ async function authenticateToken(req, res, next) {
   }
 
   if (!token) {
-    // Graceful preview/desk fallback to appropriate role account if unauthenticated
-    const url = (req.originalUrl || req.baseUrl || '').toLowerCase();
-    const targetRole = url.includes('/admin') ? 'hospital' : url.includes('/doctor') ? 'doctor' : 'patient';
-
-    let fallbackUser = await db.user.findFirst({
-      where: { role: targetRole, status: 'ACTIVE' },
-      include: {
-        patientProfile: true,
-        doctorProfile: true,
-        hospitalAdminProfile: true,
-      },
-    });
-
-    if (!fallbackUser) {
-      fallbackUser = await db.user.findFirst({
-        where: { status: 'ACTIVE' },
-        include: {
-          patientProfile: true,
-          doctorProfile: true,
-          hospitalAdminProfile: true,
-        },
-      });
-    }
-
-    if (fallbackUser) {
-      req.user = {
-        id: fallbackUser.id,
-        registration_id: fallbackUser.registration_id,
-        registrationId: fallbackUser.registration_id,
-        email: fallbackUser.email,
-        role: fallbackUser.role,
-        patientProfile: fallbackUser.patientProfile || null,
-        doctorProfile: fallbackUser.doctorProfile || null,
-        hospitalAdminProfile: fallbackUser.hospitalAdminProfile || null,
-      };
-      return next();
-    }
-
     return res.status(401).json({
       success: false,
-      error: 'Authentication required. Missing Bearer token or authorization cookie.',
+      error: 'Authentication required. Please sign in with your credentials.',
     });
   }
 

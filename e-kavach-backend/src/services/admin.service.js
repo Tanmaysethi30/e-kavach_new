@@ -299,11 +299,22 @@ class AdminService {
   }
 
   async getDashboardSummary(user = {}) {
-    const hospitalId = user.hospitalId || user.id || 'hosp-apollo-greams';
-    const beds = await db.bed.findMany({ where: { hospitalId } });
-    const triageEntries = await db.triageEntry.findMany({ where: { hospitalId } });
-    const pharmacyItems = await db.pharmacyItem.findMany({ where: { hospitalId } });
-    const staffMembers = await db.staffMember.findMany({ where: { hospitalId } });
+    let hospitalId = user.hospitalId || user.hospitalAdminProfile?.hospitalId;
+    if (!hospitalId || hospitalId.startsWith('user-') || hospitalId.startsWith('REG-') || hospitalId.startsWith('AP-HSP')) {
+      hospitalId = 'hosp-apollo-greams';
+    }
+    let beds = await db.bed.findMany({ where: { hospitalId } });
+    if (!beds || beds.length === 0) beds = await db.bed.findMany({ where: { hospitalId: 'hosp-apollo-greams' } });
+
+    let triageEntries = await db.triageEntry.findMany({ where: { hospitalId } });
+    if (!triageEntries || triageEntries.length === 0) triageEntries = await db.triageEntry.findMany({ where: { hospitalId: 'hosp-apollo-greams' } });
+
+    let pharmacyItems = await db.pharmacyItem.findMany({ where: { hospitalId } });
+    if (!pharmacyItems || pharmacyItems.length === 0) pharmacyItems = await db.pharmacyItem.findMany({ where: { hospitalId: 'hosp-apollo-greams' } });
+
+    let staffMembers = await db.staffMember.findMany({ where: { hospitalId } });
+    if (!staffMembers || staffMembers.length === 0) staffMembers = await db.staffMember.findMany({ where: { hospitalId: 'hosp-apollo-greams' } });
+
     const hospitalDetails = await this.getHospitalDetails(user);
 
     const totalBeds = beds.reduce((acc, b) => acc + b.totalBeds, 0) || 450;

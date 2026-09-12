@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const metricsService = require('../services/metrics.service');
 
 router.get('/health', (req, res) => {
   res.json({
@@ -16,6 +17,15 @@ router.get('/health', (req, res) => {
       telemetryWebsocket: '/ws/telemetry',
     },
   });
+});
+
+router.get('/metrics', (req, res) => {
+  res.setHeader('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+  res.send(metricsService.formatPrometheusMetrics());
+});
+
+router.get('/metrics/summary', (req, res) => {
+  res.json(metricsService.getSummary());
 });
 
 module.exports = router;

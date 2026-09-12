@@ -1,4 +1,21 @@
 const patientService = require('../services/patient.service');
+const db = require('../database/db');
+
+async function resolvePatientId(req) {
+  if (req.user?.patientProfile?.id) {
+    return req.user.patientProfile.id;
+  }
+  if (req.user?.id) {
+    const profile = await db.patientProfile.findFirst({
+      where: {
+        OR: [{ userId: req.user.id }, { id: req.user.id }],
+      },
+    });
+    if (profile) return profile.id;
+    return req.user.id;
+  }
+  return null;
+}
 
 class PatientController {
   async getMe(req, res, next) {
@@ -21,7 +38,7 @@ class PatientController {
 
   async getAbha(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const abha = await patientService.getAbhaDetails(patientId);
       res.json({ success: true, abha });
     } catch (err) {
@@ -31,7 +48,7 @@ class PatientController {
 
   async generateAbha(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const result = await patientService.generateAbha(patientId, req.body);
       res.json({ success: true, message: 'ABHA generated successfully', abha: result });
     } catch (err) {
@@ -41,7 +58,7 @@ class PatientController {
 
   async getEmergencyPass(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const pass = await patientService.getEmergencyPass(patientId);
       res.json({ success: true, emergencyPass: pass });
     } catch (err) {
@@ -51,7 +68,7 @@ class PatientController {
 
   async getHealthHistory(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const history = await patientService.getHealthHistory(patientId);
       res.json({ success: true, history });
     } catch (err) {
@@ -61,7 +78,7 @@ class PatientController {
 
   async uploadRecord(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const record = await patientService.uploadRecord(patientId, req.user.id, {
         ...req.body,
         file: req.file,
@@ -74,7 +91,7 @@ class PatientController {
 
   async deleteRecord(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const record = await patientService.deleteRecord(patientId, req.params.id);
       res.json({ success: true, message: 'Record deleted successfully', record });
     } catch (err) {
@@ -93,7 +110,7 @@ class PatientController {
 
   async getAppointments(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const appointments = await patientService.getAppointments(patientId);
       res.json({ success: true, appointments });
     } catch (err) {
@@ -103,7 +120,7 @@ class PatientController {
 
   async createAppointment(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const appointment = await patientService.createAppointment(patientId, req.body);
       res.status(201).json({ success: true, message: 'Appointment booked successfully', appointment });
     } catch (err) {
@@ -132,7 +149,7 @@ class PatientController {
 
   async getSchemes(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const schemes = await patientService.getSchemes(patientId);
       res.json({ success: true, ...schemes });
     } catch (err) {
@@ -142,7 +159,7 @@ class PatientController {
 
   async updateConsent(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const consent = await patientService.updateConsent(patientId, req.body);
       res.json({ success: true, message: 'Consent settings updated successfully', consent });
     } catch (err) {
@@ -152,7 +169,7 @@ class PatientController {
 
   async getConsentRequests(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const requests = await patientService.getConsentRequests(patientId);
       res.json({ success: true, requests });
     } catch (err) {
@@ -162,7 +179,7 @@ class PatientController {
 
   async respondConsent(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const updated = await patientService.respondConsent(patientId, req.body);
       res.json({ success: true, message: `Consent request ${req.body.action === 'APPROVE' ? 'approved' : 'declined'} successfully`, consent: updated });
     } catch (err) {
@@ -172,7 +189,7 @@ class PatientController {
 
   async getAccessLogs(req, res, next) {
     try {
-      const patientId = req.user.patientProfile ? req.user.patientProfile.id : 'patient-rajesh';
+      const patientId = await resolvePatientId(req);
       const logs = await patientService.getAccessLogs(patientId);
       res.json({ success: true, logs });
     } catch (err) {
