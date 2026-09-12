@@ -7,8 +7,9 @@ export default function DoctorDashboard() {
   const { currentUser } = useAuth();
   const [toastMsg, setToastMsg] = useState('');
 
-  const doctorName = currentUser?.name || 'Dr. Kavitha Menon';
-  const doctorTitle = currentUser?.title || currentUser?.specialization || 'Chief Interventional Cardio';
+  const doctorName = currentUser?.name || currentUser?.fullName || 'Doctor';
+  const doctorTitle = currentUser?.title || currentUser?.specialization || 'Attending Clinician';
+  const doctorHospital = currentUser?.hospital || 'Apollo Greams Trauma Hub';
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -18,12 +19,12 @@ export default function DoctorDashboard() {
   const handleExportSummary = () => {
     const summary = `E-KAVACH CLINICAL SHIFT SUMMARY
 Practitioner: ${doctorName} (${doctorTitle})
-Date: Monday, 24 October 2026
-Facility: ${currentUser?.hospital || 'Apollo Greams Trauma Hub'}
-Grid Node: AP-GRM-09 • License: ${currentUser?.licenseId || currentUser?.nmcNumber || 'NMC-44912-TN'}
+Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+Facility: ${doctorHospital}
+Grid Node: ${currentUser?.id || 'AP-GRM-09'} • License: ${currentUser?.licenseId || currentUser?.nmcNumber || 'NMC-VERIFIED'}
 
 TRIAGE & ADMISSION STATS:
-- Scheduled Appointments: 18 (4 High-Acuity Cardio)
+- Scheduled Appointments: 18 (4 High-Acuity Consults)
 - Pending Approvals: 5 (3 Insurance Pre-Auths)
 - Active In-Patients: 24 (6 ICU / Critical Step-Down)
 - Emergency Triage Scans: 42 (ABHA Verified, Latency 0.18s)
@@ -66,14 +67,14 @@ ABDM Gateway Status: Cryptographically Synchronized (18ms)`;
         </span>
 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-teal-50 border border-teal-200/60 text-teal-700 font-label-sm text-xs font-medium">
 <span className="material-symbols-outlined text-[13px]">router</span>
-          Grid Node: AP-GRM-09
+          Grid Node: {currentUser?.id || 'AP-GRM-09'}
         </span>
 </div>
 <h1 className="font-headline-lg text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
         Welcome back, {doctorName}
       </h1>
 <p className="font-body-md text-sm text-slate-500">
-        Monday, 24 October 2026 • Apollo Greams Trauma Hub (Bay 3 Interventional Unit)
+        Today • {doctorHospital} (Bay 3 Interventional Unit)
       </p>
 </div>
 <div className="flex items-center gap-3 shrink-0">

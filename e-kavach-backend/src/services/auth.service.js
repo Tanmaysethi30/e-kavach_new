@@ -512,7 +512,7 @@ class AuthService {
         err.statusCode = 400;
         throw err;
       }
-    }
+    } else {
 
     const searchTargetLower = searchTarget.toLowerCase();
     const searchDigits = searchTarget.replace(/\D/g, '');
@@ -664,6 +664,7 @@ class AuthService {
         user = matchedAdmin.user;
       }
     }
+  }
 
     // STRICT INVARIANT: If no account matched the provided credentials, fail immediately.
     // NEVER fall back to a dummy account.

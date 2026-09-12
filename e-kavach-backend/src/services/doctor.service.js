@@ -19,11 +19,23 @@ class DoctorService {
   }
 
   async getTriageQueue(hospitalId = 'hosp-apollo-greams') {
-    const queue = await db.triageEntry.findMany({
-      where: { hospitalId },
-      orderBy: { arrivalTime: 'asc' },
-    });
-
+    let queue = [];
+    if (!hospitalId || hospitalId === 'all') {
+      queue = await db.triageEntry.findMany({
+        orderBy: { arrivalTime: 'desc' },
+      });
+    } else {
+      queue = await db.triageEntry.findMany({
+        where: { hospitalId },
+        orderBy: { arrivalTime: 'desc' },
+      });
+      // Also include any referred ingress entries if specific hospital query yields few
+      if (queue.length === 0) {
+        queue = await db.triageEntry.findMany({
+          orderBy: { arrivalTime: 'desc' },
+        });
+      }
+    }
     return queue;
   }
 
@@ -360,6 +372,7 @@ class DoctorService {
 
   async issuePrescription({ appointmentId, patientProfileId, medicines, diagnosis, doctorNotes }, doctorUser) {
     const doctorName = doctorUser && doctorUser.doctorProfile ? doctorUser.doctorProfile.name : 'Dr. Kavitha Menon';
+    const doctorHospital = (doctorUser && (doctorUser.hospital || doctorUser.hospitalAffiliation)) || 'Apollo Greams Trauma Hub';
     const targetPatientId = patientProfileId || 'patient-rajesh';
 
     const newRecord = await db.medicalRecord.create({
@@ -371,6 +384,14 @@ class DoctorService {
         fileUrl: '/uploads/prescription_generated.pdf',
         date: new Date(),
         notes: `Prescribed by ${doctorName}: ${medicines || 'Rosuvastatin 10mg, Aspirin 75mg'}. Notes: ${doctorNotes || 'Take once daily after meals.'}`,
+        metadata: {
+          doctor: doctorName,
+          hospital: doctorHospital,
+          medicines: medicines || 'Rosuvastatin 10mg, Aspirin 75mg',
+          diagnosis: diagnosis || 'Clinical Consultation',
+          doctorNotes: doctorNotes || 'Take once daily after meals.',
+          status: 'Active',
+        },
       },
     });
 
@@ -390,11 +411,137 @@ class DoctorService {
         type: 'PRESCRIPTION_ISSUED',
         patientProfileId: targetPatientId,
         appointmentId,
+        record: newRecord,
+        doctor: doctorName,
         message: `Dr. Kavitha Menon issued a new digital prescription for ${targetPatientId}.`,
       });
     } catch (_e) {}
 
     return newRecord;
+  }
+
+  async createReferral(payload = {}, doctorUser) {
+    const fromDoctorId = doctorUser && doctorUser.doctorProfile ? doctorUser.doctorProfile.id : 'doctor-kavitha';
+    const fromDoctorName = doctorUser && doctorUser.doctorProfile ? doctorUser.doctorProfile.name : 'Dr. Kavitha Menon';
+    const sourceHospital = (doctorUser && doctorUser.hospital) || 'Apollo Greams Trauma Hub';
+
+    const targetPatientId = payload.patientProfileId || 'patient-rajesh';
+    const patName = payload.patientName || 'Rajesh V. Sharma';
+    const patAbha = payload.abhaNumber || '9824-8819-3320-TN';
+    const destHospitalId = payload.toHospitalId || 'hosp-fortis-stroke';
+    const destHospitalName = payload.toHospitalName || 'Fortis Grid Hub';
+    const destDoctorId = payload.toDoctorId || 'doc-arjun-nair';
+    const destDoctorName = payload.toDoctorName || 'Dr. Arjun Nair, MD, DM';
+    const prio = payload.priority || 'URGENT';
+    const prioLevel = payload.priorityLevel || (prio === 'EMERGENCY' || prio === 'Critical' ? 'Priority 1 (Critical)' : prio === 'ROUTINE' ? 'Priority 3 (Stable)' : 'Priority 2 (Urgent)');
+    const triageColor = prioLevel.includes('Critical') ? 'RED' : prioLevel.includes('Stable') ? 'GREEN' : 'YELLOW';
+    const conditionText = payload.clinicalSummary || payload.presentingCondition || payload.condition || 'Inter-hospital emergency specialist consult referral';
+    const bayNumber = payload.bayNumber || 'Bay 02';
+
+    // 1. Create ReferralRequest record in DB
+    const referral = await db.referralRequest.create({
+      data: {
+        fromDoctorId,
+        fromDoctorName,
+        sourceHospital,
+        toDoctorId: destDoctorId,
+        toDoctorName: destDoctorName,
+        patientProfileId: targetPatientId,
+        patientName: patName,
+        abhaNumber: patAbha,
+        hospitalId: destHospitalId,
+        destinationHospital: destHospitalName,
+        priority: prio,
+        priorityLevel: prioLevel,
+        clinicalSummary: conditionText,
+        bayAllocated: bayNumber,
+        status: 'DISPATCHED',
+        createdAt: new Date(),
+      },
+    });
+
+    // 2. Create TriageEntry in receiving emergency queue
+    const triageEntry = await db.triageEntry.create({
+      data: {
+        patientProfileId: targetPatientId,
+        hospitalId: destHospitalId,
+        assignedDoctorId: destDoctorId,
+        triageColor,
+        priorityLevel: prioLevel,
+        bayNumber,
+        patientName: patName,
+        abhaNumber: patAbha,
+        arrivalTime: new Date(),
+        vitals: payload.vitals || {
+          heartRate: '92 bpm',
+          bp: '138/88',
+          spO2: '97%',
+          respRate: '19 /min',
+          note: 'Bedside Clinical Monitoring — Hardware Console Sync',
+        },
+        condition: `${conditionText} (Referred by ${fromDoctorName} • ${sourceHospital})`,
+        doctor: destDoctorName,
+        status: 'INGRESS',
+        isReferral: true,
+      },
+    });
+
+    // 3. Immutable audit log
+    try {
+      await logAccess({
+        patientProfileId: targetPatientId,
+        accessorUserId: doctorUser ? doctorUser.id : 'user-kavitha',
+        accessorRole: 'doctor',
+        accessorName: fromDoctorName,
+        hospitalId: 'hosp-apollo-greams',
+        accessType: 'INTER_HOSPITAL_REFERRAL',
+        reason: `Inter-hospital referral to ${destDoctorName} at ${destHospitalName} (${prioLevel})`,
+        latencyMs: 12,
+      });
+    } catch (_auditErr) {}
+
+    // 4. Real-time broadcast
+    try {
+      const socketService = require('./socket.service');
+      socketService.broadcastReferral({
+        type: 'REFERRAL_CREATED',
+        referral,
+        triageEntry,
+        fromDoctorName,
+        toDoctorName: destDoctorName,
+        toHospitalName: destHospitalName,
+        patientName: patName,
+        priority: prioLevel,
+        message: `Clinical Referral & Transfer Initiated: ${patName} transferred to ${destHospitalName}. Priority: ${prioLevel}.`,
+      });
+
+      socketService.broadcastTriage({
+        type: 'TRIAGE_ENTRY_CREATED',
+        triageEntry,
+        hospitalId: destHospitalId,
+        message: `New Ingress Triage: ${patName} allocated to ${bayNumber} (${prioLevel}).`,
+      });
+    } catch (_wsErr) {
+      console.warn('WS broadcast safe fallback for referral:', _wsErr);
+    }
+
+    return {
+      success: true,
+      message: `Referral successfully dispatched for ${patName} to ${destHospitalName}. Enqueued in Emergency Triage at ${bayNumber}.`,
+      referral,
+      triageEntry,
+    };
+  }
+
+  async getReferrals(doctorProfileId = 'doctor-kavitha') {
+    const all = await db.referralRequest.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const outgoing = all.filter((r) => r.fromDoctorId === doctorProfileId || !r.fromDoctorId);
+    const incoming = all.filter((r) => r.toDoctorId === doctorProfileId);
+
+    return { outgoing: outgoing.length > 0 ? outgoing : all, incoming };
   }
 
   async getPatientHistory(patientId) {

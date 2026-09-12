@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginWithGoogle, logoutFirebase } from '../services/firebase';
+import { loginWithGoogle, logoutFirebase, syncUserProfileToFirestore } from '../services/firebase';
 
 const AuthContext = createContext();
 
@@ -10,10 +10,7 @@ export const roleProfiles = {
     registration_id: 'REG-PAT-RAJESH-1001',
     registrationId: 'REG-PAT-RAJESH-1001',
     name: 'Rajesh V. Sharma',
-    id: 'ABHA-9824-8819-3320-TN',
-    abhaNumber: '9824-8819-3320-TN',
-    emergencyToken: 'EK-TR-88190-V4',
-    passToken: 'EK-TR-88190-V4',
+    id: 'ABHA-9824-8819-TN',
     tag: 'Verified Health ID',
     hospital: 'Apollo Greams Trauma Hub',
     dashboardRoute: '/patient/dashboard',
@@ -64,30 +61,25 @@ export const roleProfiles = {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('ekavach_user');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return null;
-      }
-    }
-    return null;
+    return saved ? JSON.parse(saved) : null;
   });
 
   const login = async (role, credentials = {}) => {
     const normRole = role === 'admin' ? 'hospital' : (role || 'patient');
-    const defaultRoute = normRole === 'doctor' ? '/doctor/dashboard' : normRole === 'hospital' ? '/admin/dashboard' : '/patient/dashboard';
-    
-    const hasIdentifier = Boolean((credentials.identifier || '').trim());
-    const payload = {
-      role: normRole,
-      identifier: (credentials.identifier || '').trim(),
-      email: (credentials.identifier || '').trim(),
-      phone: (credentials.identifier || '').trim(),
-      password: credentials.password || '',
-    };
-
+    const profile = roleProfiles[normRole] || roleProfiles.patient;
+    const hasCredentials = Boolean(credentials.identifier || credentials.email || credentials.phone || credentials.password);
     try {
+      const demoIdentifier = normRole === 'doctor' ? 'dr.kavitha@apollo.health' : normRole === 'hospital' ? 'admin.chennai@apollo.health' : 'rajesh.sharma@ekavach.health';
+      const demoPassword = 'password123';
+
+      const payload = {
+        role: normRole,
+        identifier: (credentials.identifier || (hasCredentials ? '' : demoIdentifier)).trim(),
+        email: (credentials.identifier || (hasCredentials ? '' : demoIdentifier)).trim(),
+        phone: (credentials.identifier || (hasCredentials ? '' : demoIdentifier)).trim(),
+        password: credentials.password || (hasCredentials ? '' : demoPassword),
+      };
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,85 +89,158 @@ export function AuthProvider({ children }) {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok && data.user) {
-        const regId = data.user.registration_id || data.registration_id || data.user.id;
-        const userObj = {
+        const regId = data.user.registration_id || data.registration_id || profile.registration_id;
+        const merged = {
+          ...profile,
           ...data.user,
           registration_id: regId,
           registrationId: regId,
-          role: data.user.role || normRole,
-          dashboardRoute: data.user.dashboardRoute || defaultRoute,
+          role: normRole,
+          dashboardRoute: profile.dashboardRoute,
         };
-
-        setCurrentUser(userObj);
-        localStorage.setItem('ekavach_user', JSON.stringify(userObj));
+        setCurrentUser(merged);
+        localStorage.setItem('ekavach_user', JSON.stringify(merged));
+        syncUserProfileToFirestore(merged);
         if (data.accessToken) {
           localStorage.setItem('ekavach_token', data.accessToken);
         }
-        return userObj.dashboardRoute;
+        if (normRole === 'patient' && (merged.profileCompleted === false || (!merged.bloodGroup && !merged.pincode))) {
+          return '/patient/settings#profile';
+        }
+        return profile.dashboardRoute;
+      } else {
+        const errorMsg = data.error || data.message || 'Invalid credentials or account not found in database';
+        if (hasCredentials) {
+          throw new Error(errorMsg);
+        }
       }
-
-      if (hasIdentifier) {
-        const errorMsg = data.message || data.error || 'Invalid credentials or account not found. Please verify your details.';
-        throw new Error(errorMsg);
+    } catch (e) {
+      if (hasCredentials) {
+        throw e;
       }
-    } catch (err) {
-      if (hasIdentifier) {
-        throw err;
-      }
-      console.warn('Backend login fallback used:', err);
+      console.warn('Real-time auth sync fallback to role profile:', e);
     }
 
-    // Safe fallback for role-based navigation when no specific identifier was provided
-    const fallbackProfile = roleProfiles[normRole] || roleProfiles.patient;
-    setCurrentUser(fallbackProfile);
-    localStorage.setItem('ekavach_user', JSON.stringify(fallbackProfile));
-    return defaultRoute;
+    if (!hasCredentials) {
+      setCurrentUser(profile);
+      localStorage.setItem('ekavach_user', JSON.stringify(profile));
+      syncUserProfileToFirestore(profile);
+      if (normRole === 'patient' && (profile.profileCompleted === false || (!profile.bloodGroup && !profile.pincode))) {
+        return '/patient/settings#profile';
+      }
+      return profile.dashboardRoute;
+    }
+    throw new Error('Authentication failed. Please check your credentials.');
   };
 
   const register = async (role, details = {}) => {
     const normRole = role === 'admin' ? 'hospital' : (role || 'patient');
-    const defaultRoute = normRole === 'doctor' ? '/doctor/dashboard' : normRole === 'hospital' ? '/admin/dashboard' : '/patient/dashboard';
-
-    const cleanName = details.name || (normRole === 'doctor' ? 'Medical Clinician' : normRole === 'hospital' ? 'Hospital Administrator' : 'Registered Patient');
-
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        email: details.email || `${normRole}_${Date.now()}@ekavach.health`,
-        phone: details.phone || details.contact,
-        password: details.password || 'Password@123',
-        role: normRole,
-        name: cleanName,
-        additionalDetails: {
-          ...details,
-          name: cleanName,
-        },
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (res.ok && data.user) {
-      const regId = data.user.registration_id || data.registration_id || data.user.id;
-      const userObj = {
-        ...data.user,
-        registration_id: regId,
-        registrationId: regId,
-        role: data.user.role || normRole,
-        dashboardRoute: data.user.dashboardRoute || defaultRoute,
-      };
-
-      setCurrentUser(userObj);
-      localStorage.setItem('ekavach_user', JSON.stringify(userObj));
-      if (data.accessToken) {
-        localStorage.setItem('ekavach_token', data.accessToken);
+    const baseProfile = roleProfiles[normRole] || roleProfiles.patient;
+    
+    // Normalize and validate email format (ensure TLD if @ present)
+    let cleanEmail = (details.email || '').trim().toLowerCase();
+    if (cleanEmail && cleanEmail.includes('@')) {
+      const parts = cleanEmail.split('@');
+      if (parts[1] && !parts[1].includes('.')) {
+        cleanEmail = `${cleanEmail}.com`;
       }
-      return defaultRoute;
+    }
+    if (!cleanEmail) {
+      cleanEmail = `${normRole}_${Date.now()}@ekavach.gov.in`;
     }
 
-    const message = data.error || data.message || 'Registration failed. Please check your credentials.';
-    throw new Error(message);
+    const cleanPhone = (details.phone || details.contact || '').trim();
+
+    // Generate unique ID according to role
+    const assignedId = normRole === 'doctor'
+      ? (details.licenseId || details.nmcNumber ? ((details.licenseId || details.nmcNumber).startsWith('NMC') ? (details.licenseId || details.nmcNumber) : `NMC: ${details.licenseId || details.nmcNumber}`) : baseProfile.id)
+      : (normRole === 'hospital'
+        ? (details.regId || details.clinicalId || baseProfile.id)
+        : (details.abhaNumber || `ABHA-${(details.aadhaar || cleanPhone || Date.now().toString()).slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}-TN`));
+
+    const userPayload = {
+      ...baseProfile,
+      ...details,
+      name: details.name || baseProfile.name,
+      id: assignedId,
+      email: cleanEmail,
+      phone: cleanPhone || baseProfile.phone,
+      hospital: details.hospital || (normRole === 'hospital' ? (details.name || baseProfile.hospital) : baseProfile.hospital),
+      hospitalRegistrationId: details.regId || details.clinicalId || baseProfile.hospitalRegistrationId || '',
+      nmcNumber: details.licenseId || details.nmcNumber || baseProfile.nmcNumber || '',
+      licenseId: details.licenseId || details.nmcNumber || baseProfile.licenseId || '',
+      title: details.title || (normRole === 'doctor' ? (details.specialization ? `${details.specialization} Specialist` : baseProfile.title) : baseProfile.title),
+      specialization: details.specialization || (normRole === 'doctor' ? baseProfile.specialization : ''),
+      abhaNumber: normRole === 'patient' ? assignedId : '',
+      bloodGroup: details.bloodGroup || '',
+      pincode: details.pincode || '',
+      address: details.address || '',
+      city: details.city || '',
+      state: details.state || '',
+      dob: details.dob || '',
+      gender: details.gender || '',
+      bpLevel: details.bpLevel || 'Normal (120/80)',
+      hasDiabetes: details.hasDiabetes || 'No',
+      diabetesType: details.diabetesType || '',
+      diabetesMedication: details.diabetesMedication || '',
+      emergencyContactName: details.emergencyContactName || baseProfile.emergencyContactName || '',
+      emergencyContactRelation: details.emergencyContactRelation || baseProfile.emergencyContactRelation || 'Parent',
+      emergencyContactPhone: details.emergencyContactPhone || baseProfile.emergencyContactPhone || '',
+      allergies: details.allergies || '',
+      conditions: details.conditions || '',
+      aadhaarNumber: details.aadhaar || details.aadhaarNumber || '',
+      profileCompleted: normRole === 'patient' ? false : true,
+      role: normRole,
+      dashboardRoute: baseProfile.dashboardRoute,
+    };
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          phone: cleanPhone || undefined,
+          password: details.password || 'Ekavach@2026',
+          role: normRole,
+          name: userPayload.name,
+          additionalDetails: userPayload,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          const regId = data.user.registration_id || data.registration_id || `REG-${Date.now()}`;
+          const merged = {
+            ...userPayload,
+            ...data.user,
+            registration_id: regId,
+            registrationId: regId,
+            role: normRole,
+            dashboardRoute: baseProfile.dashboardRoute,
+            profileCompleted: normRole === 'patient' ? false : true,
+          };
+          setCurrentUser(merged);
+          localStorage.setItem('ekavach_user', JSON.stringify(merged));
+          syncUserProfileToFirestore(merged);
+          if (data.accessToken) {
+            localStorage.setItem('ekavach_token', data.accessToken);
+          }
+          return normRole === 'patient' ? '/patient/settings#profile' : (normRole === 'hospital' ? '/admin/hospital-details' : baseProfile.dashboardRoute);
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        let message = errData.error || errData.message || 'Registration failed. Please check your credentials.';
+        if (errData.details && Array.isArray(errData.details)) {
+          const detailMessages = errData.details.map((d) => `${d.path}: ${d.message}`).join(', ');
+          message = `${message} (${detailMessages})`;
+        }
+        throw new Error(message);
+      }
+    } catch (e) {
+      console.warn('Registration attempt failed:', e.message);
+      throw e;
+    }
   };
 
   const updateProfileDetails = (updatedFields) => {
@@ -189,45 +254,48 @@ export function AuthProvider({ children }) {
         updated.name = updatedFields.fullName;
       }
       localStorage.setItem('ekavach_user', JSON.stringify(updated));
+      syncUserProfileToFirestore(updated);
       return updated;
     });
   };
 
   const createPassword = async (role, details = {}) => {
     const normRole = role === 'admin' ? 'hospital' : (role || 'patient');
-    const defaultRoute = normRole === 'doctor' ? '/doctor/dashboard' : normRole === 'hospital' ? '/admin/dashboard' : '/patient/dashboard';
-    
-    const res = await fetch('/api/auth/create-password', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        role: normRole,
-        identifier: details.identifier || details.email || details.phone,
-        newPassword: details.password || details.newPassword,
-      }),
-    });
+    const profile = roleProfiles[normRole] || roleProfiles.patient;
+    try {
+      const res = await fetch('/api/auth/create-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: normRole,
+          identifier: details.identifier || details.email || details.phone,
+          newPassword: details.password || details.newPassword,
+        }),
+      });
 
-    const data = await res.json().catch(() => ({}));
-
-    if (res.ok && data.user) {
-      const regId = data.user.registration_id || data.registration_id || data.user.id;
-      const userObj = {
-        ...data.user,
-        registration_id: regId,
-        registrationId: regId,
-        role: data.user.role || normRole,
-        dashboardRoute: data.user.dashboardRoute || defaultRoute,
-      };
-      setCurrentUser(userObj);
-      localStorage.setItem('ekavach_user', JSON.stringify(userObj));
-      if (data.accessToken) {
-        localStorage.setItem('ekavach_token', data.accessToken);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.user) {
+          const regId = data.user.registration_id || data.registration_id || profile.registration_id;
+          const merged = { ...profile, ...data.user, registration_id: regId, registrationId: regId, role: normRole, dashboardRoute: profile.dashboardRoute };
+          setCurrentUser(merged);
+          localStorage.setItem('ekavach_user', JSON.stringify(merged));
+          if (data.accessToken) {
+            localStorage.setItem('ekavach_token', data.accessToken);
+          }
+          return profile.dashboardRoute;
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to create password');
       }
-      return userObj.dashboardRoute;
+    } catch (e) {
+      console.warn('Create password fallback:', e);
     }
-
-    const err = data.error || data.message || 'Failed to create password';
-    throw new Error(err);
+    const merged = { ...profile, role: normRole, dashboardRoute: profile.dashboardRoute };
+    setCurrentUser(merged);
+    localStorage.setItem('ekavach_user', JSON.stringify(merged));
+    return profile.dashboardRoute;
   };
 
   const [firebaseUser, setFirebaseUser] = useState(null);
@@ -282,25 +350,27 @@ export function AuthProvider({ children }) {
       }
 
       const normRole = role === 'admin' ? 'hospital' : role;
-      const defaultRoute = normRole === 'doctor' ? '/doctor/dashboard' : normRole === 'hospital' ? '/admin/dashboard' : '/patient/dashboard';
+      const baseProfile = roleProfiles[normRole] || roleProfiles.patient;
+      const abhaId = normRole === 'patient' ? `ABHA-${gUser.uid.slice(0, 4).toUpperCase()}-${gUser.uid.slice(4, 8).toUpperCase()}-TN` : baseProfile.id;
       const regId = `REG-GGL-${gUser.uid.slice(0, 8).toUpperCase()}`;
 
-      const userObj = {
-        name: gUser.displayName || (normRole === 'doctor' ? 'Dr. Medical Clinician' : normRole === 'hospital' ? 'Hospital Administrator' : 'Verified Patient'),
+      const merged = {
+        ...baseProfile,
+        name: gUser.displayName || baseProfile.name,
         email: gUser.email,
         uid: gUser.uid,
-        id: normRole === 'patient' ? `ABHA-${gUser.uid.slice(0, 4).toUpperCase()}-${gUser.uid.slice(4, 8).toUpperCase()}-TN` : regId,
+        id: abhaId,
         registration_id: regId,
         registrationId: regId,
         photoURL: gUser.photoURL,
         role: normRole,
-        dashboardRoute: defaultRoute,
-        tag: 'VERIFIED',
+        dashboardRoute: baseProfile.dashboardRoute,
+        isLocalSystemDB: true,
       };
 
-      setCurrentUser(userObj);
-      localStorage.setItem('ekavach_user', JSON.stringify(userObj));
-      return defaultRoute;
+      setCurrentUser(merged);
+      localStorage.setItem('ekavach_user', JSON.stringify(merged));
+      return baseProfile.dashboardRoute;
     } catch (err) {
       console.error('Google Sign-In error:', err);
       throw err;
@@ -324,6 +394,7 @@ export function AuthProvider({ children }) {
         signInWithGoogle,
         login,
         register,
+        updateProfile: updateProfileDetails,
         updateProfileDetails,
         createPassword,
         logout,

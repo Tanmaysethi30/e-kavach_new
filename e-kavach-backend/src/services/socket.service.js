@@ -71,6 +71,26 @@ class SocketService {
     }
   }
 
+  broadcastTriage(data) {
+    if (this.io) {
+      console.log('📡 [WS] Broadcasting triage update:', data.type || 'TRIAGE');
+      this.io.emit('triage:update', {
+        timestamp: new Date().toISOString(),
+        ...data,
+      });
+    }
+  }
+
+  broadcastReferral(data) {
+    if (this.io) {
+      console.log('📡 [WS] Broadcasting referral update:', data.type || 'REFERRAL');
+      this.io.emit('referral:update', {
+        timestamp: new Date().toISOString(),
+        ...data,
+      });
+    }
+  }
+
   startLivePulse() {
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
 

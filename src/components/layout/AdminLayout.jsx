@@ -7,13 +7,40 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AdminLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { logout } = useAuth();
+  const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    if (!currentUser) {
+      navigate('/login?role=hospital', { replace: true });
+      return;
+    }
+    const role = currentUser.role === 'admin' ? 'hospital' : currentUser.role;
+    if (role && role !== 'hospital') {
+      const target = role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard';
+      navigate(target, { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleSignOut = () => {
     logout();
     navigate('/');
   };
+
+  const adminName = currentUser?.name || currentUser?.fullName || 'Hospital Administrator';
+  const adminInitials = adminName
+    ? adminName
+      .replace(/^(Dr\.|Doctor)\s+/i, '')
+      .split(' ')
+      .filter(Boolean)
+      .map((n) => n[0])
+      .slice(0, 2)
+      .join('')
+      .toUpperCase() || 'AD'
+    : 'AD';
+  const adminTitle = currentUser?.title || 'Hospital Administrator';
+  const adminHospital = currentUser?.hospital || currentUser?.name || 'Apollo Greams Trauma Hub';
+  const adminTag = currentUser?.tag || 'VERIFIED ADMIN';
 
   const navItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'grid_view' },
@@ -40,9 +67,8 @@ export default function AdminLayout() {
 
       {/* Admin Sidebar */}
       <aside
-        className={`fixed left-0 z-50 flex flex-col justify-between w-72 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] overflow-y-auto transition-transform duration-300 lg:translate-x-0 ${
-          mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed left-0 z-50 flex flex-col justify-between w-72 bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)] overflow-y-auto transition-transform duration-300 lg:translate-x-0 ${mobileNavOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
         style={{ top: '28px', height: 'calc(100vh - 28px)' }}
       >
         <div className="p-space-lg flex-1">
@@ -66,22 +92,22 @@ export default function AdminLayout() {
           {/* Admin Profile Card */}
           <div className="bg-surface-container-lowest p-space-sm rounded-xl mb-space-lg shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
             <div className="flex items-start gap-space-sm">
-              <Avatar name="Dr. R. K. Nambiar" initials="RK" role="admin" size="sm" />
+              <Avatar name={adminName} initials={adminInitials} role="admin" size="sm" />
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-space-2xs mb-space-2xs">
                   <span className="font-label-lg text-label-lg text-on-surface font-semibold truncate">
-                    Dr. R. K. Nambiar
+                    {adminName}
                   </span>
                 </div>
                 <div className="font-label-md text-label-md text-on-surface-variant leading-none mb-space-xs">
-                  Hospital Administrator
+                  {adminTitle}
                 </div>
                 <div className="font-body-sm text-body-sm text-on-surface-variant/80 truncate mb-space-xs">
-                  Apollo Greams Trauma Hub
+                  {adminHospital}
                 </div>
                 <span className="inline-flex items-center px-space-xs py-space-2xs rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-[11px] font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-1"></span>
-                  VERIFIED ADMIN
+                  {adminTag}
                 </span>
               </div>
             </div>
@@ -95,10 +121,9 @@ export default function AdminLayout() {
                 to={item.to}
                 onClick={() => setMobileNavOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg transition-colors font-label-lg text-sm ${
-                    isActive
-                      ? 'bg-primary text-on-primary font-medium shadow-[0_1px_8px_rgba(0,77,108,0.06)]'
-                      : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+                  `flex items-center gap-space-sm px-space-sm py-space-xs rounded-lg transition-colors font-label-lg text-sm ${isActive
+                    ? 'bg-primary text-on-primary font-medium shadow-[0_1px_8px_rgba(0,77,108,0.06)]'
+                    : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
                   }`
                 }
               >
@@ -173,7 +198,7 @@ export default function AdminLayout() {
               >
                 <span className="material-symbols-outlined text-[22px]">help</span>
               </button>
-              <Avatar name="Dr. R. K. Nambiar" initials="RK" role="admin" size="sm" />
+              <Avatar name={adminName} initials={adminInitials} role="admin" size="sm" />
               <button
                 onClick={handleSignOut}
                 className="p-2 rounded-lg text-error hover:bg-error-container/20 transition-colors flex items-center justify-center cursor-pointer ml-1"

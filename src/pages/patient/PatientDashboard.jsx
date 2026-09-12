@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { subscribeAppointments } from '../../services/telemetry';
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
@@ -55,6 +56,17 @@ export default function PatientDashboard() {
     };
 
     fetchDashboardData();
+
+    const unsubscribe = subscribeAppointments((event) => {
+      fetchDashboardData();
+      if (event.message) {
+        showToast(event.message);
+      }
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [currentUser]);
 
   // Compute next upcoming appointment

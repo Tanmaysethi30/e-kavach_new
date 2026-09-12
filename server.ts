@@ -4,9 +4,13 @@ import path from 'path';
 import { createRequire } from 'module';
 import { createServer as createViteServer } from 'vite';
 
-const nodeRequire = createRequire(import.meta.url);
-const backendApp = nodeRequire('./e-kavach-backend/src/app.js');
-const socketService = nodeRequire('./e-kavach-backend/src/services/socket.service.js');
+// Support both ESM (via tsx in dev) and bundled CJS (via esbuild in prod)
+const nodeRequire =
+  typeof require === 'function'
+    ? require
+    : createRequire(import.meta.url);
+const backendApp = nodeRequire(path.resolve(process.cwd(), 'e-kavach-backend/src/app.js'));
+const socketService = nodeRequire(path.resolve(process.cwd(), 'e-kavach-backend/src/services/socket.service.js'));
 
 async function startServer() {
   const app = express();

@@ -540,6 +540,13 @@ class AdminService {
       orderBy: { distanceKm: 'asc' },
     });
   }
+
+  async getTriageQueue(hospitalId = 'hosp-apollo-greams') {
+    const queue = await db.triageEntry.findMany({
+      orderBy: { arrivalTime: 'desc' },
+    });
+    return queue;
+  }
 }
 
 module.exports = new AdminService();

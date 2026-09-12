@@ -36,6 +36,30 @@ export default function StaffManagement() {
     return saved ? JSON.parse(saved) : initialStaffList;
   });
 
+  React.useEffect(() => {
+    const token = localStorage.getItem('ekavach_token');
+    if (!token) return;
+    fetch('/api/admin/staff', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.staff) && data.staff.length > 0) {
+          const mapped = data.staff.map((s) => ({
+            id: s.id,
+            initials: s.initials || s.name?.substring(0, 2).toUpperCase() || 'ST',
+            name: s.name,
+            role: s.role || 'Staff',
+            dept: s.department || s.dept || 'General',
+            status: s.status === 'ON_DUTY' ? 'On Duty' : 'Off Duty',
+            ext: s.extension || s.ext || 'Ext. 1000',
+          }));
+          setStaffList(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { subscribeConsentRequests } from '../../services/telemetry';
+import { subscribeConsentRequests, subscribeAppointments } from '../../services/telemetry';
 
 export default function HealthHistory() {
   const navigate = useNavigate();
@@ -141,15 +141,24 @@ export default function HealthHistory() {
     fetchConsentRequests();
     fetchHistoryRecords();
 
-    const unsubscribe = subscribeConsentRequests((event) => {
+    const unsubscribeConsent = subscribeConsentRequests((event) => {
       if (event.message) {
         showToast(event.message);
       }
       fetchConsentRequests();
     });
 
+    const unsubscribeApt = subscribeAppointments((event) => {
+      if (event.type === 'PRESCRIPTION_ISSUED') {
+        showToast(event.message || 'New digital prescription issued by clinician!');
+        fetchHistoryRecords();
+        setActiveRecordTab('rx');
+      }
+    });
+
     return () => {
-      unsubscribe();
+      if (unsubscribeConsent) unsubscribeConsent();
+      if (unsubscribeApt) unsubscribeApt();
     };
   }, []);
 
@@ -446,10 +455,23 @@ export default function HealthHistory() {
   ];
 
   // Merge uploaded records by category
-  const uploadedPrescriptions = customRecords.filter((r) => r.recordType === 'PRESCRIPTION');
-  const uploadedDiagnoses = customRecords.filter((r) => r.recordType !== 'PRESCRIPTION');
+  const uploadedPrescriptions = customRecords
+    .filter((r) => r.recordType === 'PRESCRIPTION' || r.type === 'PRESCRIPTION')
+    .map((r) => ({
+      id: r.id,
+      title: r.title || 'Clinical Prescription',
+      doctor: r.metadata?.doctor || r.doctor || 'Dr. Kavitha Menon — Cardiology',
+      hospital: r.metadata?.hospital || r.hospital || 'Apollo Greams Trauma Hub',
+      date: r.date ? new Date(r.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Today',
+      status: r.metadata?.status || 'Active',
+      regimen: r.metadata?.medicines || r.notes || 'Prescription protocol',
+      notes: r.notes || r.metadata?.doctorNotes || 'Take medications as directed by clinician.',
+      fileUrl: r.fileUrl,
+      isRealtimeIssued: true,
+    }));
+  const uploadedDiagnoses = customRecords.filter((r) => r.recordType !== 'PRESCRIPTION' && r.type !== 'PRESCRIPTION');
 
-  const allPrescriptions = [...basePrescriptions, ...uploadedPrescriptions];
+  const allPrescriptions = [...uploadedPrescriptions, ...basePrescriptions];
   const allDiagnoses = [...baseDiagnoses, ...uploadedDiagnoses];
   const allUploadedDocuments = customRecords;
 

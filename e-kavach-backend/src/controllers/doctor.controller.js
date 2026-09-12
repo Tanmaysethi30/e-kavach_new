@@ -1,4 +1,5 @@
 const doctorService = require('../services/doctor.service');
+const patientService = require('../services/patient.service');
 const db = require('../database/db');
 
 async function resolveDoctorId(req) {
@@ -127,11 +128,46 @@ class DoctorController {
     }
   }
 
+  async createReferral(req, res, next) {
+    try {
+      const result = await doctorService.createReferral(req.body, req.user);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async getReferrals(req, res, next) {
+    try {
+      const doctorProfileId = (req.user && req.user.doctorProfile && req.user.doctorProfile.id) || req.user?.id || 'doctor-kavitha';
+      const result = await doctorService.getReferrals(doctorProfileId);
+      const allList = (result.outgoing || []).concat(result.incoming || []);
+      res.json({ success: true, referrals: allList, ...result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getPatientHistory(req, res, next) {
     try {
       const { patientId } = req.params;
       const history = await doctorService.getPatientHistory(patientId);
       res.json({ success: true, ...history });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async verifyRecord(req, res, next) {
+    try {
+      const { id } = req.params;
+      const verifierName = req.user.doctorProfile?.name || req.user.name || 'Dr. Kavitha Menon';
+      const record = await patientService.verifyRecord(id, {
+        status: req.body.status || 'VERIFIED',
+        verifierName,
+        notes: req.body.notes,
+      });
+      res.json({ success: true, message: 'Document verification status updated', record });
     } catch (err) {
       next(err);
     }

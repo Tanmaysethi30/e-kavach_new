@@ -10,8 +10,23 @@ export default function PatientLayout() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const isProfileIncomplete = currentUser?.role === 'patient' && currentUser?.profileCompleted === false;
+
+  // Enforce mandatory profile completion redirect and role authorization
+  React.useEffect(() => {
+    if (!currentUser) {
+      navigate('/login?role=patient', { replace: true });
+      return;
+    }
+    if (currentUser.role && currentUser.role !== 'patient') {
+      const target = currentUser.role === 'doctor' ? '/doctor/dashboard' : '/admin/dashboard';
+      navigate(target, { replace: true });
+      return;
+    }
+    if (isProfileIncomplete && !window.location.pathname.includes('/patient/settings')) {
+      navigate('/patient/settings#profile', { replace: true });
+    }
+  }, [currentUser, isProfileIncomplete, navigate]);
 
   const handleSignOut = () => {
     logout();
@@ -103,25 +118,40 @@ export default function PatientLayout() {
 
         {/* Navigation Links */}
         <nav className="flex-1 px-space-sm py-space-md flex flex-col gap-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setMobileNavOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center justify-between px-space-md py-space-xs rounded-lg transition-all font-label-lg text-sm ${
-                  isActive
-                    ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
-                    : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
-                }`
-              }
-            >
-              <div className="flex items-center gap-space-sm">
-                <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
-                <span>{item.label}</span>
-              </div>
-            </NavLink>
-          ))}
+          {navItems.map((item) => {
+            const isDisabled = isProfileIncomplete && item.to !== '/patient/settings';
+            return (
+              <NavLink
+                key={item.to}
+                to={isDisabled ? '/patient/settings#profile' : item.to}
+                onClick={(e) => {
+                  if (isDisabled) {
+                    e.preventDefault();
+                    navigate('/patient/settings#profile');
+                  } else {
+                    setMobileNavOpen(false);
+                  }
+                }}
+                className={({ isActive }) =>
+                  `flex items-center justify-between px-space-md py-space-xs rounded-lg transition-all font-label-lg text-sm ${
+                    isDisabled
+                      ? 'opacity-50 cursor-not-allowed text-on-surface-variant/60'
+                      : isActive
+                      ? 'bg-primary-container text-on-primary font-semibold shadow-sm'
+                      : 'text-on-surface-variant hover:bg-surface-container hover:text-on-surface'
+                  }`
+                }
+              >
+                <div className="flex items-center gap-space-sm">
+                  <span className="material-symbols-outlined text-[20px]">{item.icon}</span>
+                  <span>{item.label}</span>
+                </div>
+                {isDisabled && (
+                  <span className="material-symbols-outlined text-[14px] text-amber-600">lock</span>
+                )}
+              </NavLink>
+            );
+          })}
         </nav>
 
         {/* Emergency SOS Button */}
@@ -204,32 +234,6 @@ export default function PatientLayout() {
           className="w-full flex-1 bg-surface px-4 sm:px-space-xl py-space-lg"
           style={{ paddingTop: 'calc(28px + 4.5rem)' }}
         >
-          {isProfileIncomplete && !bannerDismissed && (
-            <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-amber-600 dark:text-amber-400 text-[24px]">contact_emergency</span>
-                <div>
-                  <p className="font-semibold text-sm">Action Recommended: Complete Emergency &amp; Medical Baseline</p>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">Adding blood group, chronic conditions, and emergency contacts unlocks your digital Golden-Hour Trauma Pass.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-                <button
-                  onClick={() => navigate('/patient/settings#profile')}
-                  className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs shadow-xs transition-colors cursor-pointer"
-                >
-                  Complete in Settings
-                </button>
-                <button
-                  onClick={() => setBannerDismissed(true)}
-                  className="p-1.5 text-amber-600 hover:text-amber-800 dark:hover:text-amber-100 transition-colors cursor-pointer"
-                  title="Dismiss banner"
-                >
-                  <span className="material-symbols-outlined text-[18px]">close</span>
-                </button>
-              </div>
-            </div>
-          )}
           <Outlet />
         </main>
       </div>

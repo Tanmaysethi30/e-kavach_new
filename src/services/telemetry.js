@@ -115,6 +115,28 @@ export function initTelemetrySocket() {
       });
     });
 
+    socketInstance.on('triage:update', (data) => {
+      console.log('⚡ [CLIENT WS] Real-time triage update received:', data);
+      triageListeners.forEach((fn) => {
+        try {
+          fn(data);
+        } catch (e) {
+          console.error('Error in triage listener:', e);
+        }
+      });
+    });
+
+    socketInstance.on('referral:update', (data) => {
+      console.log('⚡ [CLIENT WS] Real-time referral update received:', data);
+      referralListeners.forEach((fn) => {
+        try {
+          fn(data);
+        } catch (e) {
+          console.error('Error in referral listener:', e);
+        }
+      });
+    });
+
     socketInstance.on('disconnect', () => {
       console.warn('⚠️ Real-time telemetry disconnected. Retrying...');
       currentTelemetry.connected = false;
@@ -132,6 +154,8 @@ export function initTelemetrySocket() {
 
 const appointmentListeners = new Set();
 const consentListeners = new Set();
+const triageListeners = new Set();
+const referralListeners = new Set();
 
 export function subscribeConsentRequests(callback) {
   consentListeners.add(callback);
@@ -150,6 +174,26 @@ export function subscribeAppointments(callback) {
   }
   return () => {
     appointmentListeners.delete(callback);
+  };
+}
+
+export function subscribeTriage(callback) {
+  triageListeners.add(callback);
+  if (!socketInstance) {
+    initTelemetrySocket();
+  }
+  return () => {
+    triageListeners.delete(callback);
+  };
+}
+
+export function subscribeReferrals(callback) {
+  referralListeners.add(callback);
+  if (!socketInstance) {
+    initTelemetrySocket();
+  }
+  return () => {
+    referralListeners.delete(callback);
   };
 }
 

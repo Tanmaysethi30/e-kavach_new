@@ -29,5 +29,6 @@ router.get('/patients', (req, res, next) => adminController.getPatients(req, res
 router.post('/patients', (req, res, next) => adminController.createPatient(req, res, next));
 router.get('/hospital-network', (req, res, next) => adminController.getHospitalNetwork(req, res, next));
 router.get('/network', (req, res, next) => adminController.getHospitalNetwork(req, res, next));
+router.get('/triage-queue', (req, res, next) => adminController.getTriageQueue(req, res, next));
 
 module.exports = router;

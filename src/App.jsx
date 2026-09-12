@@ -11,6 +11,7 @@ import AdminLayout from './components/layout/AdminLayout';
 
 // Public Pages
 import HomePage from './pages/public/HomePage';
+import LoginPage from './pages/public/LoginPage';
 
 // Patient Pages
 import PatientDashboard from './pages/patient/PatientDashboard';
@@ -61,6 +62,9 @@ function NotFoundPage() {
         <Link to="/" className="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-sm">
           Return to Emergency Landing
         </Link>
+        <Link to="/login" className="px-5 py-2.5 rounded-lg bg-primary/10 border border-primary/20 text-primary font-semibold text-sm">
+          Sign In Portal
+        </Link>
         <Link to="/patient/dashboard" className="px-5 py-2.5 rounded-lg bg-surface-container text-primary font-semibold text-sm">
           Patient Portal
         </Link>
@@ -83,6 +87,8 @@ export default function App() {
           {/* PUBLIC ROUTES */}
           <Route element={<PublicLayout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signin" element={<Navigate to="/login" replace />} />
           </Route>
 
           {/* PATIENT ROLE ROUTES */}

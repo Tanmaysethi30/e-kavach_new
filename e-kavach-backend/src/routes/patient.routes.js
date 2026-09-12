@@ -57,6 +57,13 @@ router.get('/emergency-pass', (req, res, next) => patientController.getEmergency
 router.get('/health-history', (req, res, next) => patientController.getHealthHistory(req, res, next));
 router.post('/records', requireRole('patient', 'doctor'), upload.single('document'), (req, res, next) => patientController.uploadRecord(req, res, next));
 router.delete('/records/:id', requireRole('patient', 'doctor'), (req, res, next) => patientController.deleteRecord(req, res, next));
+router.patch('/records/:id/verify', (req, res) => {
+  return res.status(403).json({
+    success: false,
+    error: 'Access Denied: Patients cannot clinically verify medical records. Only authorized doctors have clinical verification rights.',
+    code: 'DOCTOR_VERIFICATION_ONLY',
+  });
+});
 router.get('/appointments', (req, res, next) => patientController.getAppointments(req, res, next));
 router.post('/appointments', (req, res, next) => patientController.createAppointment(req, res, next));
 router.patch('/appointments/:id/cancel', (req, res, next) => patientController.cancelAppointment(req, res, next));

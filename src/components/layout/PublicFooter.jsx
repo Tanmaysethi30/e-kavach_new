@@ -77,6 +77,11 @@ export default function PublicFooter() {
                   Health ID Gateway
                 </button>
               </li>
+              <li>
+                <Link to="/login" className="text-primary font-semibold hover:underline">
+                  Sign In Portal
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -19,6 +19,9 @@ router.patch('/appointments/:id/status', (req, res, next) => doctorController.up
 router.post('/request-access', (req, res, next) => doctorController.requestPatientAccess(req, res, next));
 router.get('/access-status/:patientId', (req, res, next) => doctorController.checkAccessStatus(req, res, next));
 router.post('/prescription', (req, res, next) => doctorController.issuePrescription(req, res, next));
+router.post('/referrals', (req, res, next) => doctorController.createReferral(req, res, next));
+router.get('/referrals', (req, res, next) => doctorController.getReferrals(req, res, next));
 router.get('/patient-history/:patientId', (req, res, next) => doctorController.getPatientHistory(req, res, next));
+router.patch('/records/:id/verify', (req, res, next) => doctorController.verifyRecord(req, res, next));
 
 module.exports = router;

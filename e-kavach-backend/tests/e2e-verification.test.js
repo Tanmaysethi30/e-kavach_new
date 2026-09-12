@@ -1,0 +1,208 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const request = require('supertest');
+const app = require('../src/app');
+const db = require('../src/database/db');
+
+test('E-KAVACH Extended End-to-End System & Lifecycle Verification', async (t) => {
+  let patientToken = '';
+  let doctorToken = '';
+  let adminToken = '';
+  let createdRecordId = '';
+  const timestamp = Date.now();
+
+  const testPatientEmail = `e2e_patient_${timestamp}@test.health`;
+  const testPatientPhone = `+91 99${Math.floor(10000000 + Math.random() * 90000000)}`;
+  const testPatientAadhaar = `8841-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+  await t.test('1. User Registration & Strict Database Duplicate Prevention', async (t1) => {
+    // 1a. Register fresh patient
+    await t1.test('Successfully register a new patient', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: testPatientEmail,
+          phone: testPatientPhone,
+          password: 'Password@123',
+          role: 'patient',
+          name: 'E2E Test Patient',
+          additionalDetails: {
+            aadhaar: testPatientAadhaar,
+            bloodGroup: 'B+ Rh Pos',
+            pincode: '600028',
+          },
+        });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.accessToken);
+      assert.equal(res.body.user.role, 'patient');
+      patientToken = res.body.accessToken;
+    });
+
+    // 1b. Duplicate Email Conflict
+    await t1.test('Prevent duplicate registration with same email (409 Conflict)', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: testPatientEmail,
+          phone: `+91 98${Math.floor(10000000 + Math.random() * 90000000)}`,
+          password: 'Password@123',
+          role: 'patient',
+          name: 'Imposter Patient',
+        });
+
+      assert.equal(res.status, 409);
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /already exists/i);
+    });
+
+    // 1c. Duplicate Phone Conflict
+    await t1.test('Prevent duplicate registration with same phone (409 Conflict)', async () => {
+      const res = await request(app)
+        .post('/api/auth/register')
+        .send({
+          email: `different_${timestamp}@test.health`,
+          phone: testPatientPhone,
+          password: 'Password@123',
+          role: 'patient',
+          name: 'Imposter Phone',
+        });
+
+      assert.equal(res.status, 409);
+      assert.equal(res.body.success, false);
+      assert.match(res.body.error, /phone number is already registered/i);
+    });
+  });
+
+  await t.test('2. Role Authentication & Token Verification', async (t2) => {
+    // 2a. Doctor Login
+    await t2.test('Doctor login returns valid doctorToken and NMC license', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'dr.kavitha@apollo.health',
+          password: 'password123',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.user.role, 'doctor');
+      assert.ok(res.body.user.id.includes('MD-44912-TN') || res.body.user.id.includes('NMC'));
+      doctorToken = res.body.accessToken;
+    });
+
+    // 2b. Admin Login
+    await t2.test('Admin login returns valid adminToken and hospital identifier', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: 'admin.nambiar@apollo.health',
+          password: 'password123',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.user.role, 'hospital');
+      assert.equal(res.body.user.id, 'AP-HSP-842-TN');
+      adminToken = res.body.accessToken;
+    });
+  });
+
+  await t.test('3. Cross-Role Access Control (RBAC)', async (t3) => {
+    await t3.test('Patient cannot access /api/doctor/scan', async () => {
+      const res = await request(app)
+        .post('/api/doctor/scan')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({ passToken: 'EK-TR-88190-V4' });
+
+      assert.equal(res.status, 403);
+    });
+
+    await t3.test('Patient cannot access /api/admin/dashboard/summary', async () => {
+      const res = await request(app)
+        .get('/api/admin/dashboard/summary')
+        .set('Authorization', `Bearer ${patientToken}`);
+
+      assert.equal(res.status, 403);
+    });
+
+    await t3.test('Doctor cannot access /api/admin/beds', async () => {
+      const res = await request(app)
+        .get('/api/admin/beds')
+        .set('Authorization', `Bearer ${doctorToken}`);
+
+      assert.equal(res.status, 403);
+    });
+  });
+
+  await t.test('4. Medical Document Upload & Clinical Verification Lifecycle', async (t4) => {
+    // 4a. Patient uploads a medical report
+    await t4.test('Patient can upload a medical record', async () => {
+      const res = await request(app)
+        .post('/api/patient/records')
+        .set('Authorization', `Bearer ${patientToken}`)
+        .field('title', 'Annual Cardiac ECG Report')
+        .field('recordType', 'ECG_REPORT')
+        .field('notes', 'Resting 12-lead ECG, normal sinus rhythm');
+
+      assert.equal(res.status, 201);
+      assert.ok(res.body.record);
+      assert.equal(res.body.record.title, 'Annual Cardiac ECG Report');
+      createdRecordId = res.body.record.id;
+    });
+
+    // 4b. Patient cannot verify documents (Forbidden)
+    await t4.test('Patient cannot verify their own document (403)', async () => {
+      const res = await request(app)
+        .patch(`/api/patient/records/${createdRecordId}/verify`)
+        .set('Authorization', `Bearer ${patientToken}`)
+        .send({ status: 'VERIFIED' });
+
+      assert.equal(res.status, 403);
+    });
+
+    // 4c. Doctor verifies patient document
+    await t4.test('Doctor can verify patient document via /api/doctor/records/:id/verify', async () => {
+      const res = await request(app)
+        .patch(`/api/doctor/records/${createdRecordId}/verify`)
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({
+          status: 'VERIFIED',
+          notes: 'Clinically verified against hospital digital archive.',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.record.verificationStatus, 'VERIFIED');
+      assert.ok(res.body.record.verifiedBy);
+    });
+  });
+
+  await t.test('5. Consent Request & Patient Data Sharing Governance', async (t5) => {
+    // 5a. Doctor requests access to patient
+    await t5.test('Doctor requests patient clinical record access', async () => {
+      const res = await request(app)
+        .post('/api/doctor/request-access')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({ patientId: 'patient-rajesh' });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+    });
+
+    // 5b. Patient checks consent requests
+    await t5.test('Patient fetches pending consent requests', async () => {
+      // Use seeded patient token
+      const pLogin = await request(app)
+        .post('/api/auth/login')
+        .send({ role: 'patient' });
+      const rajeshToken = pLogin.body.accessToken;
+
+      const res = await request(app)
+        .get('/api/patient/consent-requests')
+        .set('Authorization', `Bearer ${rajeshToken}`);
+
+      assert.equal(res.status, 200);
+      assert.ok(Array.isArray(res.body.requests));
+    });
+  });
+});

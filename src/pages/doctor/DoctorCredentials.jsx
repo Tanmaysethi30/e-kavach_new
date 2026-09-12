@@ -6,8 +6,28 @@ export default function DoctorCredentials() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [toastMsg, setToastMsg] = useState('');
+  const [credentials, setCredentials] = useState(null);
 
-  const nmcLicense = currentUser?.nmcNumber || currentUser?.licenseId || 'MD-44912-TN';
+  React.useEffect(() => {
+    const loadCreds = async () => {
+      let token = localStorage.getItem('ekavach_token');
+      let res = await fetch('/api/doctor/credentials', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }).catch(() => null);
+
+      if (res && res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data.success && data.credentials) {
+          setCredentials(data.credentials);
+        }
+      }
+    };
+    loadCreds();
+  }, [currentUser]);
+
+  const nmcLicense = credentials?.nmcNumber || currentUser?.nmcNumber || currentUser?.licenseId || 'MD-44912-TN';
+  const hospitalNode = credentials?.hospital || currentUser?.hospital || 'Apollo Main Greams Road • Node 09 Cluster (Trauma Bay 3)';
+  const docHprId = credentials?.hprId || currentUser?.id || currentUser?.registration_id || 'DOC-9082-IND';
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -96,7 +116,7 @@ export default function DoctorCredentials() {
 <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" strokeLinecap="round" strokeLinejoin="round"></path>
 </svg>
 </div>
-<div className="text-base font-bold text-slate-900 tracking-tight">DOC-9082-IND</div>
+<div className="text-base font-bold text-slate-900 tracking-tight">{docHprId}</div>
 </div>
 <div className="mt-3 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-500">
 <span className="">ABDM Milestone M3 Certified</span>
@@ -129,7 +149,7 @@ export default function DoctorCredentials() {
 </div>
 <div>
 <span className="text-xs text-slate-500 block">Institutional Node Deployment</span>
-<span className="text-sm font-bold text-slate-900">Apollo Main Greams Road • Node 09 Cluster (Trauma Bay 3)</span>
+<span className="text-sm font-bold text-slate-900">{hospitalNode}</span>
 </div>
 </div>
 <div className="flex items-center gap-3">

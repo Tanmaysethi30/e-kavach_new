@@ -414,44 +414,12 @@ export default function PatientSettings() {
     let fetchedDistrict = '';
     let fetchedArea = '';
 
-    // Primary Source: India Post Official Postal API
-    try {
-      const res = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && data[0] && data[0].Status === 'Success' && data[0].PostOffice && data[0].PostOffice.length > 0) {
-          const po = data[0].PostOffice[0];
-          fetchedState = po.State || po.Circle || '';
-          fetchedDistrict = po.District || po.Division || po.Block || '';
-          fetchedArea = po.Name || '';
-        }
-      }
-    } catch (err) {
-      console.warn('India Post API error:', err);
-    }
-
-    // Secondary Source: Zippopotam API if Primary was unfulfilled
-    if (!fetchedState) {
-      try {
-        const res = await fetch(`https://api.zippopotam.us/in/${cleanPin}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.places && data.places.length > 0) {
-            fetchedState = data.places[0].state || '';
-            fetchedArea = data.places[0]['place name'] || '';
-          }
-        }
-      } catch (err) {
-        console.warn('Zippopotam API error:', err);
-      }
-    }
-
-    // Fallback Source: Offline Prefix Engine
+    // Local Offline Prefix Engine for instant, zero-external-API resolution
     const offlineMatch = getFallbackByPincode(cleanPin);
 
-    // Normalize State and City
-    const finalState = normalizeState(fetchedState) || (offlineMatch ? offlineMatch.state : profile.state);
-    const finalCity = normalizeCity(fetchedDistrict, finalState) || (offlineMatch ? offlineMatch.city : profile.city);
+    // Normalize State and City purely locally
+    const finalState = offlineMatch ? offlineMatch.state : profile.state;
+    const finalCity = offlineMatch ? offlineMatch.city : profile.city;
 
     if (finalState && finalCity) {
       setProfile((prev) => {

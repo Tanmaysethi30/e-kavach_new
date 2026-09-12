@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { subscribeTriage, subscribeReferrals } from '../../services/telemetry';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -25,16 +26,54 @@ export default function AdminDashboard() {
     doctorsOnDutyCount: 48,
   });
 
+  const [triageList, setTriageList] = useState([
+    {
+      id: 'tr-01',
+      name: 'Rajesh V. Sharma',
+      abha: '9824-8819-TN',
+      priority: 'Critical (Priority 1)',
+      condition: 'Acute Myocardial Infarction',
+      vitals: 'Trauma Bay 02 • Bedside Cardiac Observation',
+      bay: 'Bay 02',
+      doctor: 'Dr. Kavitha Menon',
+      role: 'Cardiology Response Lead',
+      isReferral: false,
+    },
+    {
+      id: 'tr-02',
+      name: 'Meenakshi Sundaram',
+      abha: '7712-4401-TN',
+      priority: 'Urgent (Priority 2)',
+      condition: 'Polytrauma / Compound Fracture',
+      vitals: 'Trauma Bay 04 • Orthopedic Bedside Observation',
+      bay: 'Bay 04',
+      doctor: 'Dr. Arvind Swaminathan',
+      role: 'Orthopedic Trauma Consult',
+      isReferral: false,
+    },
+    {
+      id: 'tr-03',
+      name: 'Harish K. Varma',
+      abha: '4402-9918-TN',
+      priority: 'Stable (Priority 3)',
+      condition: 'Deep Laceration / Suture',
+      vitals: 'Trauma Bay 06 • Minor Procedure Bay',
+      bay: 'Bay 06',
+      doctor: 'Dr. Priya Sundaram',
+      role: 'Emergency Medical Officer',
+      isReferral: false,
+    },
+  ]);
+
   useEffect(() => {
     async function loadSummary() {
       try {
         const token = localStorage.getItem('ekavach_token');
-        const res = await fetch('/api/admin/dashboard/summary', {
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        });
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        const res = await fetch('/api/admin/dashboard/summary', { headers });
         if (res.ok) {
           const data = await res.json();
           if (data.summary) {
@@ -59,7 +98,93 @@ export default function AdminDashboard() {
         // fallback to default
       }
     }
+
+    async function loadTriage() {
+      try {
+        const token = localStorage.getItem('ekavach_token');
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+        const res = await fetch('/api/admin/triage-queue', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.queue) && data.queue.length > 0) {
+            const mapped = data.queue.map((e) => ({
+              id: e.id,
+              name: e.patientName || 'Emergency Patient',
+              abha: e.abhaNumber || '9824-8819-TN',
+              priority: e.priorityLevel || (e.triageColor === 'RED' ? 'Critical (Priority 1)' : 'Urgent (Priority 2)'),
+              condition: e.condition || 'Emergency Ingress',
+              vitals: e.bayNumber ? `Trauma ${e.bayNumber} • Bedside Clinical Observation` : 'Trauma Bay 02 • Bedside Cardiac Observation',
+              bay: e.bayNumber || 'Bay 02',
+              doctor: e.doctor || 'Dr. Kavitha Menon',
+              role: e.isReferral ? 'Inter-Hospital Referral Consult' : 'Emergency Response Lead',
+              isReferral: !!e.isReferral,
+              isLive: true,
+            }));
+            setTriageList((prev) => {
+              const existingIds = new Set(mapped.map((m) => m.id));
+              const remaining = prev.filter((p) => !existingIds.has(p.id));
+              return [...mapped, ...remaining];
+            });
+          }
+        }
+      } catch (_err) {}
+    }
+
     loadSummary();
+    loadTriage();
+
+    const unsubTriage = subscribeTriage((data) => {
+      console.log('⚡ [AdminDashboard] Live triage entry received:', data);
+      if (data.triageEntry) {
+        const e = data.triageEntry;
+        const newItem = {
+          id: e.id || Date.now(),
+          name: e.patientName || 'Referred Patient',
+          abha: e.abhaNumber || 'ABHA-IN-TRANSIT',
+          priority: e.priorityLevel || 'Critical (Priority 1)',
+          condition: e.condition || 'Emergency Ingress',
+          vitals: `${e.bayNumber || 'Bay 02'} • Live Ingress Alert (108 Fleet)`,
+          bay: e.bayNumber || 'Bay 02',
+          doctor: e.doctor || 'Specialist Consult Lead',
+          role: 'Inter-Hospital Ingress Attending',
+          isReferral: true,
+          isLive: true,
+        };
+        setTriageList((prev) => [newItem, ...prev.filter((x) => x.id !== newItem.id)]);
+        showToast(`⚡ Ingress Alert: ${newItem.name} assigned to ${newItem.bay} (${newItem.priority})`);
+      }
+    });
+
+    const unsubReferral = subscribeReferrals((data) => {
+      console.log('⚡ [AdminDashboard] Live referral update received:', data);
+      if (data.triageEntry || data.referral) {
+        const r = data.referral || {};
+        const te = data.triageEntry || {};
+        const newItem = {
+          id: te.id || r.id || Date.now(),
+          name: r.patientName || te.patientName || 'Referred Patient',
+          abha: r.abhaNumber || te.abhaNumber || '9824-8819-TN',
+          priority: r.priorityLevel || te.priorityLevel || 'Priority 1 (Critical)',
+          condition: `${r.clinicalSummary || te.condition || 'Inter-Hospital Transfer'} (from ${r.fromDoctorName || 'Referring Clinician'})`,
+          vitals: `${r.bayAllocated || te.bayNumber || 'Bay 02'} • Ingress In-Transit`,
+          bay: r.bayAllocated || te.bayNumber || 'Bay 02',
+          doctor: r.toDoctorName || te.doctor || 'Attending Specialist',
+          role: `Transferred to ${r.destinationHospital || 'Trauma Hub'}`,
+          isReferral: true,
+          isLive: true,
+        };
+        setTriageList((prev) => [newItem, ...prev.filter((x) => x.id !== newItem.id)]);
+        showToast(`🚑 Live Referral Incoming: ${newItem.name} transferred to ${newItem.bay}!`);
+      }
+    });
+
+    return () => {
+      if (unsubTriage) unsubTriage();
+      if (unsubReferral) unsubReferral();
+    };
   }, [currentUser]);
 
   const showToast = (msg) => {
@@ -113,7 +238,9 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       abha: '9824-8819-TN',
       priority: 'Critical (Priority 1)',
       condition: 'Acute Myocardial Infarction',
-      vitals: 'Trauma Bay 02 • Bedside Cardiac Observation',
+      vitals: 'SpO2 88% • BP 190/115 • ST Elevation',
+      heartRate: '112 bpm',
+      respRate: '24 /min',
       bay: 'Bay 02',
       doctor: 'Dr. Kavitha Menon',
       role: 'Cardiology Response Lead'
@@ -123,7 +250,9 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       abha: '7712-4401-TN',
       priority: 'Urgent (Priority 2)',
       condition: 'Polytrauma / Compound Fracture',
-      vitals: 'Trauma Bay 04 • Orthopedic Bedside Observation',
+      vitals: 'Right Femur • Hemodynamically Stable',
+      heartRate: '84 bpm',
+      respRate: '18 /min',
       bay: 'Bay 04',
       doctor: 'Dr. Arvind Swaminathan',
       role: 'Orthopedic Trauma Consult'
@@ -133,7 +262,9 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       abha: '4402-9918-TN',
       priority: 'Stable (Priority 3)',
       condition: 'Deep Laceration / Suture',
-      vitals: 'Trauma Bay 06 • Minor Procedure Bay',
+      vitals: 'Left Forearm • Local Anesthesia Active',
+      heartRate: '72 bpm',
+      respRate: '16 /min',
       bay: 'Bay 06',
       doctor: 'Dr. Priya Sundaram',
       role: 'Emergency Medical Officer'
@@ -249,15 +380,22 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
               </div>
             </div>
 
-            <div className="p-3 my-4 bg-surface-container-lowest rounded-lg border border-surface-container flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-secondary text-[20px]">monitor_heart</span>
-                <div>
-                  <div className="font-semibold text-primary">Bedside Clinical Monitoring</div>
-                  <div className="text-on-surface-variant text-[11px]">Vitals monitored in real-life at bedside hardware console</div>
+            <div className="grid grid-cols-3 gap-3 my-4">
+              <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
+                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Heart Rate</div>
+                <div className="text-lg font-bold text-error flex items-center justify-center gap-1 mt-1">
+                  <span className="material-symbols-outlined text-base animate-pulse">favorite</span>
+                  {activeTelemetryPatient.heartRate || '102 bpm'}
                 </div>
               </div>
-              <span className="px-2.5 py-1 rounded bg-surface-container text-primary font-bold text-xs">{activeTelemetryPatient.bay}</span>
+              <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
+                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">SpO2</div>
+                <div className="text-lg font-bold text-primary mt-1">94%</div>
+              </div>
+              <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
+                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Respiration</div>
+                <div className="text-lg font-bold text-secondary mt-1">{activeTelemetryPatient.respRate || '22 /min'}</div>
+              </div>
             </div>
 
             <div className="p-3 bg-[#e6f7f4] rounded-lg text-xs text-[#008774] flex items-center justify-between">
@@ -469,24 +607,31 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                     </tr>
                   </thead>
                   <tbody className="divide-y-0">
-                    {patientsTelemetry.map((p, idx) => (
-                      <tr key={idx} className="hover:bg-surface-container-low/70 transition-colors">
+                    {triageList.map((p, idx) => (
+                      <tr key={p.id || idx} className="hover:bg-surface-container-low/70 transition-colors">
                         <td className="px-space-md py-3.5">
-                          <div className="font-label-lg text-label-lg font-semibold text-primary">{p.name}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-label-lg text-label-lg font-semibold text-primary">{p.name}</span>
+                            {p.isReferral && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
+                                REFERRAL
+                              </span>
+                            )}
+                          </div>
                           <div className="font-label-sm text-label-sm text-on-surface-variant">ABHA: {p.abha}</div>
                         </td>
                         <td className="px-space-md py-3.5 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full ${
-                            p.priority.includes('Critical')
+                            p.priority.includes('Critical') || p.priority.includes('Priority 1')
                               ? 'bg-error-container text-on-error-container'
-                              : p.priority.includes('Urgent')
+                              : p.priority.includes('Urgent') || p.priority.includes('Priority 2')
                               ? 'bg-secondary-fixed text-on-secondary-fixed'
                               : 'bg-surface-container-high text-on-surface-variant'
                           } font-label-sm text-label-sm font-semibold`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${
-                              p.priority.includes('Critical')
+                              p.priority.includes('Critical') || p.priority.includes('Priority 1')
                                 ? 'bg-error'
-                                : p.priority.includes('Urgent')
+                                : p.priority.includes('Urgent') || p.priority.includes('Priority 2')
                                 ? 'bg-secondary'
                                 : 'bg-outline'
                             }`}></span>

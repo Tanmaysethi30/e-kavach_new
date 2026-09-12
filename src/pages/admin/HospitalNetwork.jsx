@@ -116,6 +116,34 @@ export default function HospitalNetwork() {
     return saved ? JSON.parse(saved) : initialHospitals;
   });
 
+  React.useEffect(() => {
+    const token = localStorage.getItem('ekavach_token');
+    if (!token) return;
+    fetch('/api/admin/hospital-network', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.network) && data.network.length > 0) {
+          const mapped = data.network.map((h, idx) => ({
+            id: h.id || `HOSP-${idx + 1}`,
+            name: h.name,
+            subtext: h.tier || 'ABDM Tier-1 Node',
+            location: h.location || h.city || 'Chennai, Tamil Nadu',
+            subloc: h.distanceKm ? `${h.distanceKm} km away` : 'Connected Regional Node',
+            icuBeds: h.icuBedsAvailable || 0,
+            wardBeds: h.wardBedsAvailable || 0,
+            specialties: Array.isArray(h.specialties) ? h.specialties.join(', ') : (h.specialties || 'Emergency, Trauma'),
+            status: h.status ? h.status.toLowerCase() : 'connected',
+            region: h.region || 'chennai',
+            icon: 'local_hospital',
+          }));
+          setHospitals(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);

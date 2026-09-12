@@ -155,6 +155,16 @@ class AdminController {
       next(err);
     }
   }
+
+  async getTriageQueue(req, res, next) {
+    try {
+      const hospitalId = req.user?.hospitalAdminProfile?.hospitalId || req.user?.hospitalId || 'hosp-apollo-greams';
+      const queue = await adminService.getTriageQueue(hospitalId);
+      res.json({ success: true, queue });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AdminController();

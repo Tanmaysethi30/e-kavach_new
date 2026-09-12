@@ -10,22 +10,36 @@ export default function DoctorLayout() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
 
-  const doctorName = currentUser?.name || currentUser?.fullName || 'Dr. Kavitha Menon';
-  const doctorInitials = doctorName
-    .replace(/^Dr\.?\s*/i, '')
-    .split(' ')
-    .map((n) => n[0])
-    .slice(0, 2)
-    .join('')
-    .toUpperCase() || 'KM';
-  const doctorSpecialty = currentUser?.specialization || currentUser?.title || currentUser?.department || 'Chief Interventional Cardio';
-  const doctorHospital = currentUser?.hospital || currentUser?.hospitalAffiliation || 'Apollo Greams Trauma';
-  const doctorIdDisplay = currentUser?.nmcNumber || currentUser?.licenseId || currentUser?.registrationId || 'ID-9942';
+  React.useEffect(() => {
+    if (!currentUser) {
+      navigate('/login?role=doctor', { replace: true });
+      return;
+    }
+    if (currentUser.role && currentUser.role !== 'doctor') {
+      const target = currentUser.role === 'hospital' ? '/admin/dashboard' : '/patient/dashboard';
+      navigate(target, { replace: true });
+    }
+  }, [currentUser, navigate]);
 
   const handleSignOut = () => {
     logout();
     navigate('/');
   };
+
+  const docName = currentUser?.name || currentUser?.fullName || 'Doctor';
+  const docInitials = docName
+    ? docName
+        .replace(/^(Dr\.|Doctor)\s+/i, '')
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'DR'
+    : 'DR';
+  const docTitle = currentUser?.title || currentUser?.specialization || 'Attending Clinician';
+  const docHospital = currentUser?.hospital || 'Apollo Greams Trauma Hub';
+  const docBadgeId = currentUser?.licenseId || currentUser?.nmcNumber || currentUser?.id || currentUser?.tag || 'NMC Verified';
 
   const navItems = [
     { to: '/doctor/dashboard', label: 'Dashboard', icon: 'grid_view' },
@@ -78,23 +92,23 @@ export default function DoctorLayout() {
           <div className="bg-gradient-to-br from-slate-50 to-slate-100/70 border border-slate-200/60 rounded-2xl p-3.5 mb-4 flex flex-col gap-2 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Avatar name={doctorName} initials={doctorInitials} role="doctor" size="md" />
+                <Avatar name={docName} initials={docInitials} role="doctor" size="md" />
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white"></span>
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="font-label-lg font-semibold text-slate-900 truncate">
-                  {doctorName}
+                  {docName}
                 </span>
                 <span className="font-body-sm text-xs text-slate-500 truncate">
-                  {doctorSpecialty}
+                  {docTitle}
                 </span>
               </div>
             </div>
             <div className="flex items-center justify-between pt-1 border-t border-slate-200/50 text-xs">
-              <span className="text-secondary font-medium truncate">{doctorHospital}</span>
+              <span className="text-secondary font-medium truncate">{docHospital}</span>
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600 font-label-sm text-[11px] font-semibold">
                 <span className="material-symbols-outlined text-[12px] text-teal-600">verified</span>
-                {doctorIdDisplay}
+                {docBadgeId}
               </span>
             </div>
           </div>
@@ -202,7 +216,7 @@ export default function DoctorLayout() {
             >
               <span className="material-symbols-outlined text-[19px]">tune</span>
             </Link>
-            <Avatar name={doctorName} initials={doctorInitials} role="doctor" size="sm" className="ml-1" />
+            <Avatar name={docName} initials={docInitials} role="doctor" size="sm" className="ml-1" />
             <button
               onClick={handleSignOut}
               className="w-9 h-9 rounded-xl flex items-center justify-center text-error hover:bg-rose-50 transition-colors border border-rose-200/60 ml-1 cursor-pointer"

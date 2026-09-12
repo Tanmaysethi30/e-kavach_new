@@ -126,6 +126,33 @@ export default function PharmacyManagement() {
     return saved ? JSON.parse(saved) : initialInventory;
   });
 
+  React.useEffect(() => {
+    const token = localStorage.getItem('ekavach_token');
+    if (!token) return;
+    fetch('/api/admin/pharmacy', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.items) && data.items.length > 0) {
+          const mapped = data.items.map((item, idx) => ({
+            id: item.id || idx + 1,
+            name: item.name,
+            generic: item.dosage ? `${item.name} • ${item.dosage}` : item.name,
+            category: item.category || 'General',
+            lot: item.batchNumber ? `Lot #${item.batchNumber}` : `Lot #MD-${1000 + idx}`,
+            location: item.location || 'Main Dispensary',
+            qty: item.stockQty !== undefined ? item.stockQty : 100,
+            unit: 'units',
+            status: item.status === 'LOW_STOCK' ? 'Low Stock' : (item.status === 'OUT_OF_STOCK' ? 'Out of Stock' : 'In Stock'),
+            icon: 'medication',
+          }));
+          setInventory(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);

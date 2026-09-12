@@ -319,4 +319,58 @@ test('E-KAVACH Backend Comprehensive Test Suite', async (t) => {
       assert.equal(res.body.appointment.status, 'CANCELLED');
     });
   });
+
+  await t.test('8. Doctor Inter-Hospital Referrals & Hospital Admin Triage Queue', async (t8) => {
+    let createdReferralId = null;
+
+    await t8.test('8a. Doctor can create an inter-hospital referral with bay allocation', async () => {
+      const res = await request(app)
+        .post('/api/doctor/referrals')
+        .set('Authorization', `Bearer ${doctorToken}`)
+        .send({
+          patientName: 'Rajesh V. Sharma',
+          abhaNumber: '9824-8819-3320-TN',
+          toDoctorName: 'Dr. Arjun Nair, MD, DM',
+          destinationHospital: 'Fortis Grid Hub',
+          priorityLevel: 'Priority 1 (Critical)',
+          bayAllocated: 'Bay 02',
+          clinicalSummary: 'Acute coronary syndrome requiring tertiary catheterization and emergency triage handover.',
+          vitals: { bp: '138/88', spo2: '97%', heartRate: '92 bpm' }
+        });
+
+      assert.equal(res.status, 201);
+      assert.equal(res.body.success, true);
+      assert.ok(res.body.referral);
+      assert.ok(res.body.triageEntry);
+      assert.equal(res.body.referral.patientName, 'Rajesh V. Sharma');
+      assert.equal(res.body.referral.destinationHospital, 'Fortis Grid Hub');
+      assert.equal(res.body.referral.bayAllocated, 'Bay 02');
+      createdReferralId = res.body.referral.id;
+    });
+
+    await t8.test('8b. Doctor can retrieve sent referrals', async () => {
+      const res = await request(app)
+        .get('/api/doctor/referrals')
+        .set('Authorization', `Bearer ${doctorToken}`);
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(Array.isArray(res.body.referrals));
+      const found = res.body.referrals.find((r) => r.id === createdReferralId);
+      assert.ok(found);
+    });
+
+    await t8.test('8c. Admin can retrieve triage queue containing referral entries', async () => {
+      const res = await request(app)
+        .get('/api/admin/triage-queue')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.ok(Array.isArray(res.body.queue));
+      assert.ok(res.body.queue.length > 0);
+    });
+  });
 });
+
+require('./e2e-verification.test.js');

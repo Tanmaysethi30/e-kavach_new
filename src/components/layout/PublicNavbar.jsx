@@ -9,7 +9,7 @@ export default function PublicNavbar() {
   const dropdownRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, login, logout } = useAuth();
+  const { login } = useAuth();
 
   const navLinks = [
     { label: 'Home', id: 'hero', path: '/#hero' },
@@ -44,38 +44,10 @@ export default function PublicNavbar() {
     }
   };
 
-  const handleScrollToLogin = (e) => {
-    if (e) e.preventDefault();
-    if (location.pathname === '/') {
-      window.dispatchEvent(new CustomEvent('ekavach:scroll-to-login'));
-      window.history.pushState(null, '', '#registration-card');
-    } else {
-      navigate('/#registration-card');
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('ekavach:scroll-to-login'));
-      }, 150);
-    }
-  };
-
-  const handleScrollToRegister = (e) => {
-    if (e) e.preventDefault();
-    if (location.pathname === '/') {
-      window.dispatchEvent(new CustomEvent('ekavach:scroll-to-register'));
-      window.history.pushState(null, '', '#registration-card');
-    } else {
-      navigate('/#registration-card');
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('ekavach:scroll-to-register'));
-      }, 150);
-    }
-  };
-
   const handlePortalNavigate = async (role, path) => {
     setPortalDropdownOpen(false);
     setMobileOpen(false);
-    try {
-      await login(role);
-    } catch (_e) {}
+    await login(role);
     navigate(path);
   };
 
@@ -176,56 +148,43 @@ export default function PublicNavbar() {
                     <div className="text-[11px] text-red-500">Live Bed Grid &amp; Trauma Telemetry</div>
                   </div>
                 </button>
+                <div className="pt-1 border-t border-slate-100 mt-1">
+                  <Link
+                    to="/login"
+                    onClick={() => setPortalDropdownOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary font-semibold hover:bg-primary/20 transition-colors no-underline"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">login</span>
+                    <span>Sign In with Credentials</span>
+                  </Link>
+                </div>
               </div>
             )}
           </div>
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-space-xs sm:gap-space-sm">
-          {currentUser ? (
-            <div className="flex items-center gap-2">
-              <Link
-                to={currentUser.dashboardRoute || (currentUser.role === 'doctor' ? '/doctor/dashboard' : currentUser.role === 'hospital' ? '/admin/dashboard' : '/patient/dashboard')}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-teal-50 border border-teal-200 text-teal-900 hover:bg-teal-100 transition-colors text-xs font-semibold no-underline"
-              >
-                <span className="w-2 h-2 rounded-full bg-teal-600 animate-pulse" />
-                <span className="max-w-[120px] truncate">{currentUser.name || 'My Portal'}</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] bg-teal-200/80 text-teal-950 uppercase tracking-wider font-bold">
-                  {currentUser.role}
-                </span>
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  logout();
-                  navigate('/');
-                }}
-                className="p-1.5 text-slate-500 hover:text-red-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                title="Sign Out"
-              >
-                <span className="material-symbols-outlined text-[20px]">logout</span>
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleScrollToLogin}
-                className="px-3 py-1.5 rounded-lg text-primary hover:bg-surface-container-high font-semibold text-xs sm:text-sm transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={handleScrollToRegister}
-                className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-lg bg-primary text-on-primary font-semibold text-xs sm:text-sm hover:bg-primary-container transition-colors shadow-[0_1px_4px_rgba(0,53,76,0.12)] cursor-pointer"
-              >
-                Register / Health ID
-              </button>
-            </div>
-          )}
-
+        <div className="flex items-center gap-space-sm">
+          <Link
+            to="/login"
+            className="inline-flex items-center gap-1 px-space-md py-space-xs rounded-lg border border-primary/30 text-primary font-label-lg text-label-lg hover:bg-primary/5 transition-colors no-underline font-semibold"
+          >
+            <span className="material-symbols-outlined text-[18px]">login</span>
+            <span>Sign In</span>
+          </Link>
+          <a
+            href="/#registration-card"
+            onClick={(e) => {
+              if (location.pathname === '/') {
+                e.preventDefault();
+                window.dispatchEvent(new CustomEvent('ekavach:scroll-to-register'));
+                window.history.pushState(null, '', '#registration-card');
+              }
+            }}
+            className="inline-flex items-center justify-center px-space-lg py-space-xs rounded-lg bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary-container transition-colors shadow-[0_1px_4px_rgba(0,53,76,0.12)] no-underline font-semibold"
+          >
+            Get Your Health ID
+          </a>
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden p-2 text-on-surface-variant hover:text-on-surface rounded-lg"
@@ -241,49 +200,14 @@ export default function PublicNavbar() {
       {/* Mobile Menu Dropdown */}
       {mobileOpen && (
         <div className="lg:hidden bg-surface-container-lowest border-b border-surface-container px-grid-margin py-4 flex flex-col gap-2">
-          {!currentUser ? (
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-              <button
-                type="button"
-                onClick={(e) => {
-                  setMobileOpen(false);
-                  handleScrollToLogin(e);
-                }}
-                className="flex-1 py-2 text-center rounded-lg border border-slate-300 font-semibold text-sm text-slate-700 bg-white"
-              >
-                Sign In
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  setMobileOpen(false);
-                  handleScrollToRegister(e);
-                }}
-                className="flex-1 py-2 text-center rounded-lg bg-primary text-on-primary font-semibold text-sm shadow-xs"
-              >
-                Register
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-500">Signed in as:</span>
-                <span className="font-semibold text-sm text-slate-800">{currentUser.name}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileOpen(false);
-                  logout();
-                  navigate('/');
-                }}
-                className="text-xs text-red-600 font-semibold px-2.5 py-1 rounded bg-red-50"
-              >
-                Sign Out
-              </button>
-            </div>
-          )}
-
+          <Link
+            to="/login"
+            onClick={() => setMobileOpen(false)}
+            className="px-3 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-sm flex items-center justify-center gap-2 no-underline"
+          >
+            <span className="material-symbols-outlined text-[18px]">login</span>
+            <span>Sign In to Any Portal</span>
+          </Link>
           {navLinks.map((link) => (
             <a
               key={link.label}

@@ -3,17 +3,19 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, getDocFromServer, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
-// Initialize Firebase App
-let app;
+// Initialize Firebase App only if an external API key is explicitly configured; otherwise run 100% locally
+let app = null;
 let dbInstance = null;
 let authInstance = null;
 
-try {
-  app = initializeApp(firebaseConfig);
-  dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
-  authInstance = getAuth(app);
-} catch (e) {
-  console.warn('Firebase initialization notice:', e);
+if (firebaseConfig && firebaseConfig.apiKey) {
+  try {
+    app = initializeApp(firebaseConfig);
+    dbInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+    authInstance = getAuth(app);
+  } catch (e) {
+    console.warn('Firebase initialization notice:', e);
+  }
 }
 
 export const db = dbInstance;

@@ -1,22 +1,38 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import Avatar from '../../components/common/Avatar';
 
 export default function DoctorSettings() {
   const navigate = useNavigate();
+  const { currentUser, updateProfileDetails } = useAuth();
 
-  const [profile, setProfile] = useState(() => {
-    const saved = localStorage.getItem('ekavach_doctor_profile');
-    return saved
-      ? JSON.parse(saved)
-      : {
-          fullName: 'Dr. Kavitha Menon',
-          dob: '14 April 1982',
-          phone: '+91 98401 22819',
-          email: 'kavitha.menon@apollo.org',
-          address: 'Flat 4B, Shanthi Niketan, Greams Road, Chennai, TN 600006',
-          language: 'English (UK / India)',
-        };
+  const [profile, setProfile] = useState({
+    fullName: currentUser?.name || currentUser?.fullName || 'Dr. Kavitha Menon',
+    dob: currentUser?.dob || '14 April 1982',
+    phone: currentUser?.phone || '+91 98401 22819',
+    email: currentUser?.email || 'kavitha.menon@apollo.org',
+    licenseId: currentUser?.licenseId || currentUser?.nmcNumber || 'NMC-44912-TN',
+    specialization: currentUser?.specialization || currentUser?.title || 'Interventional Cardiology',
+    hospital: currentUser?.hospital || 'Apollo Greams Trauma Hub',
+    address: currentUser?.address || 'Flat 4B, Shanthi Niketan, Greams Road, Chennai, TN 600006',
+    language: 'English (UK / India)',
   });
+
+  useEffect(() => {
+    if (currentUser) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: currentUser.name || currentUser.fullName || prev.fullName,
+        phone: currentUser.phone || prev.phone,
+        email: currentUser.email || prev.email,
+        licenseId: currentUser.licenseId || currentUser.nmcNumber || prev.licenseId,
+        specialization: currentUser.specialization || currentUser.title || prev.specialization,
+        hospital: currentUser.hospital || prev.hospital,
+        address: currentUser.address || prev.address,
+      }));
+    }
+  }, [currentUser]);
 
   const [toastMessage, setToastMessage] = useState(null);
   const [activeTab, setActiveTab] = useState('sec-profile');
@@ -24,22 +40,38 @@ export default function DoctorSettings() {
   const handleSave = (e) => {
     if (e) e.preventDefault();
     localStorage.setItem('ekavach_doctor_profile', JSON.stringify(profile));
+    if (updateProfileDetails) {
+      updateProfileDetails({
+        name: profile.fullName,
+        fullName: profile.fullName,
+        phone: profile.phone,
+        email: profile.email,
+        licenseId: profile.licenseId,
+        nmcNumber: profile.licenseId,
+        specialization: profile.specialization,
+        hospital: profile.hospital,
+        address: profile.address,
+      });
+    }
     setToastMessage('Configuration synced with NDHM Cloud repository');
     setTimeout(() => setToastMessage(null), 3500);
   };
 
   const handleDiscard = () => {
-    const defaults = {
-      fullName: 'Dr. Kavitha Menon',
-      dob: '14 April 1982',
-      phone: '+91 98401 22819',
-      email: 'kavitha.menon@apollo.org',
-      address: 'Flat 4B, Shanthi Niketan, Greams Road, Chennai, TN 600006',
+    const resetVals = {
+      fullName: currentUser?.name || 'Dr. Kavitha Menon',
+      dob: currentUser?.dob || '14 April 1982',
+      phone: currentUser?.phone || '+91 98401 22819',
+      email: currentUser?.email || 'kavitha.menon@apollo.org',
+      licenseId: currentUser?.licenseId || currentUser?.nmcNumber || 'NMC-44912-TN',
+      specialization: currentUser?.specialization || 'Interventional Cardiology',
+      hospital: currentUser?.hospital || 'Apollo Greams Trauma Hub',
+      address: currentUser?.address || 'Flat 4B, Shanthi Niketan, Greams Road, Chennai, TN 600006',
       language: 'English (UK / India)',
     };
-    setProfile(defaults);
-    localStorage.setItem('ekavach_doctor_profile', JSON.stringify(defaults));
-    setToastMessage('Preferences reverted to defaults');
+    setProfile(resetVals);
+    localStorage.setItem('ekavach_doctor_profile', JSON.stringify(resetVals));
+    setToastMessage('Preferences reverted');
     setTimeout(() => setToastMessage(null), 3000);
   };
 
@@ -175,27 +207,35 @@ export default function DoctorSettings() {
 {/* SECTION 1: PROFILE INFORMATION */}
 <section className="settings-section-panel bg-surface-container-lowest rounded-xl p-space-xl shadow-sm flex flex-col gap-space-lg" id="sec-profile">
 <div className="flex flex-col md:flex-row md:items-center justify-between pb-space-md border-b-0 gap-space-md">
-<div className="flex items-center gap-space-md">
-{/* Patient Headshot placeholder / Avatar */}
-<div className="relative group">
-<div className="w-20 h-20 rounded-full overflow-hidden bg-primary-fixed flex items-center justify-center shadow-inner">
-<div className="w-full h-full min-h-[44px] rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shadow-xs" title="Professional studio portrait of an Indian gentleman in his early 40s wearing a high-collared navy blue linen shirt, subtle calm lighting, neutral minimalist background, representing clean medical ID photography.">PS</div>
-</div>
-<button className="absolute -bottom-1 -right-1 bg-surface-container-lowest text-primary hover:text-secondary rounded-full p-1.5 shadow-md flex items-center justify-center transition-transform hover:scale-105" title="Upload new photo">
-<span className="material-symbols-outlined text-[16px]">photo_camera</span>
-</button>
-</div>
-<div className="flex flex-col">
-<div className="flex items-center gap-space-xs">
-<h2 className="font-headline-md text-headline-md text-on-surface">Rajesh V. Sharma</h2>
-<span className="material-symbols-outlined text-secondary text-[20px]" title="Authenticated Patient">check_circle</span>
-</div>
-<div className="flex items-center gap-space-sm mt-0.5">
-<span className="font-label-md text-label-md px-space-xs py-0.5 rounded bg-surface-container-high text-primary font-medium">ABDM Tier-1 Citizen Account</span>
-<span className="font-body-sm text-body-sm text-on-surface-variant">Last synced: 14 mins ago</span>
-</div>
-</div>
-</div>
+            <div className="flex items-center gap-space-md">
+              {/* Doctor Avatar */}
+              <div className="relative group">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden bg-primary/10 border border-primary/20 flex items-center justify-center shadow-inner">
+                  <Avatar name={profile.fullName} initials={profile.fullName ? profile.fullName.replace(/^(Dr\.|Doctor)\s+/i, '').split(' ').filter(Boolean).map(n=>n[0]).slice(0,2).join('').toUpperCase() || 'DR' : 'DR'} role="doctor" size="lg" />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setToastMessage('Profile photo update service linked with ABDM repository');
+                    setTimeout(() => setToastMessage(null), 3000);
+                  }}
+                  className="absolute -bottom-1 -right-1 bg-surface-container-lowest text-primary hover:text-secondary rounded-full p-1.5 shadow-md flex items-center justify-center transition-transform hover:scale-105"
+                  title="Upload new photo"
+                >
+                  <span className="material-symbols-outlined text-[16px]">photo_camera</span>
+                </button>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-space-xs">
+                  <h2 className="font-headline-md text-headline-md text-on-surface">{profile.fullName}</h2>
+                  <span className="material-symbols-outlined text-secondary text-[20px]" title="Authenticated Clinician">check_circle</span>
+                </div>
+                <div className="flex items-center gap-space-sm mt-0.5 flex-wrap">
+                  <span className="font-label-md text-label-md px-space-xs py-0.5 rounded bg-primary/10 text-primary font-medium">{profile.specialization}</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant font-mono">License: {profile.licenseId}</span>
+                </div>
+              </div>
+            </div>
               <button
                 type="button"
                 onClick={() => {
