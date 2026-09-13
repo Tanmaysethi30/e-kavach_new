@@ -19,20 +19,45 @@ export default function HospitalList({
 
   // Filter hospitals
   const filteredHospitals = hospitals.filter((hosp) => {
+    if (!hosp) return false;
+    const s = searchTerm.trim().toLowerCase();
+    const hospName = hosp.name || hosp.hospital_name || '';
+    const hospCity = hosp.city || hosp.address || '';
+    const hospAddress = hosp.address || '';
+    const hospSpecialties = Array.isArray(hosp.specialties) ? hosp.specialties.join(' ') : (hosp.specialties || '');
+    const hospType = (hosp.hospitalType || hosp.type || '').toLowerCase();
+
     const matchesSearch =
-      hosp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      hosp.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (hosp.address && hosp.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (hosp.specialties && hosp.specialties.some((s) => s.toLowerCase().includes(searchTerm.toLowerCase())));
+      !s ||
+      hospName.toLowerCase().includes(s) ||
+      hospCity.toLowerCase().includes(s) ||
+      hospAddress.toLowerCase().includes(s) ||
+      hospSpecialties.toLowerCase().includes(s) ||
+      hospType.includes(s);
 
     if (!matchesSearch) return false;
 
-    if (filterType === 'icu') return (hosp.icuBedsAvailable || 0) > 0;
-    if (filterType === 'oxygen') return (hosp.oxygenBedsAvailable || 0) > 0;
-    if (filterType === 'trauma') return hosp.traumaBayReady || hosp.emergency24x7;
-    if (filterType === 'nearby') return hosp.distanceKm <= 10;
-    if (filterType === 'govt') return hosp.hospitalType === 'Government';
-    if (filterType === 'private') return hosp.hospitalType === 'Private';
+    if (filterType === 'icu') {
+      const icuAvail = hosp.icuBedsAvailable ?? (hosp.icuBedsTotal ? hosp.icuBedsTotal - (hosp.icuBedsOccupied || 0) : 0);
+      return Number(icuAvail) > 0 || (hosp.facilities && hosp.facilities.some((f) => f.toLowerCase().includes('icu')));
+    }
+    if (filterType === 'oxygen') {
+      const oxyAvail = hosp.oxygenBedsAvailable ?? hosp.oxygenBeds ?? 0;
+      return Number(oxyAvail) > 0 || (hosp.facilities && hosp.facilities.some((f) => f.toLowerCase().includes('o2') || f.toLowerCase().includes('oxygen')));
+    }
+    if (filterType === 'trauma') {
+      return hosp.traumaBayReady || hosp.emergency24x7 || hosp.isTraumaHub || (hosp.specialties && hosp.specialties.some((sp) => sp.toLowerCase().includes('trauma') || sp.toLowerCase().includes('emergency')));
+    }
+    if (filterType === 'nearby') {
+      const dist = hosp.distanceKm ?? hosp.distance ?? 999;
+      return Number(dist) <= 15;
+    }
+    if (filterType === 'govt') {
+      return hospType.includes('govt') || hospType.includes('government') || hospName.toLowerCase().includes('govt') || hospName.toLowerCase().includes('government') || hospName.toLowerCase().includes('general') || hospName.toLowerCase().includes('aiims') || hospName.toLowerCase().includes('civil');
+    }
+    if (filterType === 'private') {
+      return hospType.includes('private') || hospType.includes('trust') || (!hospType.includes('govt') && !hospType.includes('government') && !hospName.toLowerCase().includes('govt') && !hospName.toLowerCase().includes('general') && !hospName.toLowerCase().includes('civil') && !hospName.toLowerCase().includes('aiims'));
+    }
 
     return true;
   });

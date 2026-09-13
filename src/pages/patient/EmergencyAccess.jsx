@@ -646,7 +646,7 @@ export default function EmergencyAccess() {
       {/* 5. TAB 2: EMERGENCY CONTACTS & NEXT-OF-KIN */}
       {activeTab === 'contacts' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Priority 1 Contact (Ananya S. Sharma) */}
+          {/* Priority 1 Contact (Dynamic User Emergency Contact) */}
           <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col justify-between">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -659,12 +659,18 @@ export default function EmergencyAccess() {
               </div>
               <div className="flex items-start gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-surface-container-high text-primary flex items-center justify-center font-headline-md text-lg font-bold shrink-0 border border-outline-variant/20">
-                  AS
+                  {(currentUser?.emergencyContactName || 'Ananya S. Sharma').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h3 className="font-headline-sm text-base font-bold text-on-surface truncate">Ananya S. Sharma</h3>
-                  <span className="text-xs text-on-surface-variant font-medium">Spouse • Legal Power of Attorney</span>
-                  <span className="text-xs font-mono font-bold text-primary mt-1">+91 98401 22819</span>
+                  <h3 className="font-headline-sm text-base font-bold text-on-surface truncate">
+                    {currentUser?.emergencyContactName || 'Ananya S. Sharma'}
+                  </h3>
+                  <span className="text-xs text-on-surface-variant font-medium">
+                    {currentUser?.emergencyContactRelation || 'Spouse'} • Primary Emergency Proxy
+                  </span>
+                  <span className="text-xs font-mono font-bold text-primary mt-1">
+                    {currentUser?.emergencyContactPhone || '+91 98401 22819'}
+                  </span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1">
@@ -682,14 +688,14 @@ export default function EmergencyAccess() {
             <div className="pt-5 mt-4 border-t border-outline-variant/20 flex items-center justify-between gap-2">
               <button
                 type="button"
-                onClick={() => showToast('Simulated live broadcast sent to Ananya S. Sharma (+91 98401 22819)')}
+                onClick={() => showToast(`Emergency alert broadcasted to ${currentUser?.emergencyContactName || 'Ananya S. Sharma'} (${currentUser?.emergencyContactPhone || '+91 98401 22819'})`)}
                 className="flex-1 py-2 px-3 bg-surface-container-low hover:bg-surface-container text-primary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors border border-outline-variant/30 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[16px] text-teal-tactical">cell_tower</span>
                 Simulate Beacon
               </button>
               <a
-                href="tel:+919840122819"
+                href={`tel:${(currentUser?.emergencyContactPhone || '+919840122819').replace(/\s+/g, '')}`}
                 className="py-2 px-3 bg-surface-container-low hover:bg-surface-container text-secondary rounded-xl font-label-md text-xs font-semibold flex items-center justify-center gap-1 transition-colors border border-outline-variant/30 no-underline"
               >
                 <span className="material-symbols-outlined text-[16px]">call</span>
@@ -698,7 +704,7 @@ export default function EmergencyAccess() {
             </div>
           </div>
 
-          {/* Priority 2 Contact (Dr. Vijay Sharma) */}
+          {/* Priority 2 Contact (Secondary Medical Proxy) */}
           <div className="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col justify-between">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
@@ -715,7 +721,7 @@ export default function EmergencyAccess() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <h3 className="font-headline-sm text-base font-bold text-on-surface truncate">Dr. Vijay Sharma</h3>
-                  <span className="text-xs text-on-surface-variant font-medium">Brother • Cardiologist, Apollo (NMC-7419)</span>
+                  <span className="text-xs text-on-surface-variant font-medium">Secondary Contact • Clinical Consult Proxy</span>
                   <span className="text-xs font-mono font-bold text-primary mt-1">+91 94440 18234</span>
                 </div>
               </div>

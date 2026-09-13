@@ -329,10 +329,10 @@ export default function PatientSettings() {
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [pincodeStatusMsg, setPincodeStatusMsg] = useState('');
 
-  // Active module state ('emergency' | 'profile' | 'abha' | 'notifications')
+  // Active module state ('profile' | 'abha' | 'emergency' | 'notifications')
   const [activeModule, setActiveModule] = useState(() => {
     const hash = window.location.hash.replace('#', '').toLowerCase();
-    return ['profile', 'abha', 'emergency', 'notifications'].includes(hash) ? hash : 'emergency';
+    return ['profile', 'abha', 'emergency', 'notifications'].includes(hash) ? hash : 'profile';
   });
 
   useEffect(() => {

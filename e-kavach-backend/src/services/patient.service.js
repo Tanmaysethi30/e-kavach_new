@@ -300,7 +300,8 @@ class PatientService {
     const whereClause = patientProfileId ? {
       OR: [
         { patientProfileId },
-        { patientProfileId: 'patient-rajesh' }
+        { patientProfileId: 'patient-rajesh' },
+        { patientProfile: { userId: patientProfileId } },
       ]
     } : {};
     const appointments = await db.appointment.findMany({
@@ -359,42 +360,24 @@ class PatientService {
     }
     const finalDoctorProfileId = doctor ? doctor.id : doctorProfileId;
 
+    let targetPatientId = patientProfileId || 'patient-rajesh';
     let patient = await db.patientProfile.findUnique({
-      where: { id: patientProfileId }
+      where: { id: targetPatientId }
     });
     if (!patient) {
       patient = await db.patientProfile.findFirst({
         where: {
           OR: [
-            { userId: patientProfileId },
-            { id: patientProfileId },
-            { registration_id: patientProfileId },
+            { userId: targetPatientId },
+            { id: targetPatientId },
+            { registration_id: targetPatientId },
           ],
         },
       });
     }
 
     const scheduledDate = new Date(data.scheduledAt || Date.now() + 86400000);
-    const dateStr = scheduledDate.toISOString().split('T')[0];
     const timeSlot = data.timeSlot || '10:30 AM';
-
-    // Duplicate booking check: prevent double-click or simultaneous duplicate submissions
-    const existingActive = await db.appointment.findFirst({
-      where: {
-        patientProfileId,
-        doctorProfileId: finalDoctorProfileId,
-        timeSlot,
-        status: { in: ['PENDING', 'CONFIRMED'] },
-      },
-    });
-
-    if (existingActive) {
-      const existingDateStr = new Date(existingActive.scheduledAt).toISOString().split('T')[0];
-      if (existingDateStr === dateStr) {
-        // Idempotent return: prevent unintended duplicate appointment creation on double-click
-        return existingActive;
-      }
-    }
 
     // Package rich metadata (booking for self vs other patient, relation, diagnostic test, age, gender)
     let notesStr = data.notes || '';
@@ -421,13 +404,13 @@ class PatientService {
 
     const appointment = await db.appointment.create({
       data: {
-        patientProfileId: patient ? patient.id : patientProfileId,
+        patientProfileId: patient ? patient.id : (patientProfileId || 'patient-rajesh'),
         doctorProfileId: finalDoctorProfileId,
         hospitalId: data.hospitalId || (doctor && doctor.hospitalAffiliation ? (doctor.hospitalAffiliation.includes('AIIMS') ? 'HOSP-1' : doctor.hospitalAffiliation.includes('Fortis') ? 'HOSP-2' : doctor.hospitalAffiliation.includes('Manipal') ? 'HOSP-4' : 'hosp-apollo-greams') : 'hosp-apollo-greams'),
         patientName: data.patientName || (patient ? patient.name : 'Verified Patient'),
         patientPhone: data.patientPhone || (patient && patient.emergencyContacts && patient.emergencyContacts[0] ? patient.emergencyContacts[0].phone : '+91 98401 22819'),
-        scheduledAt: new Date(data.scheduledAt || Date.now() + 86400000),
-        timeSlot: data.timeSlot || '10:30 AM',
+        scheduledAt: scheduledDate,
+        timeSlot: timeSlot,
         mode: data.mode || 'IN_PERSON',
         // Access Control Rule: Patient bookings are always submitted as PENDING.
         // Patients cannot self-approve or decline appointments; only attending doctors have access to approve ('CONFIRMED') or decline ('DECLINED').

@@ -53,6 +53,7 @@ export default function HealthHistory() {
   const [uploadFile, setUploadFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [customRecords, setCustomRecords] = useState([]);
+  const [bookedAppointments, setBookedAppointments] = useState([]);
 
   const [chatMessages, setChatMessages] = useState([
     {
@@ -120,6 +121,15 @@ export default function HealthHistory() {
           const data = await res.json();
           if (data.history && data.history.records) {
             setCustomRecords(data.history.records);
+          }
+        }
+
+        // Fetch live booked appointments for patient diagnosis / consultations timeline
+        const aptRes = await fetch('/api/patient/appointments', { headers });
+        if (aptRes.ok) {
+          const aptData = await aptRes.json();
+          if (aptData.success && Array.isArray(aptData.appointments)) {
+            setBookedAppointments(aptData.appointments);
           }
         }
       }
@@ -640,8 +650,29 @@ Digitally Signed by e-Kavach National Health Core Pipeline.
     }));
   const uploadedDiagnoses = customRecords.filter((r) => r.recordType !== 'PRESCRIPTION' && r.type !== 'PRESCRIPTION');
 
+  // Live booked appointment clinical records / consultations
+  const appointmentDiagnoses = bookedAppointments.map((apt) => {
+    const docName = apt.doctorProfile?.name || 'Attending Specialist';
+    const dept = apt.department || apt.doctorProfile?.department || 'Cardiology';
+    const testTitle = apt.symptoms || apt.department || 'Clinical Consultation';
+    const dateFormatted = new Date(apt.scheduledAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const statusText = apt.status === 'CONFIRMED' ? 'Confirmed by Doctor' : apt.status === 'DECLINED' ? 'Declined' : 'Appointment Scheduled';
+    return {
+      id: `apt-${apt.id}`,
+      title: `${testTitle} (${dept})`,
+      doctor: docName,
+      specialty: dept,
+      hospital: typeof apt.hospital === 'object' && apt.hospital !== null ? (apt.hospital.name || apt.hospital.hospital_name) : (apt.hospital || 'Apollo Greams Trauma Hub'),
+      date: dateFormatted,
+      status: statusText,
+      notes: `Slot: ${apt.timeSlot} (${apt.mode || 'IN_PERSON'}) • Token #${apt.tokenNumber || 'EK-SLOT'} • Status: ${apt.status}`,
+      isLiveAppointment: true,
+      appointmentData: apt,
+    };
+  });
+
   const allPrescriptions = [...uploadedPrescriptions, ...basePrescriptions];
-  const allDiagnoses = [...baseDiagnoses, ...uploadedDiagnoses];
+  const allDiagnoses = [...appointmentDiagnoses, ...baseDiagnoses, ...uploadedDiagnoses];
   const allUploadedDocuments = customRecords;
 
   // Global Search Filtering
