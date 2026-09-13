@@ -233,14 +233,25 @@ class DoctorService {
       }
       const hospitalObj = typeof apt.hospital === 'object' && apt.hospital !== null ? apt.hospital : null;
       const hospitalName = hospitalObj?.name || (typeof apt.hospital === 'string' ? apt.hospital : 'Apollo Greams Trauma Hub');
+      let patientObj = apt.patientProfile;
+      if (!patientObj && apt.patientProfileId) {
+        patientObj = (db.data.patientProfile || []).find((p) => p.id === apt.patientProfileId || p.userId === apt.patientProfileId) || null;
+      }
+      let docObj = apt.doctorProfile;
+      if (!docObj && apt.doctorProfileId) {
+        docObj = (db.data.doctorProfile || []).find((d) => d.id === apt.doctorProfileId || d.userId === apt.doctorProfileId) || null;
+      }
+
       return {
         ...apt,
         tokenNumber: token,
-        patientName: apt.patientName || apt.patientProfile?.name || 'Verified Patient',
-        patientPhone: apt.patientPhone || (apt.patientProfile?.emergencyContacts?.[0]?.phone) || '+91 98401 22819',
+        patientName: apt.patientName || patientObj?.name || 'Verified Patient',
+        patientPhone: apt.patientPhone || (patientObj?.emergencyContacts?.[0]?.phone) || '+91 98401 22819',
         timeSlot: apt.timeSlot || '10:30 AM',
         hospital: hospitalName,
         hospitalDetails: hospitalObj || apt.hospital,
+        patientProfile: patientObj,
+        doctorProfile: docObj,
       };
     });
   }
@@ -258,9 +269,11 @@ class DoctorService {
 
     try {
       const socketService = require('./socket.service');
+      const actionWord = status === 'CONFIRMED' ? 'Approved' : status === 'DECLINED' ? 'Declined' : status;
       socketService.broadcastAppointment({
         type: 'APPOINTMENT_STATUS_CHANGED',
         appointment: updated,
+        message: `Appointment for ${updated.patientName || 'Patient'} has been ${actionWord} by Doctor.`,
       });
     } catch (_e) {}
 

@@ -889,13 +889,22 @@ class InMemoryRepository {
       }
     } else if (modelName === 'appointment') {
       if (include.doctorProfile) {
-        item.doctorProfile = this.data.doctorProfile.find((d) => d.id === item.doctorProfileId) || null;
+        item.doctorProfile = (this.data.doctorProfile || []).find((d) => 
+          d.id === item.doctorProfileId || 
+          d.userId === item.doctorProfileId || 
+          d.registration_id === item.doctorProfileId ||
+          (d.name && item.doctorProfileId && d.name.toLowerCase() === String(item.doctorProfileId).toLowerCase())
+        ) || null;
       }
       if (include.patientProfile) {
-        item.patientProfile = this.data.patientProfile.find((p) => p.id === item.patientProfileId) || null;
+        item.patientProfile = (this.data.patientProfile || []).find((p) => 
+          p.id === item.patientProfileId || 
+          p.userId === item.patientProfileId || 
+          p.registration_id === item.patientProfileId
+        ) || null;
       }
       if (include.hospital) {
-        item.hospital = this.data.hospital.find((h) => h.id === item.hospitalId) || null;
+        item.hospital = (this.data.hospital || []).find((h) => h.id === item.hospitalId || h.registration_id === item.hospitalId) || null;
       }
     }
 

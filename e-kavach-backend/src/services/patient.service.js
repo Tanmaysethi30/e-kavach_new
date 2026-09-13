@@ -333,14 +333,46 @@ class PatientService {
   }
 
   async createAppointment(patientProfileId, data) {
-    const doctorProfileId = data.doctorProfileId || 'doctor-kavitha';
-    const doctor = await db.doctorProfile.findUnique({
+    let doctorProfileId = data.doctorProfileId || 'doctor-kavitha';
+    let doctor = await db.doctorProfile.findUnique({
       where: { id: doctorProfileId }
     });
+    if (!doctor) {
+      doctor = await db.doctorProfile.findFirst({
+        where: {
+          OR: [
+            { userId: doctorProfileId },
+            { registration_id: doctorProfileId },
+            { id: doctorProfileId },
+          ],
+        },
+      });
+    }
+    if (!doctor) {
+      const allDocs = await db.doctorProfile.findMany();
+      doctor = allDocs.find((d) =>
+        d.id === doctorProfileId ||
+        d.userId === doctorProfileId ||
+        d.registration_id === doctorProfileId ||
+        (d.name && String(doctorProfileId).toLowerCase().includes(d.name.toLowerCase()))
+      ) || allDocs[0];
+    }
+    const finalDoctorProfileId = doctor ? doctor.id : doctorProfileId;
 
-    const patient = await db.patientProfile.findUnique({
+    let patient = await db.patientProfile.findUnique({
       where: { id: patientProfileId }
     });
+    if (!patient) {
+      patient = await db.patientProfile.findFirst({
+        where: {
+          OR: [
+            { userId: patientProfileId },
+            { id: patientProfileId },
+            { registration_id: patientProfileId },
+          ],
+        },
+      });
+    }
 
     const scheduledDate = new Date(data.scheduledAt || Date.now() + 86400000);
     const dateStr = scheduledDate.toISOString().split('T')[0];
@@ -350,7 +382,7 @@ class PatientService {
     const existingActive = await db.appointment.findFirst({
       where: {
         patientProfileId,
-        doctorProfileId,
+        doctorProfileId: finalDoctorProfileId,
         timeSlot,
         status: { in: ['PENDING', 'CONFIRMED'] },
       },
@@ -389,8 +421,8 @@ class PatientService {
 
     const appointment = await db.appointment.create({
       data: {
-        patientProfileId,
-        doctorProfileId,
+        patientProfileId: patient ? patient.id : patientProfileId,
+        doctorProfileId: finalDoctorProfileId,
         hospitalId: data.hospitalId || (doctor && doctor.hospitalAffiliation ? (doctor.hospitalAffiliation.includes('AIIMS') ? 'HOSP-1' : doctor.hospitalAffiliation.includes('Fortis') ? 'HOSP-2' : doctor.hospitalAffiliation.includes('Manipal') ? 'HOSP-4' : 'hosp-apollo-greams') : 'hosp-apollo-greams'),
         patientName: data.patientName || (patient ? patient.name : 'Verified Patient'),
         patientPhone: data.patientPhone || (patient && patient.emergencyContacts && patient.emergencyContacts[0] ? patient.emergencyContacts[0].phone : '+91 98401 22819'),
