@@ -695,6 +695,45 @@ class PatientService {
 
           filtered.sort((a, b) => a.distanceKm - b.distanceKm);
 
+          if (filtered.length === 0) {
+            const univSchema = db.getHospitalSchema('hosp-universal-apex');
+            filtered = [{
+              id: 'hosp-universal-apex',
+              name: univSchema?.hospital_name || 'e-Kavach Universal Emergency Health & Trauma Hub',
+              code: 'EK-UNIV-APEX-01',
+              hospitalType: 'Government / Central Emergency Grid',
+              address: 'National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Corridor',
+              city: 'Delhi',
+              state: 'Delhi',
+              pincode: '110040',
+              geoLat: 28.8530,
+              geoLng: 77.0940,
+              distanceKm: 2.5,
+              ambulanceMins: 6,
+              trafficMins: 10,
+              icuBedsTotal: 120,
+              icuBedsOccupied: 52,
+              icuBedsAvailable: 68,
+              totalBeds: 950,
+              availableBeds: 410,
+              emergencyBedsTotal: 40,
+              emergencyBedsAvailable: 24,
+              oxygenBeds: 350,
+              ventilatorsTotal: 80,
+              ventilatorsAvailable: 45,
+              bloodBankAvailable: true,
+              emergency24x7: true,
+              accreditation: 'NABH / JCI Level-1 Apex Trauma Center',
+              contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108', email: 'universal.er@ekavach.health' },
+              specialties: ['Emergency & Trauma (Level-1)', 'ICU & Resuscitation', 'Interventional Cardiology', 'Neurotrauma & Stroke Care', 'Orthopedics & Polytrauma', 'Pediatric Critical Care', '24x7 Blood Bank & Transfusion'],
+              facilities: ['24x7 Level-1 Apex Trauma', 'Tele-ICU Grid Dispatch', 'Air & ALS Ambulance Fleet', 'Advanced Cath Lab', 'Central Cryo O2 Reservoir'],
+              status: 'ACTIVE',
+              readinessScore: 99,
+              isTraumaHub: true,
+              isUniversalFallback: true
+            }];
+          }
+
           return {
             success: true,
             userLocation: {
@@ -842,6 +881,45 @@ class PatientService {
     }
 
     filtered.sort((a, b) => a.distanceKm - b.distanceKm);
+
+    if (filtered.length === 0) {
+      const univSchema = db.getHospitalSchema('hosp-universal-apex');
+      filtered = [{
+        id: 'hosp-universal-apex',
+        name: univSchema?.hospital_name || 'e-Kavach Universal Emergency Health & Trauma Hub',
+        code: 'EK-UNIV-APEX-01',
+        hospitalType: 'Government / Central Emergency Grid',
+        address: 'National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Corridor',
+        city: 'Delhi',
+        state: 'Delhi',
+        pincode: '110040',
+        geoLat: 28.8530,
+        geoLng: 77.0940,
+        distanceKm: 2.5,
+        ambulanceMins: 6,
+        trafficMins: 10,
+        icuBedsTotal: 120,
+        icuBedsOccupied: 52,
+        icuBedsAvailable: 68,
+        totalBeds: 950,
+        availableBeds: 410,
+        emergencyBedsTotal: 40,
+        emergencyBedsAvailable: 24,
+        oxygenBeds: 350,
+        ventilatorsTotal: 80,
+        ventilatorsAvailable: 45,
+        bloodBankAvailable: true,
+        emergency24x7: true,
+        accreditation: 'NABH / JCI Level-1 Apex Trauma Center',
+        contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108', email: 'universal.er@ekavach.health' },
+        specialties: ['Emergency & Trauma (Level-1)', 'ICU & Resuscitation', 'Interventional Cardiology', 'Neurotrauma & Stroke Care', 'Orthopedics & Polytrauma', 'Pediatric Critical Care', '24x7 Blood Bank & Transfusion'],
+        facilities: ['24x7 Level-1 Apex Trauma', 'Tele-ICU Grid Dispatch', 'Air & ALS Ambulance Fleet', 'Advanced Cath Lab', 'Central Cryo O2 Reservoir'],
+        status: 'ACTIVE',
+        readinessScore: 99,
+        isTraumaHub: true,
+        isUniversalFallback: true
+      }];
+    }
 
     return {
       success: true,

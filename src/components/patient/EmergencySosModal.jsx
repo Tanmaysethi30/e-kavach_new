@@ -31,7 +31,21 @@ export default function EmergencySosModal({
     return () => clearTimeout(timer);
   }, [step, countdown]);
 
-  if (!isOpen || !hospital) return null;
+  if (!isOpen) return null;
+
+  const activeHospital = hospital || {
+    id: 'hosp-universal-apex',
+    name: 'e-Kavach Universal Emergency Health & Trauma Hub',
+    code: 'EK-UNIV-APEX-01',
+    address: 'National Central Emergency Grid & Level-1 Trauma Dispatch Network',
+    city: 'Delhi',
+    state: 'Delhi',
+    contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108' },
+    icuBedsAvailable: 68,
+    emergencyBedsAvailable: 24,
+    distanceKm: 2.5,
+    ambulanceMins: 6,
+  };
 
   const handleStartBroadcast = () => {
     setStep('broadcasting');
@@ -71,10 +85,10 @@ export default function EmergencySosModal({
                   <span className="material-symbols-outlined text-[20px]">warning</span>
                   <span>Target Emergency Receiving Hospital</span>
                 </div>
-                <p className="font-headline-sm font-bold text-base text-primary">{hospital.name}</p>
+                <p className="font-headline-sm font-bold text-base text-primary">{activeHospital.name}</p>
                 <p className="text-xs text-on-surface-variant flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">location_on</span>
-                  {hospital.address}, {hospital.city} ({hospital.distanceKm} km away)
+                  {activeHospital.address}, {activeHospital.city} ({activeHospital.distanceKm} km away)
                 </p>
               </div>
 
@@ -92,12 +106,12 @@ export default function EmergencySosModal({
                   </div>
                   <div className="p-2 bg-surface-container-lowest rounded-xl">
                     <span className="text-[10px] text-on-surface-variant block">Estimated Ambulance ETA</span>
-                    <span className="font-mono font-bold text-rose-700">~{hospital.ambulanceMins} Minutes</span>
+                    <span className="font-mono font-bold text-rose-700">~{activeHospital.ambulanceMins} Minutes</span>
                   </div>
                   <div className="p-2 bg-surface-container-lowest rounded-xl">
                     <span className="text-[10px] text-on-surface-variant block">Target ICU Availability</span>
                     <span className="font-mono font-bold text-emerald-700">
-                      {hospital.icuBedsAvailable} Beds Ready
+                      {activeHospital.icuBedsAvailable} Beds Ready
                     </span>
                   </div>
                   <div className="p-2 bg-surface-container-lowest rounded-xl">
@@ -140,7 +154,7 @@ export default function EmergencySosModal({
                   Broadcasting SOS Telemetry to Hospital ER...
                 </h3>
                 <p className="text-xs text-on-surface-variant max-w-sm">
-                  Connecting to {hospital.name} triage terminal and alerting nearest 108 trauma ambulance unit.
+                  Connecting to {activeHospital.name} triage terminal and alerting nearest 108 trauma ambulance unit.
                 </p>
               </div>
               <button
@@ -172,17 +186,17 @@ export default function EmergencySosModal({
                 </div>
                 <div className="flex justify-between py-1 border-b border-outline-variant/20">
                   <span className="text-on-surface-variant">Hospital Target:</span>
-                  <span className="font-bold text-primary">{hospital.name}</span>
+                  <span className="font-bold text-primary">{activeHospital.name}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-outline-variant/20">
                   <span className="text-on-surface-variant">Emergency Hotline:</span>
-                  <a href={`tel:${hospital.contactNumbers?.er || '+914428290200'}`} className="font-bold text-emerald-700 underline">
-                    {hospital.contactNumbers?.er || '+91 44 2829 0200'}
+                  <a href={`tel:${activeHospital.contactNumbers?.er || '+914428290200'}`} className="font-bold text-emerald-700 underline">
+                    {activeHospital.contactNumbers?.er || '+91 44 2829 0200'}
                   </a>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-on-surface-variant">108 Ambulance Status:</span>
-                  <span className="font-bold text-rose-700">EN ROUTE (~{hospital.ambulanceMins} MIN)</span>
+                  <span className="font-bold text-rose-700">EN ROUTE (~{activeHospital.ambulanceMins} MIN)</span>
                 </div>
               </div>
 

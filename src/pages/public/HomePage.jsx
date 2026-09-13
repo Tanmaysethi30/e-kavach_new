@@ -1036,6 +1036,13 @@ export default function HomePage() {
                     ) : (
                       /* ===================== SIGN IN FORMS ===================== */
                       <form className="flex flex-col gap-space-md py-space-md" onSubmit={handleAuthSubmit}>
+                        {regError && (
+                          <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-rose-600 text-base">error</span>
+                            <span>{regError}</span>
+                          </div>
+                        )}
+
                         {/* Demo Fast-fill toolbar */}
                         <div className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                           <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium">

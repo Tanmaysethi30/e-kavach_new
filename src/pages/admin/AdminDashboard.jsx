@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { subscribeTriage, subscribeReferrals } from '../../services/telemetry';
+import { subscribeTriage, subscribeReferrals, subscribeEmergencyAlert } from '../../services/telemetry';
+import SirenAlertModal from '../../components/common/SirenAlertModal';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function AdminDashboard() {
   const [toastMessage, setToastMessage] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTelemetryPatient, setActiveTelemetryPatient] = useState(null);
+  const [activeSirenAlert, setActiveSirenAlert] = useState(null);
 
   // Live Summary State fetched from DB
   const [summaryData, setSummaryData] = useState({
@@ -181,9 +183,34 @@ export default function AdminDashboard() {
       }
     });
 
+    const unsubEmergencyAlert = subscribeEmergencyAlert((alertData) => {
+      console.log('🚨 [AdminDashboard] Emergency SOS Alert received from IVR/BreakGlass:', alertData);
+      if (alertData) {
+        setActiveSirenAlert(alertData);
+        const p = alertData.patient || {};
+        const newItem = {
+          id: alertData.alertId || `ivr-${Date.now()}`,
+          name: p.name || 'Emergency IVR Patient',
+          abha: p.abhaNumber || 'ABHA-IN-TRANSIT',
+          priority: alertData.priorityLevel || 'Critical (Priority 1)',
+          condition: `🚨 IVR SOS: ${alertData.condition || 'Immediate Golden-Hour Dispatch'} (${alertData.location?.raw || 'Local Area'})`,
+          vitals: `${alertData.bayNumber || 'Bay 01'} • 108 Fleet In-Transit (~${alertData.etaMinutes || 4} min ETA)`,
+          bay: alertData.bayNumber || 'Bay 01',
+          doctor: 'Dr. Kavitha Menon',
+          role: 'Emergency Response Lead',
+          isReferral: false,
+          isLive: true,
+          isIvrSos: true,
+        };
+        setTriageList((prev) => [newItem, ...prev.filter((x) => x.id !== newItem.id)]);
+        showToast(`🚨 CRITICAL EMERGENCY SOS: IVR Dispatch for ${newItem.name} -> ${newItem.bay}!`);
+      }
+    });
+
     return () => {
       if (unsubTriage) unsubTriage();
       if (unsubReferral) unsubReferral();
+      if (unsubEmergencyAlert) unsubEmergencyAlert();
     };
   }, [currentUser?.id, currentUser?.registration_id]);
 
@@ -343,6 +370,14 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
             </div>
           </div>
         </div>
+      )}
+
+      {/* Siren Alert Emergency SOS Modal */}
+      {activeSirenAlert && (
+        <SirenAlertModal
+          alertData={activeSirenAlert}
+          onClose={() => setActiveSirenAlert(null)}
+        />
       )}
 
       {/* Telemetry Live Modal */}

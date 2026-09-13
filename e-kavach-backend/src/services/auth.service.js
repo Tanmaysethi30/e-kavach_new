@@ -571,6 +571,19 @@ class AuthService {
       return false;
     });
 
+    // 1b. Support standard alias logins for demo accounts
+    if (!user) {
+      if (searchTargetLower === 'admin.chennai@apollo.health' || searchTargetLower === 'admin.nambiar@apollo.health' || searchTargetLower === 'admin@apollo.health' || searchTargetLower === 'admin@apollo.org') {
+        user = allUsers.find(u => u.id === 'user-admin-nambiar' || u.role === 'hospital');
+      } else if (searchTargetLower === 'namanjain82670@gmail.com') {
+        user = allUsers.find(u => u.id === 'user-admin-naman' || u.email === 'namanjain82670@gmail.com');
+      } else if (searchTargetLower === 'rajesh.sharma@ekavach.health' || searchTargetLower === 'rajesh@ekavach.health') {
+        user = allUsers.find(u => u.id === 'user-patient-rajesh' || (u.role === 'patient' && u.email?.includes('rajesh')));
+      } else if (searchTargetLower === 'dr.kavitha@apollo.health' || searchTargetLower === 'kavitha@apollo.health') {
+        user = allUsers.find(u => u.id === 'user-doctor-kavitha' || (u.role === 'doctor' && u.email?.includes('kavitha')));
+      }
+    }
+
     // 2. Search registration table by registration_id, id, auth_user_id, or phone
     if (!user) {
       const allRegs = await db.registration.findMany({
@@ -669,7 +682,7 @@ class AuthService {
       }
     }
 
-    // 5. Search Hospital Admin Profile
+    // 5. Search Hospital Admin Profile and Hospitals
     if (!user) {
       const allAdmins = await db.hospitalAdminProfile.findMany({
         include: {
@@ -686,13 +699,109 @@ class AuthService {
 
       const matchedAdmin = allAdmins.find((a) => {
         if (a.hospitalId && a.hospitalId.toLowerCase() === searchTargetLower) return true;
+        if (a.hospitalRegistrationId && a.hospitalRegistrationId.toLowerCase() === searchTargetLower) return true;
         if (a.adminCode && a.adminCode.toLowerCase() === searchTargetLower) return true;
         if (a.registration_id && a.registration_id.toLowerCase() === searchTargetLower) return true;
+        if (a.tag && a.tag.toLowerCase() === searchTargetLower) return true;
         return false;
       });
 
       if (matchedAdmin && matchedAdmin.user) {
         user = matchedAdmin.user;
+      }
+
+      // Check if searchTarget matches hospital code or registration ID (e.g. AP-HSP-842-TN)
+      if (!user) {
+        const allHospitals = await db.hospital.findMany();
+        const matchedHosp = allHospitals.find((h) => {
+          if (h.code && h.code.toLowerCase() === searchTargetLower) return true;
+          if (h.id && h.id.toLowerCase() === searchTargetLower) return true;
+          if (h.registration_id && h.registration_id.toLowerCase() === searchTargetLower) return true;
+          return false;
+        });
+        if (matchedHosp) {
+          const adminForHosp = allAdmins.find(a => a.hospitalId === matchedHosp.id);
+          if (adminForHosp && adminForHosp.user) {
+            user = adminForHosp.user;
+          }
+        }
+      }
+
+      // 6. Search in Delhi 100 Hospitals Dataset (Admins & Doctors)
+      if (!user) {
+        try {
+          const delhiDataPath = path.join(__dirname, '../database/delhi_hospitals_100.json');
+          if (fs.existsSync(delhiDataPath)) {
+            const delhiData = JSON.parse(fs.readFileSync(delhiDataPath, 'utf8'));
+            
+            // Check Delhi Hospital Admins
+            const matchedDelhiAdmin = (delhiData.adminCredentials || []).find(ac => 
+              ac.loginIdentifier.toLowerCase() === searchTargetLower || 
+              ac.alternativeIdentifier.toLowerCase() === searchTargetLower ||
+              ac.registrationId.toLowerCase() === searchTargetLower ||
+              ac.hospitalCode.toLowerCase() === searchTargetLower
+            );
+
+            if (matchedDelhiAdmin) {
+              const matchedHosp = (delhiData.hospitals || []).find(h => h.code === matchedDelhiAdmin.hospitalCode);
+              user = {
+                id: `user-${matchedDelhiAdmin.hospitalCode.toLowerCase()}`,
+                registration_id: matchedDelhiAdmin.registrationId,
+                email: matchedDelhiAdmin.loginIdentifier,
+                phone: matchedHosp?.contactNumbers?.er || '+91 11 27000000',
+                role: 'hospital',
+                name: matchedDelhiAdmin.adminName,
+                passwordHash: '',
+                hospitalAdminProfile: {
+                  id: `adm-${matchedDelhiAdmin.hospitalCode.toLowerCase()}`,
+                  hospitalId: matchedHosp?.id || 'HOSP-DL-001',
+                  hospitalName: matchedDelhiAdmin.hospitalName,
+                  hospitalRegistrationId: matchedDelhiAdmin.registrationId,
+                  adminCode: matchedDelhiAdmin.alternativeIdentifier,
+                  registration_id: matchedDelhiAdmin.registrationId,
+                  name: matchedDelhiAdmin.adminName,
+                  tag: 'Medical Superintendent & Admin'
+                }
+              };
+            }
+
+            // Check Delhi Doctors
+            if (!user) {
+              const matchedDelhiDoc = (delhiData.doctors || []).find(d => 
+                d.email.toLowerCase() === searchTargetLower || 
+                d.registration_id.toLowerCase() === searchTargetLower ||
+                d.id.toLowerCase() === searchTargetLower ||
+                d.phone === searchTarget
+              );
+
+              if (matchedDelhiDoc) {
+                user = {
+                  id: `user-${matchedDelhiDoc.id.toLowerCase()}`,
+                  registration_id: matchedDelhiDoc.registration_id,
+                  email: matchedDelhiDoc.email,
+                  phone: matchedDelhiDoc.phone,
+                  role: 'doctor',
+                  name: matchedDelhiDoc.name,
+                  passwordHash: '',
+                  doctorProfile: {
+                    id: `prof-${matchedDelhiDoc.id.toLowerCase()}`,
+                    hospitalId: matchedDelhiDoc.hospitalId,
+                    hospitalAffiliation: matchedDelhiDoc.hospitalName,
+                    specialization: matchedDelhiDoc.specialization,
+                    department: matchedDelhiDoc.department,
+                    designation: matchedDelhiDoc.designation,
+                    qualification: matchedDelhiDoc.qualification,
+                    registration_id: matchedDelhiDoc.registration_id,
+                    name: matchedDelhiDoc.name,
+                    tag: `${matchedDelhiDoc.designation} (${matchedDelhiDoc.department})`
+                  }
+                };
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('Error querying Delhi dataset in auth.service:', e.message);
+        }
       }
     }
   }
@@ -707,7 +816,7 @@ class AuthService {
 
     if (password) {
       let isValid = await bcrypt.compare(password, user.passwordHash).catch(() => false);
-      const isDefaultDemoAccount = ['user-patient-rajesh', 'user-doctor-kavitha', 'user-admin-nambiar'].includes(user.id);
+      const isDefaultDemoAccount = ['user-patient-rajesh', 'user-doctor-kavitha', 'user-admin-nambiar', 'user-admin-naman'].includes(user.id);
       if (!isValid && isDefaultDemoAccount && (password === 'Ekavach@2026' || password === 'Password@123' || password === 'password123' || password.toLowerCase() === 'demo')) {
         isValid = true;
       }

@@ -66,6 +66,33 @@ class AIController {
       next(err);
     }
   }
+
+  async handleIvrWebhook(req, res, next) {
+    try {
+      const ivrService = require('../services/ivr.service');
+      // Support nested payload formats from VAPI (message.toolCalls / function parameters) or direct JSON
+      let payload = req.body || {};
+
+      // If VAPI webhook wrapper is used
+      if (payload.message && payload.message.toolCalls && payload.message.toolCalls.length > 0) {
+        const toolCall = payload.message.toolCalls[0];
+        const fnArgs = typeof toolCall.function?.arguments === 'string'
+          ? JSON.parse(toolCall.function.arguments)
+          : (toolCall.function?.arguments || {});
+        payload = { ...payload, ...fnArgs };
+      } else if (payload.toolCall && payload.toolCall.arguments) {
+        const fnArgs = typeof payload.toolCall.arguments === 'string'
+          ? JSON.parse(payload.toolCall.arguments)
+          : payload.toolCall.arguments;
+        payload = { ...payload, ...fnArgs };
+      }
+
+      const dispatchResult = await ivrService.processIvrEmergencyCall(payload);
+      res.status(200).json(dispatchResult);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = new AIController();

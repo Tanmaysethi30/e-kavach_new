@@ -270,4 +270,118 @@ test('E-KAVACH Extended End-to-End System & Lifecycle Verification', async (t) =
       assert.equal(res.body.success, true);
     });
   });
+
+  await t.test('7. AI IVR Voice Emergency Dispatch Webhook & Golden-Hour Triage Integration', async (t7) => {
+    await t7.test('Receive and process IVR voice emergency call payload', async () => {
+      const res = await request(app)
+        .post('/api/ai/ivr-webhook')
+        .send({
+          callerPhone: '+91 98401 22819',
+          location: 'Palasia Square, Indore',
+          hospitalName: 'Apollo Greams Trauma Hub',
+          detectedLanguage: 'hi',
+          transcript: 'मरीज को सीने में तेज दर्द है, तुरंत एम्बुलेंस भेजें',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.status, 'DISPATCHED');
+      assert.ok(res.body.alertData);
+      assert.ok(res.body.alertData.patient);
+      assert.equal(res.body.alertData.detectedLanguage, 'hi');
+      assert.ok(res.body.alertData.triageLink.includes('/doctor/patient-history'));
+    });
+
+    await t7.test('Support fallback alias /api/ai/emergency-dispatch with VAPI format', async () => {
+      const res = await request(app)
+        .post('/api/ai/emergency-dispatch')
+        .send({
+          message: {
+            toolCalls: [
+              {
+                function: {
+                  name: 'trigger_emergency_dispatch',
+                  arguments: JSON.stringify({
+                    phone_number: '+91 98401 22819',
+                    location: 'Indore Central',
+                    hospital_name: 'nearest',
+                  }),
+                },
+              },
+            ],
+          },
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.status, 'DISPATCHED');
+      assert.ok(res.body.alertData.targetHospital);
+    });
+
+    await t7.test('VAPI direct parameter format (patient_phone_number, approximate_location, hospital_name)', async () => {
+      const res = await request(app)
+        .post('/api/ai/ivr-webhook')
+        .send({
+          patient_phone_number: '9840122819',
+          approximate_location: 'Rajwada Palace, Indore',
+          hospital_name: 'Choithram Hospital and Research Centre',
+          detected_language: 'hi',
+          transcript: 'मरीज बेहोश है और सांस लेने में तकलीफ है',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.status, 'DISPATCHED');
+      assert.equal(res.body.alertData.patient.name, 'Rajesh V. Sharma');
+      assert.ok(res.body.alertData.bayNumber);
+      assert.ok(res.body.alertData.triageEntry);
+    });
+
+    await t7.test('VAPI toolCall arguments object format without nested string serialization', async () => {
+      const res = await request(app)
+        .post('/api/ai/ivr-webhook')
+        .send({
+          message: {
+            toolCalls: [
+              {
+                id: 'call_123',
+                type: 'function',
+                function: {
+                  name: 'trigger_emergency_dispatch',
+                  arguments: {
+                    patient_phone_number: '+91 98401 22819',
+                    approximate_location: 'Chappan Dukan, Indore',
+                    hospital_name: 'nearest',
+                    detected_language: 'en',
+                  },
+                },
+              },
+            ],
+          },
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.status, 'DISPATCHED');
+      assert.ok(res.body.alertData.location);
+    });
+
+    await t7.test('Resilient fallback when unregistered caller calls emergency IVR', async () => {
+      const res = await request(app)
+        .post('/api/ai/ivr-webhook')
+        .send({
+          patient_phone_number: '+91 99999 88888',
+          approximate_location: 'Indore Bypass',
+          hospital_name: 'nearest',
+          detected_language: 'ta',
+          transcript: 'அவசர சிகிச்சை தேவைப்படுகிறது',
+        });
+
+      assert.equal(res.status, 200);
+      assert.equal(res.body.success, true);
+      assert.equal(res.body.status, 'DISPATCHED');
+      assert.ok(res.body.alertData.patient);
+      assert.equal(res.body.alertData.detectedLanguage, 'ta');
+    });
+  });
 });

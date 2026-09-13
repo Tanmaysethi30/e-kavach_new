@@ -356,6 +356,64 @@ export default function HospitalList({
                   </div>
                 );
               })}
+
+            {!isLoading && filteredHospitals.length === 0 && (
+              <div className="p-4 bg-blue-50/80 rounded-2xl border-2 border-dashed border-blue-300 flex flex-col gap-3 text-center items-center">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700">
+                  <span className="material-symbols-outlined text-[22px]">domain_verification</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-blue-900">
+                    Universal Hospital Fallback Active
+                  </span>
+                  <p className="text-[11px] text-blue-800 mt-1 max-w-xs">
+                    No custom matching local node was found. The e-Kavach Universal Emergency Health &amp; Trauma Hub is available 24x7 for Golden-Hour triage and ambulance dispatch.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setFilterType('all');
+                    }}
+                    className="px-3 py-1.5 bg-surface-container text-xs font-semibold rounded-xl text-primary hover:bg-surface-container-high cursor-pointer"
+                  >
+                    Reset Filters
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const universal = {
+                        id: 'hosp-universal-apex',
+                        name: 'e-Kavach Universal Emergency Health & Trauma Hub',
+                        code: 'EK-UNIV-APEX-01',
+                        hospitalType: 'Government / Central Grid',
+                        address: 'National Central Emergency Grid, GT Karnal Corridor',
+                        city: 'Delhi',
+                        state: 'Delhi',
+                        distanceKm: 2.5,
+                        ambulanceMins: 6,
+                        icuBedsAvailable: 68,
+                        icuBedsTotal: 120,
+                        totalBeds: 950,
+                        availableBeds: 410,
+                        oxygenBeds: 350,
+                        ventilatorsAvailable: 45,
+                        ventilatorsTotal: 80,
+                        contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108' },
+                        emergency24x7: true,
+                        traumaBayReady: true,
+                      };
+                      onSelectHospital(universal);
+                    }}
+                    className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-xs font-bold rounded-xl text-white shadow-sm cursor-pointer"
+                  >
+                    Select Universal Hub
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

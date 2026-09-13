@@ -966,7 +966,9 @@ class InMemoryRepository {
       };
     }
 
-    return null;
+    // Fallback: return e-Kavach Universal Emergency Health & Trauma Hub
+    const universalRecord = (this.data.hospitalSchemaRecords || []).find(r => r.hospital_id === 'hosp-universal-apex') || seedHospitalSchemaRecords[0];
+    return JSON.parse(JSON.stringify(universalRecord));
   }
 
   saveHospitalSchema(schemaData = {}) {

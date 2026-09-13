@@ -37,7 +37,7 @@ const DEMO_ACCOUNTS = {
     roleLabel: 'Hospital Administrator',
     portalName: 'Hospital Operations Hub',
     badge: 'State Trauma Supercluster',
-    identifier: 'admin.chennai@apollo.health',
+    identifier: 'admin.nambiar@apollo.health',
     password: 'password123',
     hint: 'Clinical Node: AP-HSP-842-TN',
     icon: 'domain',

@@ -3,7 +3,52 @@ const bcrypt = require('bcryptjs');
 const DEFAULT_PASSWORD = 'password123';
 const DEFAULT_PASSWORD_HASH = bcrypt.hashSync(DEFAULT_PASSWORD, 10);
 
+const UNIVERSAL_HOSPITAL = {
+  id: 'hosp-universal-apex',
+  registration_id: 'REG-HOSP-UNIVERSAL-0001',
+  name: 'e-Kavach Universal Emergency Health & Trauma Hub',
+  code: 'EK-UNIV-APEX-01',
+  address: 'National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Road / Ring Corridor',
+  city: 'Delhi',
+  state: 'Delhi',
+  pinCode: '110040',
+  geoLat: 28.8530,
+  geoLng: 77.0940,
+  departments: [
+    'Emergency & Trauma (Level-1)',
+    'ICU & Resuscitation',
+    'Interventional Cardiology',
+    'Neurotrauma & Stroke Care',
+    'Orthopedics & Polytrauma',
+    'General & Laparoscopic Surgery',
+    'Pulmonology & Respiratory Care',
+    'Pediatric Critical Care',
+    'Burn & Hyperbaric Care',
+    '24x7 Blood Bank & Transfusion'
+  ],
+  contactNumbers: {
+    er: '+91 11 2700 0108',
+    helpline: '1800-11-0108',
+    ambulance: '108',
+    email: 'universal.er@ekavach.health'
+  },
+  icuBedsTotal: 120,
+  icuBedsOccupied: 52,
+  icuBedsAvailable: 68,
+  wardBedsTotal: 950,
+  wardBedsOccupied: 540,
+  wardBedsAvailable: 410,
+  ventilatorsTotal: 80,
+  ventilatorsOccupied: 35,
+  ventilatorsAvailable: 45,
+  oxygenSupplyStatus: '100% Guaranteed Cryogenic Bulk Reserve Operational',
+  traumaLevel: 'LEVEL-1 NATIONAL APEX TRAUMA HUB',
+  status: 'ACTIVE',
+  isUniversalFallback: true
+};
+
 const seedHospitals = [
+  UNIVERSAL_HOSPITAL,
   {
     id: 'hosp-apollo-greams',
     registration_id: 'REG-HOSP-APOLLO-0842',
@@ -258,6 +303,49 @@ const HOSPITAL_SCHEMA_FIELDS = [
 ];
 
 const seedHospitalSchemaRecords = [
+  {
+    hospital_id: 'hosp-universal-apex',
+    id: 'hosp-universal-apex',
+    registration_id: 'REG-HOSP-UNIVERSAL-0001',
+    hospital_name: 'e-Kavach Universal Emergency Health & Trauma Hub',
+    hospital_type: 'Government / National Central Grid',
+    registration_number: 'EK-NAT-APEX-0001',
+    contact_number: '+91 11 2700 0108',
+    email: 'universal.er@ekavach.health',
+    website: 'https://ekavach.health/nodes/universal',
+    address: 'National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Road Corridor',
+    city: 'Delhi',
+    district: 'North Delhi',
+    state: 'Delhi',
+    pincode: '110040',
+    latitude: 28.8530,
+    longitude: 77.0940,
+    total_beds: 950,
+    available_beds: 410,
+    icu_beds: 120,
+    icu_available: 68,
+    emergency_beds: 40,
+    emergency_available: 24,
+    general_beds: 650,
+    private_beds: 140,
+    ambulance_count: 25,
+    blood_bank_available: true,
+    pharmacy_available: true,
+    diagnostic_available: true,
+    operation_theatre_count: 18,
+    ventilator_count: 80,
+    oxygen_beds: 350,
+    specialities: ['Emergency & Trauma (Level-1)', 'ICU & Resuscitation', 'Interventional Cardiology', 'Neurotrauma & Stroke Care', 'Orthopedics & Polytrauma', 'General & Laparoscopic Surgery', 'Pulmonology & Respiratory Care', 'Pediatric Critical Care', 'Burn & Hyperbaric Care', '24x7 Blood Bank & Transfusion'],
+    services: ['24x7 Level-1 Apex Trauma', 'Tele-ICU Grid Dispatch', 'Air & ALS Ambulance Fleet', 'Advanced Catheterization Lab', 'Central Cryogenic O2 Reservoir', '24x7 Blood Bank & Apheresis', 'Rapid Ingress Triage'],
+    opening_time: '00:00',
+    closing_time: '23:59',
+    emergency_24x7: true,
+    admin_name: 'Dr. Devendra Sharma (National Emergency Medical Superintendent)',
+    admin_phone: '+91 11 2700 0108',
+    status: 'Approved',
+    created_at: '2025-01-01T00:00:00.000Z',
+    updated_at: '2026-09-12T18:00:00.000Z'
+  },
   {
     hospital_id: 'hosp-apollo-greams',
     registration_id: 'REG-HOSP-APOLLO-0842',
@@ -1263,6 +1351,7 @@ const seedAccessLogs = [
 ];
 
 module.exports = {
+  UNIVERSAL_HOSPITAL,
   seedRegistrations,
   seedHospitals,
   seedUsers,
