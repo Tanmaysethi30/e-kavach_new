@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginWithGoogle, logoutFirebase, syncUserProfileToFirestore } from '../services/firebase';
+import { loginWithGoogle, logoutFirebase } from '../services/firebase';
 
 const AuthContext = createContext();
 
@@ -60,14 +60,19 @@ export const roleProfiles = {
 
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('ekavach_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('ekavach_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
   });
 
   const login = async (role, credentials = {}) => {
     const normRole = role === 'admin' ? 'hospital' : (role || 'patient');
     const profile = roleProfiles[normRole] || roleProfiles.patient;
     const hasCredentials = Boolean(credentials.identifier || credentials.email || credentials.phone || credentials.password);
+    
     try {
       const demoIdentifier = normRole === 'doctor' ? 'dr.kavitha@apollo.health' : normRole === 'hospital' ? 'admin.chennai@apollo.health' : 'rajesh.sharma@ekavach.health';
       const demoPassword = 'password123';
@@ -100,7 +105,6 @@ export function AuthProvider({ children }) {
         };
         setCurrentUser(merged);
         localStorage.setItem('ekavach_user', JSON.stringify(merged));
-        syncUserProfileToFirestore(merged);
         if (data.accessToken) {
           localStorage.setItem('ekavach_token', data.accessToken);
         }
@@ -118,13 +122,12 @@ export function AuthProvider({ children }) {
       if (hasCredentials) {
         throw e;
       }
-      console.warn('Real-time auth sync fallback to role profile:', e);
+      console.warn('Backend login fallback to demo profile:', e);
     }
 
     if (!hasCredentials) {
       setCurrentUser(profile);
       localStorage.setItem('ekavach_user', JSON.stringify(profile));
-      syncUserProfileToFirestore(profile);
       if (normRole === 'patient' && (profile.profileCompleted === false || (!profile.bloodGroup && !profile.pincode))) {
         return '/patient/settings#profile';
       }
@@ -222,7 +225,6 @@ export function AuthProvider({ children }) {
           };
           setCurrentUser(merged);
           localStorage.setItem('ekavach_user', JSON.stringify(merged));
-          syncUserProfileToFirestore(merged);
           if (data.accessToken) {
             localStorage.setItem('ekavach_token', data.accessToken);
           }
@@ -248,15 +250,24 @@ export function AuthProvider({ children }) {
       const updated = {
         ...prev,
         ...updatedFields,
-        profileCompleted: true, // Mark profile completed once saved
+        profileCompleted: true,
       };
       if (updatedFields.fullName && !updatedFields.name) {
         updated.name = updatedFields.fullName;
       }
       localStorage.setItem('ekavach_user', JSON.stringify(updated));
-      syncUserProfileToFirestore(updated);
       return updated;
     });
+
+    const token = localStorage.getItem('ekavach_token');
+    fetch('/api/patient/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(updatedFields),
+    }).catch(() => {});
   };
 
   const createPassword = async (role, details = {}) => {
@@ -290,7 +301,8 @@ export function AuthProvider({ children }) {
         throw new Error(errData.error || 'Failed to create password');
       }
     } catch (e) {
-      console.warn('Create password fallback:', e);
+      console.warn('Create password error:', e);
+      throw e;
     }
     const merged = { ...profile, role: normRole, dashboardRoute: profile.dashboardRoute };
     setCurrentUser(merged);
@@ -301,7 +313,7 @@ export function AuthProvider({ children }) {
   const [firebaseUser, setFirebaseUser] = useState(null);
 
   useEffect(() => {
-    // Local session verification on mount
+    // Local session verification on mount / refresh
     const savedToken = localStorage.getItem('ekavach_token');
     const savedUser = localStorage.getItem('ekavach_user');
     if (savedUser) {
@@ -322,7 +334,7 @@ export function AuthProvider({ children }) {
         .then((data) => {
           if (data.success && data.user) {
             setCurrentUser((prev) => {
-              const updated = { ...prev, ...data.user };
+              const updated = { ...(prev || {}), ...data.user };
               localStorage.setItem('ekavach_user', JSON.stringify(updated));
               return updated;
             });
@@ -351,6 +363,42 @@ export function AuthProvider({ children }) {
 
       const normRole = role === 'admin' ? 'hospital' : role;
       const baseProfile = roleProfiles[normRole] || roleProfiles.patient;
+
+      // Authenticate with local backend API
+      try {
+        const res = await fetch('/api/auth/google-local', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: gUser.email,
+            name: gUser.displayName,
+            photoURL: gUser.photoURL,
+            role: normRole,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            const merged = {
+              ...baseProfile,
+              ...data.user,
+              photoURL: gUser.photoURL,
+              role: normRole,
+              dashboardRoute: baseProfile.dashboardRoute,
+            };
+            setCurrentUser(merged);
+            localStorage.setItem('ekavach_user', JSON.stringify(merged));
+            if (data.accessToken) {
+              localStorage.setItem('ekavach_token', data.accessToken);
+            }
+            return baseProfile.dashboardRoute;
+          }
+        }
+      } catch (backendErr) {
+        console.warn('Backend google-local sync notice:', backendErr);
+      }
+
       const abhaId = normRole === 'patient' ? `ABHA-${gUser.uid.slice(0, 4).toUpperCase()}-${gUser.uid.slice(4, 8).toUpperCase()}-TN` : baseProfile.id;
       const regId = `REG-GGL-${gUser.uid.slice(0, 8).toUpperCase()}`;
 
@@ -378,7 +426,16 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
-    await logoutFirebase();
+    try {
+      await logoutFirebase();
+      const token = localStorage.getItem('ekavach_token');
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => {});
+      }
+    } catch (_e) {}
     localStorage.removeItem('ekavach_user');
     localStorage.removeItem('ekavach_token');
     setCurrentUser(null);
@@ -409,3 +466,4 @@ export function AuthProvider({ children }) {
 export function useAuth() {
   return useContext(AuthContext);
 }
+

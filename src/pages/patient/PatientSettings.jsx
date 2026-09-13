@@ -72,6 +72,41 @@ const DISTRICT_TO_CITY_MAP = {
 };
 
 const PINCODE_PREFIX_MAP = [
+  // Delhi & NCR Granular Pincodes
+  { prefix: '110040', state: 'Delhi', city: 'North Delhi', area: 'Narela (Near NIT Delhi)' },
+  { prefix: '110036', state: 'Delhi', city: 'North Delhi', area: 'Alipur (GT Karnal Road)' },
+  { prefix: '110082', state: 'Delhi', city: 'North Delhi', area: 'Khera Kalan' },
+  { prefix: '110085', state: 'Delhi', city: 'North West Delhi', area: 'Rohini' },
+  { prefix: '110034', state: 'Delhi', city: 'North West Delhi', area: 'Pitampura' },
+  { prefix: '110033', state: 'Delhi', city: 'North Delhi', area: 'Adarsh Nagar / Model Town' },
+  { prefix: '110009', state: 'Delhi', city: 'North Delhi', area: 'GTB Nagar / Kingsway Camp' },
+  { prefix: '110007', state: 'Delhi', city: 'North Delhi', area: 'Delhi University / Roop Nagar' },
+  { prefix: '110054', state: 'Delhi', city: 'North Delhi', area: 'Civil Lines' },
+  { prefix: '110006', state: 'Delhi', city: 'Central Delhi', area: 'Chandni Chowk / Old Delhi' },
+  { prefix: '110001', state: 'Delhi', city: 'New Delhi', area: 'Connaught Place' },
+  { prefix: '110002', state: 'Delhi', city: 'Central Delhi', area: 'Daryaganj' },
+  { prefix: '110003', state: 'Delhi', city: 'South Delhi', area: 'Lodhi Road' },
+  { prefix: '110016', state: 'Delhi', city: 'South Delhi', area: 'Hauz Khas / AIIMS' },
+  { prefix: '110029', state: 'Delhi', city: 'South Delhi', area: 'Safdarjung Enclave' },
+  { prefix: '110075', state: 'Delhi', city: 'South West Delhi', area: 'Dwarka' },
+  { prefix: '110078', state: 'Delhi', city: 'South West Delhi', area: 'Dwarka Sector 8' },
+  { prefix: '110092', state: 'Delhi', city: 'East Delhi', area: 'Laxmi Nagar / Anand Vihar' },
+  { prefix: '110091', state: 'Delhi', city: 'East Delhi', area: 'Mayur Vihar' },
+  { prefix: '110025', state: 'Delhi', city: 'South East Delhi', area: 'Jamia Nagar / Okhla' },
+  { prefix: '110019', state: 'Delhi', city: 'South East Delhi', area: 'Kalkaji / Nehru Place' },
+  { prefix: '110020', state: 'Delhi', city: 'South East Delhi', area: 'Okhla Industrial Area' },
+  { prefix: '110058', state: 'Delhi', city: 'West Delhi', area: 'Janakpuri' },
+  { prefix: '110027', state: 'Delhi', city: 'West Delhi', area: 'Rajouri Garden' },
+  { prefix: '110015', state: 'Delhi', city: 'West Delhi', area: 'Moti Nagar' },
+  { prefix: '110', state: 'Delhi', city: 'New Delhi', area: 'Delhi National Capital Territory' },
+  { prefix: '11', state: 'Delhi', city: 'New Delhi', area: 'Delhi Region' },
+  { prefix: '201301', state: 'Uttar Pradesh', city: 'Noida', area: 'Sector 1-62' },
+  { prefix: '201307', state: 'Uttar Pradesh', city: 'Noida', area: 'Greater Noida' },
+  { prefix: '201', state: 'Uttar Pradesh', city: 'Noida', area: 'Gautam Buddha Nagar' },
+  { prefix: '122001', state: 'Haryana', city: 'Gurugram', area: 'Old Gurgaon' },
+  { prefix: '122002', state: 'Haryana', city: 'Gurugram', area: 'DLF Cyber City' },
+  { prefix: '122', state: 'Haryana', city: 'Gurugram', area: 'Gurugram Region' },
+
   { prefix: '600', state: 'Tamil Nadu', city: 'Chennai' },
   { prefix: '601', state: 'Tamil Nadu', city: 'Kanchipuram' },
   { prefix: '602', state: 'Tamil Nadu', city: 'Kanchipuram' },
@@ -95,11 +130,6 @@ const PINCODE_PREFIX_MAP = [
   { prefix: '62', state: 'Tamil Nadu', city: 'Madurai' },
   { prefix: '63', state: 'Tamil Nadu', city: 'Salem' },
   { prefix: '64', state: 'Tamil Nadu', city: 'Coimbatore' },
-
-  { prefix: '110', state: 'Delhi', city: 'New Delhi' },
-  { prefix: '11', state: 'Delhi', city: 'New Delhi' },
-  { prefix: '201', state: 'Uttar Pradesh', city: 'Noida' },
-  { prefix: '122', state: 'Haryana', city: 'Gurugram' },
 
   { prefix: '400', state: 'Maharashtra', city: 'Mumbai' },
   { prefix: '401', state: 'Maharashtra', city: 'Thane' },
@@ -354,7 +384,7 @@ export default function PatientSettings() {
     }
   });
 
-  // Keep profile in sync if currentUser changes
+  // Keep profile and contacts in sync if currentUser changes or on mount
   useEffect(() => {
     if (currentUser) {
       setProfile((prev) => ({
@@ -382,6 +412,73 @@ export default function PatientSettings() {
     }
   }, [currentUser]);
 
+  // Fetch verified profile from backend to ensure data persistence across page refreshes
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      try {
+        const token = localStorage.getItem('ekavach_token');
+        if (!token) return;
+        const res = await fetch('/api/patient/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.profile) {
+            const p = data.profile;
+            setProfile((prev) => ({
+              ...prev,
+              fullName: p.name || p.fullName || prev.fullName,
+              abhaId: p.abhaNumber || prev.abhaId,
+              phone: p.phone || prev.phone,
+              aadhaarNumber: p.aadhaarNumber || prev.aadhaarNumber,
+              email: p.email || prev.email,
+              dob: p.dob ? (typeof p.dob === 'string' && p.dob.includes('T') ? p.dob.split('T')[0] : p.dob) : prev.dob,
+              gender: p.gender || prev.gender,
+              bloodGroup: p.bloodGroup || prev.bloodGroup,
+              address: p.address || prev.address,
+              pincode: p.pincode || prev.pincode,
+              city: p.city || prev.city,
+              state: p.state || prev.state,
+              emergencyContactName: p.emergencyContactName || prev.emergencyContactName,
+              emergencyContactRelation: p.emergencyContactRelation || prev.emergencyContactRelation,
+              emergencyContactPhone: p.emergencyContactPhone || prev.emergencyContactPhone,
+              bpLevel: p.bpLevel || prev.bpLevel,
+              hasDiabetes: p.hasDiabetes || prev.hasDiabetes,
+              diabetesType: p.diabetesType || prev.diabetesType,
+              diabetesMedication: p.diabetesMedication || prev.diabetesMedication,
+            }));
+
+            if (p.emergencyContactName) {
+              setContacts((prev) => {
+                const saved = localStorage.getItem('ekavach_emergency_contacts');
+                let base = prev;
+                if (saved) {
+                  try { base = JSON.parse(saved); } catch (_e) {}
+                }
+                const p1Index = base.findIndex(c => c.priority === 'p1');
+                const targetIdx = p1Index >= 0 ? p1Index : 0;
+                const updated = [...base];
+                updated[targetIdx] = {
+                  ...updated[targetIdx],
+                  name: p.emergencyContactName,
+                  relation: p.emergencyContactRelation || updated[targetIdx]?.relation || 'Parent',
+                  phone: p.emergencyContactPhone || updated[targetIdx]?.phone || '',
+                  priority: 'p1',
+                  priorityText: 'Primary Next-of-Kin (Priority 1)',
+                  initials: (p.emergencyContactName || 'EM').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
+                  verified: true,
+                };
+                localStorage.setItem('ekavach_emergency_contacts', JSON.stringify(updated));
+                return updated;
+              });
+            }
+          }
+        }
+      } catch (_e) {}
+    };
+    fetchPatientData();
+  }, []);
+
   const handleProfileChange = (field, val) => {
     setProfile((prev) => {
       const updated = { ...prev, [field]: val };
@@ -400,7 +497,7 @@ export default function PatientSettings() {
     }
   };
 
-  // Auto-fetch location details based on Postal Pincode (Multi-source India Post API + Geolocation + Offline Prefix Engine)
+  // Auto-fetch location details based on Postal Pincode (Multi-source India Post API + Offline Prefix Engine)
   const fetchPincodeDetails = async (pinInput) => {
     const cleanPin = (pinInput || profile.pincode || '').replace(/\D/g, '');
     if (cleanPin.length !== 6) {
@@ -415,19 +512,40 @@ export default function PatientSettings() {
     let fetchedDistrict = '';
     let fetchedArea = '';
 
-    // Local Offline Prefix Engine for instant, zero-external-API resolution
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch(`https://api.postalpincode.in/pincode/${cleanPin}`, {
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data[0]?.Status === 'Success' && data[0]?.PostOffice?.length > 0) {
+          const po = data[0].PostOffice[0];
+          fetchedState = normalizeState(po.State || po.Circle || '');
+          fetchedDistrict = normalizeCity(po.District || po.Division || '', fetchedState);
+          fetchedArea = po.Name || '';
+        }
+      }
+    } catch (_err) {
+      // Fallback seamlessly to offline prefix engine
+    }
+
+    // Local Offline Prefix Engine fallback
     const offlineMatch = getFallbackByPincode(cleanPin);
 
-    // Normalize State and City purely locally
-    const finalState = offlineMatch ? offlineMatch.state : profile.state;
-    const finalCity = offlineMatch ? offlineMatch.city : profile.city;
+    const finalState = fetchedState || (offlineMatch ? offlineMatch.state : profile.state);
+    const finalCity = fetchedDistrict || (offlineMatch ? offlineMatch.city : profile.city);
+    const finalArea = fetchedArea || (offlineMatch ? offlineMatch.area : '');
 
     if (finalState && finalCity) {
       setProfile((prev) => {
         const currentAddr = prev.address || '';
         let updatedAddr = currentAddr;
-        if (!currentAddr || currentAddr.includes('Greams Road') || currentAddr.includes('Connaught Place')) {
-          updatedAddr = `${fetchedArea ? fetchedArea + ', ' : ''}${finalCity}, ${finalState}`;
+        if (!currentAddr || currentAddr.includes('Greams Road') || currentAddr.includes('Connaught Place') || currentAddr.length < 5) {
+          updatedAddr = `${finalArea ? finalArea + ', ' : ''}${finalCity}, ${finalState} - ${cleanPin}`;
         }
         return {
           ...prev,
@@ -438,7 +556,7 @@ export default function PatientSettings() {
         };
       });
 
-      setPincodeStatusMsg(`✓ Auto-fetched: ${finalCity}, ${finalState}${fetchedArea ? ` (${fetchedArea})` : ''}`);
+      setPincodeStatusMsg(`✓ Auto-fetched: ${finalCity}, ${finalState}${finalArea ? ` (${finalArea})` : ''}`);
     } else {
       setPincodeStatusMsg('✓ Valid pincode format. Select State & City below.');
     }
@@ -770,7 +888,12 @@ export default function PatientSettings() {
       triggerSignal('Please provide Full Legal Name and Primary Mobile Number.');
       return;
     }
-    const cleanPhone = newContact.phone.startsWith('+91') ? newContact.phone : `+91 ${newContact.phone}`;
+    const rawDigits = newContact.phone.replace(/\D/g, '').replace(/^91/, '');
+    if (rawDigits.length !== 10) {
+      triggerSignal('Please provide a valid 10-digit mobile number.');
+      return;
+    }
+    const cleanPhone = `+91 ${rawDigits}`;
     const priorityText =
       newContact.priority === 'p1'
         ? 'Primary Next-of-Kin (Priority 1)'
@@ -839,6 +962,32 @@ export default function PatientSettings() {
 
     setContacts(updated);
     localStorage.setItem('ekavach_emergency_contacts', JSON.stringify(updated));
+
+    const p1 = updated.find((c) => c.priority === 'p1') || updated[0];
+    if (p1) {
+      const emergencyPayload = {
+        emergencyContactName: p1.name,
+        emergencyContactRelation: p1.relation,
+        emergencyContactPhone: p1.phone,
+      };
+      if (updateProfileDetails) {
+        updateProfileDetails(emergencyPayload);
+      }
+      try {
+        const token = localStorage.getItem('ekavach_token');
+        if (token) {
+          fetch('/api/patient/me', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(emergencyPayload),
+          }).catch(() => {});
+        }
+      } catch (_e) {}
+    }
+
     handleResetForm();
   };
 

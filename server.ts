@@ -1,20 +1,60 @@
 import express, { Request, Response, NextFunction } from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { createServer as createViteServer } from 'vite';
+
+// Safely derive __dirname for both ESM (tsx) and CJS (esbuild bundle)
+const getDirname = () => {
+  if (typeof __dirname !== 'undefined') {
+    return __dirname;
+  }
+  if (typeof import.meta !== 'undefined' && import.meta.url) {
+    return path.dirname(fileURLToPath(import.meta.url));
+  }
+  return process.cwd();
+};
+
+const currentDir = getDirname();
 
 // Support both ESM (via tsx in dev) and bundled CJS (via esbuild in prod)
 const nodeRequire =
   typeof require === 'function'
     ? require
     : createRequire(import.meta.url);
-const backendApp = nodeRequire(path.resolve(process.cwd(), 'e-kavach-backend/src/app.js'));
-const socketService = nodeRequire(path.resolve(process.cwd(), 'e-kavach-backend/src/services/socket.service.js'));
+
+function resolveBackendModule(relativeSubpath: string) {
+  const possiblePaths = [
+    path.resolve(process.cwd(), relativeSubpath),
+    path.resolve(currentDir, '..', relativeSubpath),
+    path.resolve(currentDir, relativeSubpath),
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      return nodeRequire(p);
+    }
+  }
+  return nodeRequire(path.resolve(process.cwd(), relativeSubpath));
+}
+
+const backendApp = resolveBackendModule('e-kavach-backend/src/app.js');
+const socketService = resolveBackendModule('e-kavach-backend/src/services/socket.service.js');
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  // Instant Cloud Run & container health probe endpoint
+  app.get(['/health', '/api/health', '/healthz', '/livez'], (req: Request, res: Response) => {
+    res.status(200).json({
+      status: 'ok',
+      service: 'e-kavach-integrated',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString(),
+    });
+  });
 
   // Mount backend API routes, Prometheus /metrics, and static uploads first
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -48,21 +88,29 @@ async function startServer() {
         host: '0.0.0.0',
         port: PORT,
         allowedHosts: true,
-        hmr: {
-          server,
-        },
       },
       appType: 'spa',
     });
     app.use(vite.middlewares);
     console.log('✅ Vite middleware mounted serving root E-Kavach frontend');
   } else {
-    const distPath = path.resolve(process.cwd(), 'dist');
+    const possibleDistPaths = [
+      path.resolve(process.cwd(), 'dist'),
+      path.resolve(currentDir, 'dist'),
+      path.resolve(currentDir),
+    ];
+    const distPath = possibleDistPaths.find((p) => fs.existsSync(path.join(p, 'index.html'))) || path.resolve(process.cwd(), 'dist');
+
     app.use(express.static(distPath));
     app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
+      const indexPath = path.join(distPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(200).send('<h1>E-KAVACH Production Server Active</h1>');
+      }
     });
-    console.log('✅ Production static server mounted serving dist');
+    console.log(`✅ Production static server mounted serving: ${distPath}`);
   }
 
   server.listen(PORT, '0.0.0.0', () => {

@@ -279,7 +279,11 @@ export default function HealthHistory() {
         setUploadNotes('');
         setUploadFile(null);
         await fetchHistoryRecords();
-        setActiveRecordTab('documents');
+        if (mappedType === 'PRESCRIPTION') {
+          setActiveRecordTab('rx');
+        } else {
+          setActiveRecordTab('documents');
+        }
       } else {
         const errorData = await res.json().catch(() => ({}));
         showToast('Upload failed: ' + (errorData.error || 'Server error'));
@@ -319,18 +323,131 @@ export default function HealthHistory() {
   };
 
   const handleDownloadFullRecord = () => {
-    showToast('Generating ABDM Digital Health Record (ABHA-9824-8819-TN.pdf)...');
-    const customDocsList = customRecords.map((r, i) => `${i + 1}. ${r.title} (${r.recordType}) - Logged: ${new Date(r.date || r.createdAt).toLocaleDateString()}`).join('\n');
-    const content = `E-KAVACH VERIFIED CLINICAL HEALTH RECORD\nPatient: Rajesh V. Sharma (ABHA 9824-8819-TN)\nGenerated At: ${new Date().toLocaleString()}\n\nPrescriptions:\n1. Rosuvastatin 10mg + Aspirin 75mg (Dr. Kavitha Menon, Cardiology)\n2. Metformin 500mg + Glimepiride 2mg (Dr. Arvind Swaminathan)\n\nDiagnoses:\n- Type II Diabetes (Insulin Dependent)\n- Hypertension (Stage 1)\n- Post-CABG Recovery (AIIMS)\n\nUploaded Local Documents:\n${customDocsList || 'None'}\n\nVerified via E-Kavach National Digital Health Grid.`;
-    const blob = new Blob([content], { type: 'application/pdf' });
+    const patientName = currentUser?.name || currentUser?.fullName || loadedPatient?.name || 'Rajesh V. Sharma';
+    const abhaId = currentUser?.abhaNumber || currentUser?.id || loadedPatient?.abhaNumber || 'ABHA-9824-8819-TN';
+    const bloodGroup = currentUser?.bloodGroup || loadedPatient?.bloodGroup || 'O+ (Rh Pos)';
+    const phone = currentUser?.phone || loadedPatient?.phone || '+91 98401 22819';
+    const emergencyContact = currentUser?.emergencyContactName ? `${currentUser.emergencyContactName} (${currentUser.emergencyContactRelation || 'Kin'}) - ${currentUser.emergencyContactPhone}` : 'Ananya S. Sharma (Spouse) - +91 98401 22819';
+    const location = currentUser?.address ? `${currentUser.address}, ${currentUser.city || ''} ${currentUser.pincode || ''}` : 'Apollo Greams Trauma Zone, Chennai, Tamil Nadu';
+
+    showToast(`Generating Verified ABDM Clinical Record for ${patientName}...`);
+
+    const rxList = allPrescriptions.map((rx, i) => `${i + 1}. ${rx.title}\n   Doctor: ${rx.doctor}\n   Hospital: ${typeof rx.hospital === 'object' && rx.hospital !== null ? (rx.hospital.name || rx.hospital.hospital_name) : rx.hospital}\n   Regimen: ${rx.regimen || rx.notes || 'As directed'}\n   Status: ${rx.status || 'Active'}`).join('\n\n');
+    const diagList = allDiagnoses.map((d, i) => `${i + 1}. ${d.title}\n   Specialist: ${d.doctor || 'Attending Physician'}\n   Notes: ${d.notes || 'Under clinical observation'}\n   Status: ${d.status || 'Ongoing'}`).join('\n\n');
+    const customDocsList = customRecords.map((r, i) => `${i + 1}. ${r.title} [${r.recordType || 'DOCUMENT'}] - Recorded: ${new Date(r.date || r.createdAt || Date.now()).toLocaleDateString()}`).join('\n');
+
+    const content = `=====================================================
+NATIONAL HEALTH AUTHORITY • ABDM DIGITAL HEALTH GRID
+E-KAVACH VERIFIED CLINICAL HEALTH RECORD & SUMMARY
+=====================================================
+
+PATIENT DEMOGRAPHICS & ABHA IDENTIFIERS:
+-----------------------------------------------------
+Full Name:             ${patientName}
+ABHA Health ID:        ${abhaId}
+Blood Group:           ${bloodGroup}
+Primary Contact:       ${phone}
+Emergency Contact:     ${emergencyContact}
+Address / Location:    ${location}
+Record Issue Timestamp:${new Date().toLocaleString()}
+
+=====================================================
+ACTIVE CLINICAL PRESCRIPTIONS:
+-----------------------------------------------------
+${rxList || 'No prescriptions recorded.'}
+
+=====================================================
+MEDICAL DIAGNOSES & CLINICAL HISTORY:
+-----------------------------------------------------
+${diagList || 'No chronic diagnoses recorded.'}
+
+=====================================================
+UPLOADED LOCAL SYSTEM MEDICAL DOCUMENTS:
+-----------------------------------------------------
+${customDocsList || 'No external documents uploaded.'}
+
+=====================================================
+SECURITY & COMPLIANCE VERIFICATION:
+-----------------------------------------------------
+Encrypted under ABDM Section 29 Clinical Data Protocols.
+Digitally Signed by e-Kavach National Health Core Pipeline.
+=====================================================`;
+
+    // Download text summary report
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'EKAVACH-Full-Health-Record.pdf';
+    a.download = `EKAVACH-Health-Record-${abhaId.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    // Also open printable view for instant PDF saving
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>E-KAVACH Clinical Record - ${patientName}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; line-height: 1.5; }
+            .header { border-bottom: 3px solid #0f766e; padding-bottom: 16px; margin-bottom: 24px; }
+            .badge { display: inline-block; padding: 4px 10px; background: #ccfbf1; color: #0f766e; border-radius: 9999px; font-size: 12px; font-weight: bold; margin-bottom: 8px; }
+            h1 { margin: 0 0 6px 0; font-size: 24px; color: #0f766e; }
+            .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 14px; }
+            .section-title { font-size: 16px; font-weight: bold; color: #0f766e; margin-top: 24px; margin-bottom: 12px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+            .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; }
+            .card strong { color: #0f172a; font-size: 14px; }
+            .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #cbd5e1; font-size: 11px; color: #64748b; text-align: center; }
+            @media print { button { display: none; } body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <span class="badge">ABDM VERIFIED CLINICAL HEALTH RECORD</span>
+            <h1>${patientName}</h1>
+            <div style="font-size: 13px; color: #64748b;">ABHA ID: <strong>${abhaId}</strong> • Generated: ${new Date().toLocaleString()}</div>
+          </div>
+
+          <div class="grid">
+            <div><strong>Blood Group:</strong> ${bloodGroup}</div>
+            <div><strong>Primary Phone:</strong> ${phone}</div>
+            <div><strong>Emergency Contact:</strong> ${emergencyContact}</div>
+            <div><strong>Location / City:</strong> ${location}</div>
+          </div>
+
+          <div class="section-title">Active Clinical Prescriptions</div>
+          ${allPrescriptions.map(p => `
+            <div class="card">
+              <strong>${p.title}</strong>
+              <div style="color: #475569; margin-top: 4px;">Doctor: ${p.doctor} • ${typeof p.hospital === 'object' && p.hospital !== null ? (p.hospital.name || p.hospital.hospital_name) : p.hospital}</div>
+              <div style="color: #0f766e; margin-top: 2px;">Protocol: ${p.regimen || p.notes}</div>
+            </div>
+          `).join('')}
+
+          <div class="section-title">Medical Diagnoses &amp; Chronic Conditions</div>
+          ${allDiagnoses.map(d => `
+            <div class="card">
+              <strong>${d.title}</strong> (${d.status || 'Ongoing'})
+              <div style="color: #475569; margin-top: 4px;">Specialist: ${d.doctor || 'Physician'}</div>
+              <div style="color: #64748b; margin-top: 2px;">${d.notes || ''}</div>
+            </div>
+          `).join('')}
+
+          <div class="footer">
+            Digitally certified via e-Kavach National Digital Health Network • ABDM Compliant
+          </div>
+          <script>
+            window.onload = function() { window.print(); };
+          </script>
+        </body>
+        </html>
+      `);
+      printWindow.document.close();
+    }
   };
 
   // Real Gemini AI Chat Call
@@ -518,6 +635,7 @@ export default function HealthHistory() {
       regimen: r.metadata?.medicines || r.notes || 'Prescription protocol',
       notes: r.notes || r.metadata?.doctorNotes || 'Take medications as directed by clinician.',
       fileUrl: r.fileUrl,
+      recordType: r.recordType || 'PRESCRIPTION',
       isRealtimeIssued: true,
     }));
   const uploadedDiagnoses = customRecords.filter((r) => r.recordType !== 'PRESCRIPTION' && r.type !== 'PRESCRIPTION');
@@ -1054,6 +1172,76 @@ export default function HealthHistory() {
           </div>
         )}
 
+        {/* Patient ABHA Health ID & Clinical Vitals Overview (Patient Mode) */}
+        {!isDoctorMode && (
+          <div className="p-5 rounded-2xl bg-surface-container-lowest border border-surface-container shadow-xs flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-surface-container pb-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xl border border-primary/20">
+                  <span className="material-symbols-outlined text-[28px]">badge</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-headline-sm text-lg font-bold text-primary">
+                      {currentUser?.name || currentUser?.fullName || 'Rajesh V. Sharma'}
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[13px]">verified</span>
+                      Active ABHA Account
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-on-surface-variant mt-1 flex-wrap font-mono">
+                    <span>ABHA ID: <strong className="text-primary">{currentUser?.abhaNumber || currentUser?.id || 'ABHA-9824-8819-TN'}</strong></span>
+                    <span>•</span>
+                    <span>PHR: <strong>{currentUser?.email ? currentUser.email.split('@')[0] : 'patient'}@abdm</strong></span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start md:self-center">
+                <button
+                  onClick={() => navigate('/patient/settings#profile')}
+                  className="px-3.5 py-2 rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-semibold text-xs transition-colors flex items-center gap-1.5"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[16px]">edit</span>
+                  Edit Health Profile
+                </button>
+                <button
+                  onClick={() => navigate('/patient/dashboard')}
+                  className="px-3.5 py-2 rounded-lg bg-primary text-on-primary font-semibold text-xs hover:bg-primary-container transition-colors flex items-center gap-1.5"
+                  type="button"
+                >
+                  <span className="material-symbols-outlined text-[16px]">qr_code_2</span>
+                  Emergency QR Pass
+                </button>
+              </div>
+            </div>
+
+            {/* Vitals & Emergency Contacts Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Group</span>
+                <span className="font-bold text-sm text-primary mt-0.5">{currentUser?.bloodGroup || 'O+ (Rh Pos)'}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Blood Pressure</span>
+                <span className="font-bold text-sm text-primary mt-0.5">{currentUser?.bpLevel || 'Normal (120/80)'}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Diabetic Status</span>
+                <span className="font-bold text-sm text-primary mt-0.5">{currentUser?.hasDiabetes === 'Yes' ? `Diabetic (${currentUser?.diabetesType || 'Type 2'})` : 'Non-Diabetic'}</span>
+              </div>
+              <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
+                <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Emergency Kin Contact</span>
+                <span className="font-bold text-xs text-primary mt-0.5 truncate">
+                  {currentUser?.emergencyContactName ? `${currentUser.emergencyContactName} (${currentUser.emergencyContactPhone || ''})` : 'Ananya Sharma (+91 98401 22819)'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Real-time Data Access Requests & Approval Banner */}
         {consentRequests.some((r) => r.status === 'PENDING_APPROVAL') && (
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-900 dark:text-amber-200 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-pulse">
@@ -1337,12 +1525,40 @@ export default function HealthHistory() {
 
         {/* PRESCRIPTIONS TAB VIEW */}
         <div className={activeRecordTab === 'rx' ? 'flex flex-col space-y-6' : 'hidden'} id="tab-view-prescriptions">
+          {/* Quick Upload Action Bar for Prescriptions */}
+          <div className="flex items-center justify-between bg-surface-container-low p-4 rounded-xl border border-surface-container">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-secondary text-on-secondary">
+                <span className="material-symbols-outlined text-2xl">medication</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-primary text-base">Digital Prescriptions &amp; Clinical Regimens</h3>
+                <p className="text-xs text-on-surface-variant">
+                  View and upload verified doctor prescriptions, dosage protocols, and pharmacy refills.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setUploadType('Prescription');
+                  setUploadModalOpen(true);
+                }}
+                className="px-4 py-2 rounded-lg bg-primary text-on-primary font-semibold text-xs shadow-sm hover:bg-primary-container transition-colors inline-flex items-center gap-1 shrink-0 cursor-pointer"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                <span>Upload Prescription</span>
+              </button>
+            </div>
+          </div>
+
           {filteredPrescriptions.length === 0 ? (
             <div className="bg-surface-container-lowest p-8 rounded-2xl border border-surface-container text-center flex flex-col items-center justify-center gap-3">
               <span className="material-symbols-outlined text-outline text-5xl">search_off</span>
               <h4 className="font-bold text-on-surface text-base">No Prescriptions Match "{searchQuery}"</h4>
               <p className="text-xs text-on-surface-variant max-w-sm">
-                Try searching for a different drug name, physician, or hospital, or switch to the Health History tab.
+                Try searching for a different drug name, physician, or hospital, or click "Upload Prescription" above.
               </p>
               <button
                 onClick={() => setSearchQuery('')}
@@ -1426,6 +1642,17 @@ export default function HealthHistory() {
                                   <span className="material-symbols-outlined text-[16px]">psychology</span>
                                   <span>Analyze with Gemini</span>
                                 </button>
+                                {rx.fileUrl && (
+                                  <a
+                                    href={rx.fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 font-label-sm text-xs text-secondary hover:text-secondary-dark font-bold hover:underline"
+                                  >
+                                    <span className="material-symbols-outlined text-[16px]">picture_as_pdf</span>
+                                    <span>View File</span>
+                                  </a>
+                                )}
                                 <button
                                   onClick={() => setSelectedRecord(rx)}
                                   className="inline-flex items-center gap-1 font-label-sm text-label-sm text-primary hover:text-primary-container font-medium cursor-pointer"

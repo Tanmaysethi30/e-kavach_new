@@ -545,11 +545,11 @@ class AuthService {
       }
     } else {
 
-    const searchTargetLower = searchTarget.toLowerCase();
+    const searchTargetLower = searchTarget.toLowerCase().trim();
     const searchDigits = searchTarget.replace(/\D/g, '');
     const searchPhone10 = searchDigits.length >= 10 ? searchDigits.slice(-10) : null;
 
-    // 1. Search db.user by email, exact phone, normalized 10-digit phone, registration_id, or id
+    // 1. Search db.user by email, exact phone, normalized 10-digit phone, registration_id, or user id
     const allUsers = await db.user.findMany({
       include: {
         registration: true,
@@ -560,10 +560,10 @@ class AuthService {
     });
 
     user = allUsers.find((u) => {
-      if (u.email && u.email.toLowerCase() === searchTargetLower) return true;
-      if (u.registration_id && u.registration_id.toLowerCase() === searchTargetLower) return true;
-      if (u.id && u.id.toLowerCase() === searchTargetLower) return true;
-      if (u.phone && u.phone === searchTarget) return true;
+      if (u.email && u.email.toLowerCase().trim() === searchTargetLower) return true;
+      if (u.registration_id && u.registration_id.toLowerCase().trim() === searchTargetLower) return true;
+      if (u.id && u.id.toLowerCase().trim() === searchTargetLower) return true;
+      if (u.phone && u.phone.trim() === searchTarget.trim()) return true;
       if (searchPhone10 && u.phone) {
         const uDigits = u.phone.replace(/\D/g, '').slice(-10);
         if (uDigits && uDigits === searchPhone10) return true;
@@ -584,7 +584,7 @@ class AuthService {
       }
     }
 
-    // 2. Search registration table by registration_id, id, auth_user_id, or phone
+    // 2. Search registration table by registration_id, id, auth_user_id, email, or 10-digit phone
     if (!user) {
       const allRegs = await db.registration.findMany({
         include: {
@@ -600,10 +600,10 @@ class AuthService {
       });
 
       const matchedReg = allRegs.find((r) => {
-        if (r.registration_id && r.registration_id.toLowerCase() === searchTargetLower) return true;
-        if (r.id && r.id.toLowerCase() === searchTargetLower) return true;
-        if (r.auth_user_id && r.auth_user_id.toLowerCase() === searchTargetLower) return true;
-        if (r.email && r.email.toLowerCase() === searchTargetLower) return true;
+        if (r.registration_id && r.registration_id.toLowerCase().trim() === searchTargetLower) return true;
+        if (r.id && r.id.toLowerCase().trim() === searchTargetLower) return true;
+        if (r.auth_user_id && r.auth_user_id.toLowerCase().trim() === searchTargetLower) return true;
+        if (r.email && r.email.toLowerCase().trim() === searchTargetLower) return true;
         if (searchPhone10 && r.phone) {
           const rDigits = r.phone.replace(/\D/g, '').slice(-10);
           if (rDigits && rDigits === searchPhone10) return true;
@@ -632,10 +632,13 @@ class AuthService {
       });
 
       const matchedDoc = allDoctors.find((d) => {
-        const cleanTarget = searchTarget.toUpperCase().replace(/^NMC:?\s*/i, '');
-        const cleanNmc = (d.nmcNumber || '').toUpperCase().replace(/^NMC:?\s*/i, '');
-        if (cleanNmc && (cleanNmc === cleanTarget || cleanNmc.includes(cleanTarget) || cleanTarget.includes(cleanNmc))) return true;
-        if (d.registration_id && d.registration_id.toLowerCase() === searchTargetLower) return true;
+        const cleanTarget = searchTarget.toUpperCase().replace(/^NMC:?\s*/i, '').trim();
+        const cleanNmc = (d.nmcNumber || '').toUpperCase().replace(/^NMC:?\s*/i, '').trim();
+        const cleanLicense = (d.licenseId || '').toUpperCase().replace(/^NMC:?\s*/i, '').trim();
+        if (cleanNmc && (cleanNmc === cleanTarget || cleanNmc === searchTarget.toUpperCase().trim())) return true;
+        if (cleanLicense && (cleanLicense === cleanTarget || cleanLicense === searchTarget.toUpperCase().trim())) return true;
+        if (d.registration_id && d.registration_id.toLowerCase().trim() === searchTargetLower) return true;
+        if (d.id && d.id.toLowerCase().trim() === searchTargetLower) return true;
         if (searchPhone10 && (d.phone || d.contact)) {
           const dDigits = (d.phone || d.contact).replace(/\D/g, '').slice(-10);
           if (dDigits && dDigits === searchPhone10) return true;
@@ -648,7 +651,7 @@ class AuthService {
       }
     }
 
-    // 4. Search Patient Profile by ABHA Number, Aadhaar, phone, or registration_id
+    // 4. Search Patient Profile by ABHA Number / Health ID, 12-digit Aadhaar, phone, or registration_id
     if (!user) {
       const allPatients = await db.patientProfile.findMany({
         include: {
@@ -664,12 +667,15 @@ class AuthService {
       });
 
       const matchedPatient = allPatients.find((p) => {
-        const cleanTarget = searchTarget.replace(/\s|-/g, '').toLowerCase();
-        const pAbha = (p.abhaNumber || '').replace(/\s|-/g, '').toLowerCase();
-        const pAadhaar = (p.aadhaarNumber || '').replace(/\s|-/g, '').toLowerCase();
-        if (pAbha && pAbha === cleanTarget) return true;
-        if (pAadhaar && (pAadhaar === cleanTarget || (searchDigits.length >= 4 && pAadhaar.endsWith(searchDigits.slice(-4))))) return true;
-        if (p.registration_id && p.registration_id.toLowerCase() === searchTargetLower) return true;
+        const cleanTarget = searchTarget.replace(/\s|-/g, '').toLowerCase().trim();
+        const decAbha = (decryptPII(p.abhaNumber) || p.abhaNumber || '').replace(/\s|-/g, '').toLowerCase().trim();
+        const decAadhaar = (decryptPII(p.aadhaarNumber) || p.aadhaarNumber || '').replace(/\s|-/g, '').toLowerCase().trim();
+        const pAadhaarDigits = decAadhaar.replace(/\D/g, '');
+
+        if (decAbha && (decAbha === cleanTarget || decAbha.toLowerCase() === searchTargetLower)) return true;
+        if (decAadhaar && (decAadhaar === cleanTarget || (searchDigits.length === 12 && pAadhaarDigits === searchDigits))) return true;
+        if (p.registration_id && p.registration_id.toLowerCase().trim() === searchTargetLower) return true;
+        if (p.id && p.id.toLowerCase().trim() === searchTargetLower) return true;
         if (searchPhone10 && p.phone) {
           const pDigits = p.phone.replace(/\D/g, '').slice(-10);
           if (pDigits && pDigits === searchPhone10) return true;
@@ -680,9 +686,26 @@ class AuthService {
       if (matchedPatient && matchedPatient.user) {
         user = matchedPatient.user;
       }
+
+      // Also check AbhaAccount table
+      if (!user) {
+        const allAbhaAccounts = await db.abhaAccount.findMany();
+        const cleanTargetAbha = searchTarget.replace(/\s|-/g, '').toLowerCase().trim();
+        const matchedAbha = allAbhaAccounts.find((a) => {
+          const abhaDec = (decryptPII(a.abhaNumber) || a.abhaNumber || '').replace(/\s|-/g, '').toLowerCase().trim();
+          const phr = (a.phrAddress || '').toLowerCase().trim();
+          return (abhaDec && abhaDec === cleanTargetAbha) || (phr && phr === searchTargetLower);
+        });
+        if (matchedAbha) {
+          const p = allPatients.find((pat) => pat.id === matchedAbha.patientProfileId || pat.userId === matchedAbha.patientProfileId);
+          if (p && p.user) {
+            user = p.user;
+          }
+        }
+      }
     }
 
-    // 5. Search Hospital Admin Profile and Hospitals
+    // 5. Search Hospital Admin Profile and Hospitals by valid identifiers
     if (!user) {
       const allAdmins = await db.hospitalAdminProfile.findMany({
         include: {
@@ -698,11 +721,10 @@ class AuthService {
       });
 
       const matchedAdmin = allAdmins.find((a) => {
-        if (a.hospitalId && a.hospitalId.toLowerCase() === searchTargetLower) return true;
-        if (a.hospitalRegistrationId && a.hospitalRegistrationId.toLowerCase() === searchTargetLower) return true;
-        if (a.adminCode && a.adminCode.toLowerCase() === searchTargetLower) return true;
-        if (a.registration_id && a.registration_id.toLowerCase() === searchTargetLower) return true;
-        if (a.tag && a.tag.toLowerCase() === searchTargetLower) return true;
+        if (a.hospitalId && a.hospitalId.toLowerCase().trim() === searchTargetLower) return true;
+        if (a.hospitalRegistrationId && a.hospitalRegistrationId.toLowerCase().trim() === searchTargetLower) return true;
+        if (a.adminCode && a.adminCode.toLowerCase().trim() === searchTargetLower) return true;
+        if (a.registration_id && a.registration_id.toLowerCase().trim() === searchTargetLower) return true;
         return false;
       });
 
@@ -714,9 +736,9 @@ class AuthService {
       if (!user) {
         const allHospitals = await db.hospital.findMany();
         const matchedHosp = allHospitals.find((h) => {
-          if (h.code && h.code.toLowerCase() === searchTargetLower) return true;
-          if (h.id && h.id.toLowerCase() === searchTargetLower) return true;
-          if (h.registration_id && h.registration_id.toLowerCase() === searchTargetLower) return true;
+          if (h.code && h.code.toLowerCase().trim() === searchTargetLower) return true;
+          if (h.id && h.id.toLowerCase().trim() === searchTargetLower) return true;
+          if (h.registration_id && h.registration_id.toLowerCase().trim() === searchTargetLower) return true;
           return false;
         });
         if (matchedHosp) {

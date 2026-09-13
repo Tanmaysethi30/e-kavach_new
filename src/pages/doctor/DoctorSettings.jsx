@@ -39,18 +39,27 @@ export default function DoctorSettings() {
 
   const handleSave = (e) => {
     if (e) e.preventDefault();
-    localStorage.setItem('ekavach_doctor_profile', JSON.stringify(profile));
+    const rawDigits = (profile.phone || '').replace(/\D/g, '').replace(/^91/, '');
+    if (rawDigits.length !== 10) {
+      setToastMessage('Contact number must be exactly 10 digits.');
+      setTimeout(() => setToastMessage(null), 3500);
+      return;
+    }
+    const cleanPhone = `+91 ${rawDigits}`;
+    const updatedProfile = { ...profile, phone: cleanPhone };
+    setProfile(updatedProfile);
+    localStorage.setItem('ekavach_doctor_profile', JSON.stringify(updatedProfile));
     if (updateProfileDetails) {
       updateProfileDetails({
-        name: profile.fullName,
-        fullName: profile.fullName,
-        phone: profile.phone,
-        email: profile.email,
-        licenseId: profile.licenseId,
-        nmcNumber: profile.licenseId,
-        specialization: profile.specialization,
-        hospital: profile.hospital,
-        address: profile.address,
+        name: updatedProfile.fullName,
+        fullName: updatedProfile.fullName,
+        phone: cleanPhone,
+        email: updatedProfile.email,
+        licenseId: updatedProfile.licenseId,
+        nmcNumber: updatedProfile.licenseId,
+        specialization: updatedProfile.specialization,
+        hospital: updatedProfile.hospital,
+        address: updatedProfile.address,
       });
     }
     setToastMessage('Configuration synced with NDHM Cloud repository');

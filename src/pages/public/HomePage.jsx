@@ -106,9 +106,35 @@ export default function HomePage() {
         navigate(dest);
       } else {
         let details = {};
-        if (activeRole === 'patient') details = patientReg;
-        else if (activeRole === 'doctor') details = doctorReg;
-        else details = hospitalReg;
+        if (activeRole === 'patient') {
+          const cleanPhone = (patientReg.phone || '').replace(/\D/g, '');
+          if (cleanPhone.length !== 10) {
+            setRegError('Please enter a valid 10-digit primary mobile number for patient registration.');
+            return;
+          }
+          if (patientReg.emergencyContactPhone) {
+            const cleanEmergencyPhone = patientReg.emergencyContactPhone.replace(/\D/g, '');
+            if (cleanEmergencyPhone.length > 0 && cleanEmergencyPhone.length !== 10) {
+              setRegError('Emergency contact number must be exactly 10 digits.');
+              return;
+            }
+          }
+          details = { ...patientReg, phone: cleanPhone };
+        } else if (activeRole === 'doctor') {
+          const cleanPhone = (doctorReg.phone || '').replace(/\D/g, '');
+          if (cleanPhone.length !== 10) {
+            setRegError('Please enter a valid 10-digit contact mobile number for doctor registration.');
+            return;
+          }
+          details = { ...doctorReg, phone: cleanPhone };
+        } else {
+          const cleanPhone = (hospitalReg.contact || '').replace(/\D/g, '');
+          if (cleanPhone.length !== 10) {
+            setRegError('Please enter a valid 10-digit official contact number for hospital registration.');
+            return;
+          }
+          details = { ...hospitalReg, contact: cleanPhone, phone: cleanPhone };
+        }
 
         if (details.password || details.confirmPassword) {
           if (!details.password || details.password.length < 6) {
@@ -906,6 +932,44 @@ export default function HomePage() {
                                     onChange={(e) => setHospitalReg({ ...hospitalReg, clinicalId: e.target.value })}
                                     className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-2 pl-9 pr-space-sm font-body-md text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary focus:bg-surface-container-lowest transition-all"
                                     placeholder="e.g. IND-TN-APO-09"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              <div className="flex flex-col gap-1">
+                                <label className="font-label-md text-label-md font-semibold text-on-surface" htmlFor="hospital-reg-contact">
+                                  Official Contact (10 Digits)
+                                </label>
+                                <div className="relative flex items-center">
+                                  <span className="material-symbols-outlined absolute left-3 text-[18px] text-on-surface-variant pointer-events-none">call</span>
+                                  <span className="absolute left-8 font-label-md text-xs text-on-surface-variant font-semibold pl-1">+91</span>
+                                  <input
+                                    id="hospital-reg-contact"
+                                    type="tel"
+                                    value={hospitalReg.contact}
+                                    onChange={(e) => setHospitalReg({ ...hospitalReg, contact: e.target.value })}
+                                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-2 pl-[4.5rem] pr-space-sm font-body-md text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary focus:bg-surface-container-lowest transition-all"
+                                    placeholder="98401 22819"
+                                    required
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <label className="font-label-md text-label-md font-semibold text-on-surface" htmlFor="hospital-reg-email">
+                                  Admin Email
+                                </label>
+                                <div className="relative flex items-center">
+                                  <span className="material-symbols-outlined absolute left-3 text-[18px] text-on-surface-variant pointer-events-none">mail</span>
+                                  <input
+                                    id="hospital-reg-email"
+                                    type="email"
+                                    value={hospitalReg.email}
+                                    onChange={(e) => setHospitalReg({ ...hospitalReg, email: e.target.value })}
+                                    className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-2 pl-9 pr-space-sm font-body-md text-sm text-on-surface focus:outline-none focus:ring-2 focus:ring-secondary focus:bg-surface-container-lowest transition-all"
+                                    placeholder="admin.chennai@apollo.health"
                                     required
                                   />
                                 </div>
