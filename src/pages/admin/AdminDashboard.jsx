@@ -1,5 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  CartesianGrid,
+} from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeTriage, subscribeReferrals, subscribeEmergencyAlert } from '../../services/telemetry';
 import SirenAlertModal from '../../components/common/SirenAlertModal';
@@ -11,11 +26,12 @@ export default function AdminDashboard() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTelemetryPatient, setActiveTelemetryPatient] = useState(null);
   const [activeSirenAlert, setActiveSirenAlert] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Live Summary State fetched from DB
   const [summaryData, setSummaryData] = useState({
     hospitalName: currentUser?.hospital || currentUser?.name || 'Apollo Greams Super-Speciality Trauma Center',
-    hospitalCode: currentUser?.tag || 'Chennai Node #01',
+    hospitalCode: currentUser?.tag || 'AP-HSP-842-TN',
     totalBeds: 450,
     occupiedBeds: 382,
     availableBeds: 68,
@@ -26,50 +42,44 @@ export default function AdminDashboard() {
     icuLoadPct: 92,
     activePatientsCount: 382,
     doctorsOnDutyCount: 48,
+    totalDoctors: 52,
+    totalStaff: 48,
+    onDutyStaff: 36,
+    oxygenReservesPct: 98,
+    ventilatorsInUse: 14,
+    ventilatorsTotal: 18,
   });
 
-  const [triageList, setTriageList] = useState([
-    {
-      id: 'tr-01',
-      name: 'Rajesh V. Sharma',
-      abha: '9824-8819-TN',
-      priority: 'Critical (Priority 1)',
-      condition: 'Acute Myocardial Infarction',
-      vitals: 'Trauma Bay 02 • Bedside Cardiac Observation',
-      bay: 'Bay 02',
-      doctor: 'Dr. Kavitha Menon',
-      role: 'Cardiology Response Lead',
-      isReferral: false,
-    },
-    {
-      id: 'tr-02',
-      name: 'Meenakshi Sundaram',
-      abha: '7712-4401-TN',
-      priority: 'Urgent (Priority 2)',
-      condition: 'Polytrauma / Compound Fracture',
-      vitals: 'Trauma Bay 04 • Orthopedic Bedside Observation',
-      bay: 'Bay 04',
-      doctor: 'Dr. Arvind Swaminathan',
-      role: 'Orthopedic Trauma Consult',
-      isReferral: false,
-    },
-    {
-      id: 'tr-03',
-      name: 'Harish K. Varma',
-      abha: '4402-9918-TN',
-      priority: 'Stable (Priority 3)',
-      condition: 'Deep Laceration / Suture',
-      vitals: 'Trauma Bay 06 • Minor Procedure Bay',
-      bay: 'Bay 06',
-      doctor: 'Dr. Priya Sundaram',
-      role: 'Emergency Medical Officer',
-      isReferral: false,
-    },
-  ]);
+  const [chartsData, setChartsData] = useState({
+    hourlyTrend: [
+      { time: '00:00', occupied: 360, available: 90, critical: 40 },
+      { time: '04:00', occupied: 350, available: 100, critical: 38 },
+      { time: '08:00', occupied: 375, available: 75, critical: 44 },
+      { time: '12:00', occupied: 395, available: 55, critical: 48 },
+      { time: '16:00', occupied: 388, available: 62, critical: 46 },
+      { time: 'Now', occupied: 382, available: 68, critical: 46 },
+    ],
+    wardBreakdown: [
+      { name: 'ICU Node', total: 50, occupied: 46, available: 4, loadPct: 92 },
+      { name: 'CCU Unit', total: 32, occupied: 28, available: 4, loadPct: 88 },
+      { name: 'Trauma Bay', total: 8, occupied: 6, available: 2, loadPct: 75 },
+      { name: 'General Ward', total: 200, occupied: 172, available: 28, loadPct: 86 },
+      { name: 'Surgical Wing', total: 60, occupied: 52, available: 8, loadPct: 87 },
+      { name: 'Pediatric NICU', total: 40, occupied: 34, available: 6, loadPct: 85 },
+    ],
+    triageDistribution: [
+      { name: 'Red (Critical)', value: 4, color: '#DC2626' },
+      { name: 'Yellow (Urgent)', value: 8, color: '#D97706' },
+      { name: 'Green (Stable)', value: 16, color: '#059669' },
+    ],
+  });
+
+  const [triageList, setTriageList] = useState([]);
 
   useEffect(() => {
     async function loadSummary() {
       try {
+        setLoading(true);
         const token = localStorage.getItem('ekavach_token');
         const headers = {
           'Content-Type': 'application/json',
@@ -79,25 +89,41 @@ export default function AdminDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.summary) {
-            const { hospital, bedMetrics, operationsMetrics } = data.summary;
+            const { hospital, bedMetrics, operationsMetrics, charts } = data.summary;
             setSummaryData({
-              hospitalName: hospital.name || currentUser?.hospital || currentUser?.name || 'Apollo Greams Super-Speciality Trauma Center',
-              hospitalCode: hospital.code || currentUser?.tag || 'Chennai Node #01',
-              totalBeds: bedMetrics.total || 450,
-              occupiedBeds: bedMetrics.occupied || 382,
-              availableBeds: bedMetrics.available || 68,
-              occupancyRate: bedMetrics.occupancyRate || 85,
+              hospitalName: hospital.name || currentUser?.hospital || currentUser?.name || 'Apollo Greams Trauma Center',
+              hospitalCode: hospital.code || currentUser?.tag || 'AP-HSP-842-TN',
+              totalBeds: bedMetrics.total,
+              occupiedBeds: bedMetrics.occupied,
+              availableBeds: bedMetrics.available,
+              occupancyRate: bedMetrics.occupancyRate,
               icuTotal: bedMetrics.icu?.total || 50,
               icuOccupied: bedMetrics.icu?.occupied || 46,
               icuAvailable: bedMetrics.icu?.available || 4,
               icuLoadPct: bedMetrics.icu?.loadPct || 92,
-              activePatientsCount: bedMetrics.occupied || 382,
-              doctorsOnDutyCount: operationsMetrics.totalStaff || 48,
+              activePatientsCount: bedMetrics.occupied,
+              doctorsOnDutyCount: operationsMetrics.onDutyDoctors || operationsMetrics.totalDoctors || 48,
+              totalDoctors: operationsMetrics.totalDoctors || 52,
+              totalStaff: operationsMetrics.totalStaff || 48,
+              onDutyStaff: operationsMetrics.onDutyStaff || 36,
+              oxygenReservesPct: hospital.oxygenReservesPct ?? 98,
+              ventilatorsInUse: hospital.ventilatorsInUse ?? 14,
+              ventilatorsTotal: hospital.ventilatorsTotal ?? 18,
             });
+
+            if (charts) {
+              setChartsData({
+                hourlyTrend: charts.hourlyTrend || [],
+                wardBreakdown: charts.wardBreakdown?.length > 0 ? charts.wardBreakdown : chartsData.wardBreakdown,
+                triageDistribution: charts.triageDistribution || chartsData.triageDistribution,
+              });
+            }
           }
         }
-      } catch (_err) {
-        // fallback to default
+      } catch (err) {
+        console.error('Error fetching dashboard summary:', err);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -111,25 +137,21 @@ export default function AdminDashboard() {
         const res = await fetch('/api/admin/triage-queue', { headers });
         if (res.ok) {
           const data = await res.json();
-          if (Array.isArray(data.queue) && data.queue.length > 0) {
+          if (Array.isArray(data.queue)) {
             const mapped = data.queue.map((e) => ({
               id: e.id,
-              name: e.patientName || 'Emergency Patient',
+              name: e.patientName || 'Emergency Ingress Patient',
               abha: e.abhaNumber || '9824-8819-TN',
               priority: e.priorityLevel || (e.triageColor === 'RED' ? 'Critical (Priority 1)' : 'Urgent (Priority 2)'),
-              condition: e.condition || 'Emergency Ingress',
-              vitals: e.bayNumber ? `Trauma ${e.bayNumber} • Bedside Clinical Observation` : 'Trauma Bay 02 • Bedside Cardiac Observation',
+              condition: e.condition || 'Emergency Trauma Ingress',
+              vitals: e.bayNumber ? `Trauma ${e.bayNumber} • Clinical Observation` : 'Trauma Bay 02 • Cardiac Telemetry',
               bay: e.bayNumber || 'Bay 02',
               doctor: e.doctor || 'Dr. Kavitha Menon',
               role: e.isReferral ? 'Inter-Hospital Referral Consult' : 'Emergency Response Lead',
               isReferral: !!e.isReferral,
               isLive: true,
             }));
-            setTriageList((prev) => {
-              const existingIds = new Set(mapped.map((m) => m.id));
-              const remaining = prev.filter((p) => !existingIds.has(p.id));
-              return [...mapped, ...remaining];
-            });
+            setTriageList(mapped);
           }
         }
       } catch (_err) {}
@@ -139,7 +161,6 @@ export default function AdminDashboard() {
     loadTriage();
 
     const unsubTriage = subscribeTriage((data) => {
-      console.log('⚡ [AdminDashboard] Live triage entry received:', data);
       if (data.triageEntry) {
         const e = data.triageEntry;
         const newItem = {
@@ -161,7 +182,6 @@ export default function AdminDashboard() {
     });
 
     const unsubReferral = subscribeReferrals((data) => {
-      console.log('⚡ [AdminDashboard] Live referral update received:', data);
       if (data.triageEntry || data.referral) {
         const r = data.referral || {};
         const te = data.triageEntry || {};
@@ -184,7 +204,6 @@ export default function AdminDashboard() {
     });
 
     const unsubEmergencyAlert = subscribeEmergencyAlert((alertData) => {
-      console.log('🚨 [AdminDashboard] Emergency SOS Alert received from IVR/BreakGlass:', alertData);
       if (alertData) {
         setActiveSirenAlert(alertData);
         const p = alertData.patient || {};
@@ -222,85 +241,40 @@ export default function AdminDashboard() {
   const handleExportDailyReport = () => {
     const csvContent = `E-KAVACH HOSPITAL COMMAND NODE 01 - DAILY OPERATIONS REPORT
 Generated: ${new Date().toLocaleString()}
-Hospital: Apollo Greams Super-Speciality Trauma Center, Chennai
+Hospital: ${summaryData.hospitalName} (${summaryData.hospitalCode})
 
-=== BED STATUS ===
-Total Beds: 450
-Occupied: 382 (85% Capacity)
-Available: 68
-ICU Beds: 46/50 Occupied (92% Load - 4 Available)
-CCU Beds: 28/32 Occupied (87.5% Load - 4 Available)
-Emergency Trauma Bays: 6/8 Occupied (75% Load - 2 Available)
+=== BED & CAPACITY METRICS ===
+Total Beds: ${summaryData.totalBeds}
+Occupied: ${summaryData.occupiedBeds} (${summaryData.occupancyRate}% Capacity)
+Available: ${summaryData.availableBeds}
+ICU Beds: ${summaryData.icuOccupied}/${summaryData.icuTotal} Occupied (${summaryData.icuLoadPct}% Load)
+CCU Beds: 28/32 Occupied (87.5% Load)
+Trauma Bays: 6/8 Occupied (75% Load)
 
-=== ACTIVE PATIENT CENSUS ===
-Active Inpatients: 382
-Admitted Today: 24
-Discharges Pending: 18
+=== CLINICAL RESOURCES ===
+Oxygen Cryogenic Reserves: ${summaryData.oxygenReservesPct}%
+Ventilators: ${summaryData.ventilatorsInUse} in use / ${summaryData.ventilatorsTotal} total
+Doctors On Duty: ${summaryData.doctorsOnDutyCount} of ${summaryData.totalDoctors}
+Ward Staff On Duty: ${summaryData.onDutyStaff} of ${summaryData.totalStaff}
 
-=== CLINICAL STAFFING ===
-Doctors on Active Duty: 48 (12 Critical Care, 36 General & Specialty)
-Nursing & Allied Staff: 36 on duty, 12 off duty
-
-=== EMERGENCY WARD INGRESS ===
-Bay 02: Rajesh V. Sharma (ABHA 9824-8819-TN) - Priority 1 (Critical) - Attending: Dr. Kavitha Menon
-Bay 04: Meenakshi Sundaram (ABHA 7712-4401-TN) - Priority 2 (Urgent) - Attending: Dr. Arvind Swaminathan
-Bay 06: Harish K. Varma (ABHA 4402-9918-TN) - Priority 3 (Stable) - Attending: Dr. Priya Sundaram
-Ambulances Ingressing: 3 (Fleet 108)
-Grid Latency: 0.04s (TLS 1.3 Verified)`;
+=== ACTIVE EMERGENCY INGRESS ===
+${triageList.map((t) => `${t.bay}: ${t.name} (${t.abha}) - ${t.priority} - ${t.condition} - Attending: ${t.doctor}`).join('\n')}
+`;
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `E-KAVACH_Daily_Hospital_Report_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.href = url;
+    link.download = `E-KAVACH_Daily_Operations_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     showToast('Daily Hospital Operations Report downloaded successfully.');
   };
 
-  const patientsTelemetry = [
-    {
-      name: 'Rajesh V. Sharma',
-      abha: '9824-8819-TN',
-      priority: 'Critical (Priority 1)',
-      condition: 'Acute Myocardial Infarction',
-      vitals: 'SpO2 88% • BP 190/115 • ST Elevation',
-      heartRate: '112 bpm',
-      respRate: '24 /min',
-      bay: 'Bay 02',
-      doctor: 'Dr. Kavitha Menon',
-      role: 'Cardiology Response Lead'
-    },
-    {
-      name: 'Meenakshi Sundaram',
-      abha: '7712-4401-TN',
-      priority: 'Urgent (Priority 2)',
-      condition: 'Polytrauma / Compound Fracture',
-      vitals: 'Right Femur • Hemodynamically Stable',
-      heartRate: '84 bpm',
-      respRate: '18 /min',
-      bay: 'Bay 04',
-      doctor: 'Dr. Arvind Swaminathan',
-      role: 'Orthopedic Trauma Consult'
-    },
-    {
-      name: 'Harish K. Varma',
-      abha: '4402-9918-TN',
-      priority: 'Stable (Priority 3)',
-      condition: 'Deep Laceration / Suture',
-      vitals: 'Left Forearm • Local Anesthesia Active',
-      heartRate: '72 bpm',
-      respRate: '16 /min',
-      bay: 'Bay 06',
-      doctor: 'Dr. Priya Sundaram',
-      role: 'Emergency Medical Officer'
-    }
-  ];
-
   return (
     <div className="w-full">
-      {/* Dynamic Toast Feedback */}
+      {/* Toast Feedback */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-[#004d6c] text-white rounded-xl shadow-xl transition-all">
           <span className="material-symbols-outlined text-xl text-[#02C39A]">verified</span>
@@ -310,7 +284,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
           </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="ml-4 text-slate-300 hover:text-white transition-colors"
+            className="ml-4 text-slate-300 hover:text-white transition-colors cursor-pointer"
             type="button"
           >
             <span className="material-symbols-outlined text-sm">close</span>
@@ -318,7 +292,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
         </div>
       )}
 
-      {/* Quick Add Staff / Doctor Modal */}
+      {/* Quick Add Clinical Personnel Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
           <div className="bg-surface-container-lowest rounded-2xl max-w-md w-full p-6 shadow-2xl border border-surface-container">
@@ -329,14 +303,14 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer"
                 type="button"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
             <p className="font-body-sm text-body-sm text-on-surface-variant mt-3">
-              Select the administrative domain to onboard medical professionals to Apollo Greams Command Node.
+              Select the administrative domain to onboard medical professionals to {summaryData.hospitalName}.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5">
               <button
@@ -344,7 +318,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                   setShowAddModal(false);
                   navigate('/admin/doctors');
                 }}
-                className="p-4 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container flex flex-col items-center text-center transition-all group"
+                className="p-4 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container flex flex-col items-center text-center transition-all group cursor-pointer"
                 type="button"
               >
                 <div className="w-12 h-12 rounded-xl bg-primary text-on-primary flex items-center justify-center mb-2 shadow-sm group-hover:scale-105 transition-transform">
@@ -358,7 +332,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                   setShowAddModal(false);
                   navigate('/admin/staff');
                 }}
-                className="p-4 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container flex flex-col items-center text-center transition-all group"
+                className="p-4 rounded-xl border border-surface-container-high bg-surface-container-low hover:bg-surface-container flex flex-col items-center text-center transition-all group cursor-pointer"
                 type="button"
               >
                 <div className="w-12 h-12 rounded-xl bg-surface-container-highest text-primary flex items-center justify-center mb-2 shadow-sm group-hover:scale-105 transition-transform">
@@ -383,7 +357,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
       {/* Telemetry Live Modal */}
       {activeTelemetryPatient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-surface-container animate-fade-in">
+          <div className="bg-surface-container-lowest rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-surface-container">
             <div className="flex items-center justify-between pb-3 border-b border-surface-container">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 rounded-full bg-error animate-ping"></span>
@@ -393,20 +367,20 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
               </div>
               <button
                 onClick={() => setActiveTelemetryPatient(null)}
-                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg"
+                className="text-on-surface-variant hover:text-on-surface p-1 rounded-lg cursor-pointer"
                 type="button"
               >
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-            
+
             <div className="mt-4 bg-surface-container-low p-4 rounded-xl space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-label-lg text-label-lg font-bold text-primary">{activeTelemetryPatient.name}</div>
-                  <div className="font-label-sm text-label-sm text-on-surface-variant">ABHA: {activeTelemetryPatient.abha}</div>
+                  <div className="font-label-sm text-xs text-on-surface-variant">ABHA: {activeTelemetryPatient.abha}</div>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold">
+                <span className="px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-xs font-semibold">
                   {activeTelemetryPatient.priority}
                 </span>
               </div>
@@ -420,7 +394,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                 <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Heart Rate</div>
                 <div className="text-lg font-bold text-error flex items-center justify-center gap-1 mt-1">
                   <span className="material-symbols-outlined text-base animate-pulse">favorite</span>
-                  {activeTelemetryPatient.heartRate || '102 bpm'}
+                  104 bpm
                 </div>
               </div>
               <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
@@ -428,8 +402,8 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                 <div className="text-lg font-bold text-primary mt-1">94%</div>
               </div>
               <div className="bg-surface-container-lowest p-3 rounded-lg border border-surface-container text-center">
-                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Respiration</div>
-                <div className="text-lg font-bold text-secondary mt-1">{activeTelemetryPatient.respRate || '22 /min'}</div>
+                <div className="text-[11px] text-on-surface-variant uppercase font-semibold">Blood Pressure</div>
+                <div className="text-lg font-bold text-secondary mt-1">135/88</div>
               </div>
             </div>
 
@@ -444,7 +418,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                   setActiveTelemetryPatient(null);
                   navigate('/admin/emergency-ward');
                 }}
-                className="px-4 py-2 bg-surface-container text-primary font-label-md text-label-md font-semibold rounded-lg hover:bg-surface-container-high transition-colors"
+                className="px-4 py-2 bg-surface-container text-primary font-label-md text-xs font-semibold rounded-lg hover:bg-surface-container-high transition-colors cursor-pointer"
                 type="button"
               >
                 Emergency Ward View
@@ -454,10 +428,10 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                   setActiveTelemetryPatient(null);
                   navigate('/doctor/patient-history');
                 }}
-                className="px-4 py-2 bg-primary text-on-primary font-label-md text-label-md font-semibold rounded-lg hover:bg-primary/90 transition-colors"
+                className="px-4 py-2 bg-primary text-on-primary font-label-md text-xs font-semibold rounded-lg hover:bg-primary/90 transition-colors cursor-pointer"
                 type="button"
               >
-                Open Full Chart
+                Open Full EMR
               </button>
             </div>
           </div>
@@ -470,29 +444,37 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-space-md">
             <div>
               <div className="flex items-center gap-space-xs mb-space-2xs">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold tracking-wide uppercase">
-                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span> {summaryData.hospitalCode || 'Command Node'}
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-xs font-semibold tracking-wide uppercase">
+                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary"></span> {summaryData.hospitalCode}
                 </span>
-                <span className="font-label-sm text-label-sm text-on-surface-variant">Grid Synchronized (ABDM Tier-3)</span>
+                <span className="font-label-sm text-xs text-on-surface-variant">Grid Synchronized (ABDM Tier-3 Node)</span>
               </div>
               <h1 className="font-headline-lg text-headline-lg text-primary tracking-tight">
-                Welcome back, {currentUser?.name || 'Hospital Administrator'}
+                Hospital Command Dashboard
               </h1>
               <p className="font-body-md text-body-md text-on-surface-variant mt-1">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} • {summaryData.hospitalName}
               </p>
             </div>
             <div className="flex items-center gap-space-sm shrink-0 flex-wrap">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="inline-flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high transition-all font-label-lg text-label-lg font-medium cursor-pointer"
+                type="button"
+              >
+                <span className="material-symbols-outlined text-[18px]">person_add</span>
+                + Add Personnel
+              </button>
               <Link
                 to="/admin/hospital-details"
                 className="inline-flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-primary text-on-primary shadow-sm hover:bg-primary/90 transition-all font-label-lg text-label-lg font-semibold cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[18px]">settings</span>
-                Hospital Setup &amp; Details
+                <span className="material-symbols-outlined text-[18px]">domain</span>
+                Hospital Profile &amp; Beds
               </Link>
               <button
                 onClick={handleExportDailyReport}
-                className="inline-flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container-lowest text-primary shadow-sm hover:bg-surface-container-low transition-all font-label-lg text-label-lg font-medium cursor-pointer"
+                className="inline-flex items-center gap-space-xs px-space-md py-2.5 rounded-lg bg-surface-container-lowest text-primary shadow-sm hover:bg-surface-container-low transition-all font-label-lg text-label-lg font-medium cursor-pointer border border-surface-container"
                 type="button"
               >
                 <span className="material-symbols-outlined text-[18px]">download</span>
@@ -506,45 +488,47 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
             {/* Card 1 */}
             <div
               onClick={() => navigate('/admin/hospital-details')}
-              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
+              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
-                <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Total Beds</span>
+                <span className="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Total Hospital Beds</span>
                 <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
                   <span className="material-symbols-outlined text-[20px]">single_bed</span>
                 </div>
               </div>
               <div className="mt-space-sm">
-                <div className="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">{summaryData.totalBeds}</div>
-                <div className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-                  {summaryData.occupiedBeds} Occupied / {summaryData.availableBeds} Available
+                <div className="font-headline-xl text-3xl text-primary font-bold tracking-tight">{summaryData.totalBeds}</div>
+                <div className="font-body-sm text-xs text-on-surface-variant mt-1">
+                  {summaryData.occupiedBeds} Occupied • {summaryData.availableBeds} Available
                 </div>
               </div>
               <div className="mt-space-md pt-space-xs flex items-center">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-1.5"></span>{summaryData.availableBeds} Available ({summaryData.occupancyRate}% Cap)
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-xs font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-1.5"></span>{summaryData.availableBeds} Ready ({summaryData.occupancyRate}% Load)
                 </span>
               </div>
             </div>
 
             {/* Card 2 */}
             <div
-              onClick={() => navigate('/admin/patients')}
-              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate('/admin/emergency-ward')}
+              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
-                <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Active Patients</span>
-                <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
-                  <span className="material-symbols-outlined text-[20px]">groups</span>
+                <span className="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold">ICU Critical Beds</span>
+                <div className="w-9 h-9 rounded-lg bg-error-container text-on-error-container flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">vital_signs</span>
                 </div>
               </div>
               <div className="mt-space-sm">
-                <div className="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">{summaryData.activePatientsCount}</div>
-                <div className="font-body-sm text-body-sm text-on-surface-variant mt-1">Active Hospital Inpatients Registry</div>
+                <div className="font-headline-xl text-3xl text-primary font-bold tracking-tight">{summaryData.icuOccupied} / {summaryData.icuTotal}</div>
+                <div className="font-body-sm text-xs text-on-surface-variant mt-1">
+                  {summaryData.icuAvailable} ICU Critical Beds Vacant
+                </div>
               </div>
               <div className="mt-space-md pt-space-xs flex items-center">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary-container mr-1.5"></span>Admitted &amp; In-Care
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-error-container text-on-error-container font-label-sm text-xs font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-error mr-1.5"></span>{summaryData.icuLoadPct}% ICU Utilization
                 </span>
               </div>
             </div>
@@ -552,55 +536,256 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
             {/* Card 3 */}
             <div
               onClick={() => navigate('/admin/doctors')}
-              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
+              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
-                <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">Doctors On Duty</span>
-                <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-tertiary-container">
+                <span className="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Clinical Doctors</span>
+                <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary">
                   <span className="material-symbols-outlined text-[20px]">stethoscope</span>
                 </div>
               </div>
               <div className="mt-space-sm">
-                <div className="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">{summaryData.doctorsOnDutyCount}</div>
-                <div className="font-body-sm text-body-sm text-on-surface-variant mt-1">Clinical Personnel Roster</div>
+                <div className="font-headline-xl text-3xl text-primary font-bold tracking-tight">{summaryData.doctorsOnDutyCount} Active</div>
+                <div className="font-body-sm text-xs text-on-surface-variant mt-1">
+                  Total Verified Clinicians: {summaryData.totalDoctors}
+                </div>
               </div>
               <div className="mt-space-md pt-space-xs flex items-center">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-1.5 animate-pulse"></span>Active Duty
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-xs font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-1.5 animate-pulse"></span>NMC Verified
                 </span>
               </div>
             </div>
 
             {/* Card 4 */}
             <div
-              onClick={() => navigate('/admin/hospital-details')}
-              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => navigate('/admin/staff')}
+              className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container relative overflow-hidden flex flex-col justify-between cursor-pointer hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between">
-                <span className="font-label-md text-label-md uppercase tracking-wider text-on-surface-variant font-semibold">ICU Capacity</span>
-                <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-error">
-                  <span className="material-symbols-outlined text-[20px]">vital_signs</span>
+                <span className="font-label-md text-xs uppercase tracking-wider text-on-surface-variant font-semibold">Staff &amp; Nursing</span>
+                <div className="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+                  <span className="material-symbols-outlined text-[20px]">badge</span>
                 </div>
               </div>
               <div className="mt-space-sm">
-                <div className="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">{summaryData.icuLoadPct}%</div>
-                <div className="font-body-sm text-body-sm text-on-surface-variant mt-1">
-                  {summaryData.icuOccupied} of {summaryData.icuTotal} Beds Occupied
+                <div className="font-headline-xl text-3xl text-primary font-bold tracking-tight">{summaryData.onDutyStaff} On Duty</div>
+                <div className="font-body-sm text-xs text-on-surface-variant mt-1">
+                  Total Roster: {summaryData.totalStaff} Members
                 </div>
               </div>
               <div className="mt-space-md pt-space-xs flex items-center">
-                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm font-semibold">
-                  <span className="w-1.5 h-1.5 rounded-full bg-secondary mr-1.5"></span>{summaryData.icuAvailable} ICU Beds Available
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-surface-container-high text-primary font-label-sm text-xs font-semibold">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary mr-1.5"></span>{Math.round((summaryData.onDutyStaff / (summaryData.totalStaff || 1)) * 100)}% Shift Coverage
                 </span>
               </div>
             </div>
           </div>
 
-          {/* 3. Emergency Ward Priority Command Module */}
-          <div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden relative">
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-error"></div>
-            <div className="p-space-lg pl-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-md">
+          {/* 3. CHARTS SECTION: Recharts Visualizations */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+            {/* Chart 1: 24-Hour Bed Occupancy Trend */}
+            <div className="lg:col-span-2 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-surface-container">
+                <div>
+                  <h3 className="font-headline-sm text-base text-primary font-bold">24-Hour Bed Occupancy &amp; Ingress Trend</h3>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Real-time hourly census of occupied vs available vs critical beds</p>
+                </div>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-xs font-semibold">
+                  Live Stream
+                </span>
+              </div>
+
+              <div className="h-64 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartsData.hourlyTrend} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="occupiedGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#004d6c" stopOpacity={0.6} />
+                        <stop offset="95%" stopColor="#004d6c" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="availableGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#008774" stopOpacity={0.5} />
+                        <stop offset="95%" stopColor="#008774" stopOpacity={0.05} />
+                      </linearGradient>
+                      <linearGradient id="criticalGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#DC2626" stopOpacity={0.6} />
+                        <stop offset="95%" stopColor="#DC2626" stopOpacity={0.05} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="time" tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+                    <Area type="monotone" dataKey="occupied" name="Occupied Beds" stroke="#004d6c" fillOpacity={1} fill="url(#occupiedGradient)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="available" name="Available Beds" stroke="#008774" fillOpacity={1} fill="url(#availableGradient)" strokeWidth={2} />
+                    <Area type="monotone" dataKey="critical" name="ICU Critical" stroke="#DC2626" fillOpacity={1} fill="url(#criticalGradient)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Chart 2: Emergency Triage Distribution */}
+            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-surface-container">
+                <div>
+                  <h3 className="font-headline-sm text-base text-primary font-bold">Triage Severity Split</h3>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Active ER ingress severity levels</p>
+                </div>
+                <span className="material-symbols-outlined text-primary text-xl">pie_chart</span>
+              </div>
+
+              <div className="h-52 w-full mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartsData.triageDistribution}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={75}
+                      paddingAngle={4}
+                    >
+                      {chartsData.triageDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Legend wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center pt-2 border-t border-surface-container">
+                <div className="bg-red-50 p-2 rounded-lg">
+                  <div className="text-[10px] uppercase font-bold text-red-700">Red (P1)</div>
+                  <div className="text-base font-bold text-red-700">
+                    {chartsData.triageDistribution.find((t) => t.name.includes('Red'))?.value || 0}
+                  </div>
+                </div>
+                <div className="bg-amber-50 p-2 rounded-lg">
+                  <div className="text-[10px] uppercase font-bold text-amber-700">Yellow (P2)</div>
+                  <div className="text-base font-bold text-amber-700">
+                    {chartsData.triageDistribution.find((t) => t.name.includes('Yellow'))?.value || 0}
+                  </div>
+                </div>
+                <div className="bg-emerald-50 p-2 rounded-lg">
+                  <div className="text-[10px] uppercase font-bold text-emerald-700">Green (P3)</div>
+                  <div className="text-base font-bold text-emerald-700">
+                    {chartsData.triageDistribution.find((t) => t.name.includes('Green'))?.value || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Wards Capacity Bar Chart & Critical Facilities Gauges */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-space-md">
+            {/* Ward Breakdown Bar Chart */}
+            <div className="lg:col-span-2 bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container">
+              <div className="flex items-center justify-between pb-3 border-b border-surface-container">
+                <div>
+                  <h3 className="font-headline-sm text-base text-primary font-bold">Ward &amp; Department Capacity Distribution</h3>
+                  <p className="text-xs text-on-surface-variant mt-0.5">Occupied beds compared against total departmental capacity</p>
+                </div>
+                <Link to="/admin/hospital-details" className="text-xs font-semibold text-primary hover:underline">
+                  Manage Wards &rarr;
+                </Link>
+              </div>
+
+              <div className="h-60 w-full mt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartsData.wardBreakdown} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} tickLine={false} />
+                    <YAxis tick={{ fontSize: 12, fill: '#64748b' }} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0' }} />
+                    <Legend wrapperStyle={{ fontSize: 12, paddingTop: 6 }} />
+                    <Bar dataKey="occupied" name="Occupied Beds" fill="#004d6c" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total" name="Total Capacity" fill="#cbd5e1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Critical Resources Gauges */}
+            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm border border-surface-container flex flex-col justify-between">
+              <div className="flex items-center justify-between pb-3 border-b border-surface-container">
+                <h3 className="font-headline-sm text-base text-primary font-bold">Critical Lifeline Reserves</h3>
+                <span className="material-symbols-outlined text-primary text-xl">air</span>
+              </div>
+
+              <div className="space-y-4 my-auto py-2">
+                {/* Oxygen */}
+                <div>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-on-surface">Cryogenic Liquid Oxygen Reserves</span>
+                    <span className="text-primary font-bold">{summaryData.oxygenReservesPct}%</span>
+                  </div>
+                  <div className="w-full bg-surface-container-high rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-[#008774] h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${summaryData.oxygenReservesPct}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-[11px] text-on-surface-variant mt-1">20,000L Central Tank • 96+ Hours Autonomous Run</div>
+                </div>
+
+                {/* Ventilators */}
+                <div>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-on-surface">Mechanical Ventilators</span>
+                    <span className="text-primary font-bold">
+                      {summaryData.ventilatorsInUse} / {summaryData.ventilatorsTotal} in use
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-container-high rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-primary h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.round((summaryData.ventilatorsInUse / (summaryData.ventilatorsTotal || 1)) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-[11px] text-on-surface-variant mt-1">
+                    {Math.max(0, summaryData.ventilatorsTotal - summaryData.ventilatorsInUse)} Ventilators Available in Surge Stock
+                  </div>
+                </div>
+
+                {/* Shift Coverage */}
+                <div>
+                  <div className="flex justify-between text-xs font-semibold mb-1">
+                    <span className="text-on-surface">Active Duty Clinical Staffing</span>
+                    <span className="text-secondary font-bold">
+                      {summaryData.onDutyStaff} / {summaryData.totalStaff} On Duty
+                    </span>
+                  </div>
+                  <div className="w-full bg-surface-container-high rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-secondary h-3 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.round((summaryData.onDutyStaff / (summaryData.totalStaff || 1)) * 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="text-[11px] text-on-surface-variant mt-1">100% Essential Critical Care Ratio Met</div>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-surface-container flex items-center justify-between">
+                <span className="text-xs text-on-surface-variant">Grid Telemetry:</span>
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#008774]">
+                  <span className="w-2 h-2 rounded-full bg-[#008774] animate-pulse"></span> Optimal 0.04s
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Emergency Ward Priority Live Queue */}
+          <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-surface-container overflow-hidden relative">
+            <div className="p-space-lg">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-md border-b border-surface-container">
                 <div className="flex items-center gap-space-sm">
                   <div className="relative flex items-center justify-center">
                     <span className="w-3.5 h-3.5 rounded-full bg-error animate-ping absolute opacity-75"></span>
@@ -608,22 +793,21 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                   </div>
                   <div>
                     <div className="flex items-center gap-space-xs">
-                      <h2 className="font-headline-md text-headline-md text-primary">Emergency Ward Status</h2>
-                      <span className="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-label-sm font-semibold uppercase">Live Ingress</span>
+                      <h2 className="font-headline-md text-headline-md text-primary font-bold">Emergency Ward Ingress Queue</h2>
+                      <span className="px-2 py-0.5 rounded-full bg-error-container text-on-error-container font-label-sm text-xs font-semibold uppercase">Live Ingress</span>
                     </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                      Bay 5 of 8 Active • <strong className="text-on-surface">3 Ingressing Ambulances</strong> (108 Emergency State Fleet)
+                    <p className="font-body-sm text-xs text-on-surface-variant mt-0.5">
+                      Real-time live telemetry from incoming ambulances (108 Fleet) and trauma bay admissions.
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-space-sm">
-                  <span className="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline">Telemetry Grid Sync: 0.04s</span>
                   <button
                     onClick={() => navigate('/admin/emergency-ward')}
-                    className="inline-flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-medium shadow-sm hover:bg-primary-container transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 px-space-md py-2 rounded-lg bg-primary text-on-primary font-label-lg text-xs font-semibold shadow-sm hover:bg-primary/90 transition-colors cursor-pointer"
                     type="button"
                   >
-                    <span className="material-symbols-outlined text-[18px]">bed</span> Manage ER Beds
+                    <span className="material-symbols-outlined text-[16px]">emergency</span> Open ER Command Center
                   </button>
                 </div>
               </div>
@@ -632,7 +816,7 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
               <div className="overflow-x-auto mt-space-sm">
                 <table className="w-full text-left font-body-sm text-body-sm">
                   <thead>
-                    <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-label-md uppercase tracking-wider">
+                    <tr className="bg-surface-container-low text-on-surface-variant font-label-md text-xs uppercase tracking-wider">
                       <th className="px-space-md py-3 rounded-l-lg">Patient &amp; ABHA ID</th>
                       <th className="px-space-md py-3">Triage Level</th>
                       <th className="px-space-md py-3">Presenting Condition</th>
@@ -641,57 +825,62 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
                       <th className="px-space-md py-3 text-right rounded-r-lg">Action</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y-0">
+                  <tbody className="divide-y divide-surface-container">
                     {triageList.map((p, idx) => (
                       <tr key={p.id || idx} className="hover:bg-surface-container-low/70 transition-colors">
                         <td className="px-space-md py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className="font-label-lg text-label-lg font-semibold text-primary">{p.name}</span>
+                            <span className="font-label-lg text-sm font-semibold text-primary">{p.name}</span>
                             {p.isReferral && (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#E0F2FE] text-[#0369A1] border border-[#BAE6FD]">
-                                REFERRAL
+                              <span className="px-1.5 py-0.5 text-[10px] bg-secondary-fixed text-on-secondary-fixed rounded font-bold">
+                                TRANSFER
                               </span>
                             )}
                           </div>
-                          <div className="font-label-sm text-label-sm text-on-surface-variant">ABHA: {p.abha}</div>
+                          <div className="font-label-sm text-xs text-on-surface-variant">{p.abha}</div>
                         </td>
-                        <td className="px-space-md py-3.5 whitespace-nowrap">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full ${
-                            p.priority.includes('Critical') || p.priority.includes('Priority 1')
-                              ? 'bg-error-container text-on-error-container'
-                              : p.priority.includes('Urgent') || p.priority.includes('Priority 2')
-                              ? 'bg-secondary-fixed text-on-secondary-fixed'
-                              : 'bg-surface-container-high text-on-surface-variant'
-                          } font-label-sm text-label-sm font-semibold`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${
+                        <td className="px-space-md py-3.5">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-1 rounded-full font-label-sm text-xs font-semibold ${
                               p.priority.includes('Critical') || p.priority.includes('Priority 1')
-                                ? 'bg-error'
+                                ? 'bg-error-container text-on-error-container'
                                 : p.priority.includes('Urgent') || p.priority.includes('Priority 2')
-                                ? 'bg-secondary'
-                                : 'bg-outline'
-                            }`}></span>
+                                ? 'bg-secondary-fixed text-on-secondary-fixed'
+                                : 'bg-tertiary-fixed text-on-tertiary-fixed'
+                            }`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                p.priority.includes('Critical') || p.priority.includes('Priority 1')
+                                  ? 'bg-error animate-pulse'
+                                  : p.priority.includes('Urgent')
+                                  ? 'bg-secondary'
+                                  : 'bg-tertiary'
+                              }`}
+                            ></span>
                             {p.priority}
                           </span>
                         </td>
-                        <td className="px-space-md py-3.5">
-                          <span className="font-body-md text-body-md text-on-surface font-medium">{p.condition}</span>
-                          <div className="text-on-surface-variant font-label-sm text-label-sm">{p.vitals}</div>
+                        <td className="px-space-md py-3.5 text-on-surface font-medium text-xs">
+                          <div>{p.condition}</div>
+                          <div className="text-[11px] text-on-surface-variant font-normal">{p.vitals}</div>
                         </td>
                         <td className="px-space-md py-3.5">
-                          <span className="px-2 py-1 rounded bg-surface-container-high text-primary font-label-md text-label-md font-bold">{p.bay}</span>
+                          <span className="px-2.5 py-1 rounded-md bg-surface-container-high text-primary font-mono text-xs font-bold">
+                            {p.bay}
+                          </span>
                         </td>
-                        <td className="px-space-md py-3.5">
-                          <div className="text-on-surface font-body-md text-body-md font-medium">{p.doctor}</div>
-                          <div className="text-on-surface-variant font-label-sm text-label-sm">{p.role}</div>
+                        <td className="px-space-md py-3.5 text-on-surface text-xs">
+                          <div className="font-semibold">{p.doctor}</div>
+                          <div className="text-[11px] text-on-surface-variant">{p.role}</div>
                         </td>
                         <td className="px-space-md py-3.5 text-right whitespace-nowrap">
                           <button
                             onClick={() => setActiveTelemetryPatient(p)}
-                            className="inline-flex items-center gap-1 px-space-sm py-1.5 rounded-lg bg-surface-container-high text-primary hover:bg-surface-container-highest transition-colors font-label-sm text-label-sm font-semibold cursor-pointer"
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high text-xs font-semibold transition-colors cursor-pointer"
                             type="button"
                           >
-                            <span className="material-symbols-outlined text-[16px]">monitor_heart</span>
-                            View Triage Telemetry
+                            <span className="material-symbols-outlined text-sm">monitor_heart</span> Telemetry
                           </button>
                         </td>
                       </tr>
@@ -701,96 +890,6 @@ Grid Latency: 0.04s (TLS 1.3 Verified)`;
               </div>
             </div>
           </div>
-
-          {/* 4. Split Row: Staff Management & Doctor Management Quick Action Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-primary text-[20px]">badge</span>
-                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Staff Directory &amp; Rosters</h3>
-                </div>
-                <p className="text-xs text-on-surface-variant">48 total personnel • 36 active on shift across wards and labs.</p>
-              </div>
-              <Link
-                to="/admin/staff"
-                className="px-4 py-2 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high font-label-sm text-label-sm font-semibold transition-colors no-underline"
-              >
-                Manage Staff
-              </Link>
-            </div>
-
-            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-primary text-[20px]">stethoscope</span>
-                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Doctor Credential Registry</h3>
-                </div>
-                <p className="text-xs text-on-surface-variant">22 affiliated physicians • 14 available for consults right now.</p>
-              </div>
-              <Link
-                to="/admin/doctors"
-                className="px-4 py-2 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-sm text-label-sm font-semibold transition-colors no-underline"
-              >
-                Manage Doctors
-              </Link>
-            </div>
-          </div>
-
-          {/* 5. Split Row: Patient Management & Pharmaceutical Inventory */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-space-md">
-            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-secondary text-[20px]">personal_injury</span>
-                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Patient Admissions &amp; Ingress</h3>
-                </div>
-                <p className="text-xs text-on-surface-variant">156 registered patients • 84 active inpatients in care.</p>
-              </div>
-              <Link
-                to="/admin/patients"
-                className="px-4 py-2 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high font-label-sm text-label-sm font-semibold transition-colors no-underline"
-              >
-                Patient Registry
-              </Link>
-            </div>
-
-            <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-primary text-[20px]">medication</span>
-                  <h3 className="font-headline-sm text-headline-sm text-primary font-bold">Pharmacy &amp; Crash Carts</h3>
-                </div>
-                <p className="text-xs text-on-surface-variant">1,420 formulations • 100% armed crash-cart reserves.</p>
-              </div>
-              <Link
-                to="/admin/pharmacy"
-                className="px-4 py-2 rounded-lg bg-surface-container text-primary hover:bg-surface-container-high font-label-sm text-label-sm font-semibold transition-colors no-underline"
-              >
-                Pharmacy Stock
-              </Link>
-            </div>
-          </div>
-
-          {/* 6. Bottom Module: Connected Hospitals & ABDM Trauma Grid */}
-          <div className="bg-surface-container-lowest p-space-lg rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-space-md">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
-                <span className="material-symbols-outlined text-[22px]">hub</span>
-              </div>
-              <div>
-                <div className="font-label-lg text-label-lg font-bold text-primary">National Trauma Grid &amp; Hospital Network</div>
-                <p className="text-xs text-on-surface-variant">12 partner hospitals actively paired via ABDM FHIR exchange for mutual bed transfers.</p>
-              </div>
-            </div>
-            <Link
-              to="/admin/network"
-              className="px-5 py-2.5 rounded-lg bg-primary text-on-primary hover:bg-primary-container font-label-md text-label-md font-semibold transition-colors whitespace-nowrap no-underline"
-            >
-              Open Hospital Network Grid
-            </Link>
-          </div>
-
         </div>
       </div>
     </div>

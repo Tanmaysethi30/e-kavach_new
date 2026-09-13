@@ -585,22 +585,22 @@ export default function EmergencyAccess() {
                   <div className="flex items-center gap-2">
                     <span className="text-on-surface-variant font-medium">ER Direct:</span>
                     <a
-                      href={`tel:${selectedHospital.contactNumbers?.er || '+914428290200'}`}
+                      href={`tel:${(selectedHospital.contactNumbers?.er || selectedHospital.contact_number || selectedHospital.phone || '108').replace(/\s+/g, '')}`}
                       className="font-mono font-bold text-rose-700 hover:underline flex items-center gap-1"
                     >
                       <span className="material-symbols-outlined text-[15px]">call</span>
-                      {selectedHospital.contactNumbers?.er || '+91 44 2829 0200'}
+                      {selectedHospital.contactNumbers?.er || selectedHospital.contact_number || selectedHospital.phone || '108 Ambulance'}
                     </a>
                   </div>
-                  {(selectedHospital.contactNumbers?.reception || selectedHospital.reception) && (
+                  {(selectedHospital.contactNumbers?.reception || selectedHospital.contactNumbers?.helpline || selectedHospital.reception || selectedHospital.website) && (
                     <div className="flex items-center gap-2">
-                      <span className="text-on-surface-variant font-medium">Reception Desk:</span>
+                      <span className="text-on-surface-variant font-medium">Desk / Help:</span>
                       <a
-                        href={`tel:${selectedHospital.contactNumbers?.reception || selectedHospital.reception}`}
+                        href={`tel:${(selectedHospital.contactNumbers?.reception || selectedHospital.contactNumbers?.helpline || selectedHospital.reception || '108').replace(/\s+/g, '')}`}
                         className="font-mono font-bold text-primary hover:underline flex items-center gap-1"
                       >
                         <span className="material-symbols-outlined text-[15px]">desk</span>
-                        {selectedHospital.contactNumbers?.reception || selectedHospital.reception}
+                        {selectedHospital.contactNumbers?.reception || selectedHospital.contactNumbers?.helpline || selectedHospital.reception || selectedHospital.website || 'Helpdesk'}
                       </a>
                     </div>
                   )}

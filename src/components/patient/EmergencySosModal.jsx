@@ -190,19 +190,19 @@ export default function EmergencySosModal({
                 </div>
                 <div className="flex justify-between py-1 border-b border-outline-variant/20">
                   <span className="text-on-surface-variant">Emergency Hotline:</span>
-                  <a href={`tel:${activeHospital.contactNumbers?.er || '+914428290200'}`} className="font-bold text-emerald-700 underline">
-                    {activeHospital.contactNumbers?.er || '+91 44 2829 0200'}
+                  <a href={`tel:${(activeHospital.contactNumbers?.er || activeHospital.contact_number || activeHospital.phone || '108').replace(/\s+/g, '')}`} className="font-bold text-emerald-700 underline">
+                    {activeHospital.contactNumbers?.er || activeHospital.contact_number || activeHospital.phone || '108 Ambulance'}
                   </a>
                 </div>
                 <div className="flex justify-between py-1">
                   <span className="text-on-surface-variant">108 Ambulance Status:</span>
-                  <span className="font-bold text-rose-700">EN ROUTE (~{activeHospital.ambulanceMins} MIN)</span>
+                  <span className="font-bold text-rose-700">EN ROUTE (~{activeHospital.ambulanceMins || 5} MIN)</span>
                 </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <a
-                  href={`tel:${hospital.contactNumbers?.er || '+914428290200'}`}
+                  href={`tel:${(activeHospital.contactNumbers?.er || activeHospital.contact_number || activeHospital.phone || '108').replace(/\s+/g, '')}`}
                   className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 no-underline"
                 >
                   <span className="material-symbols-outlined text-[16px]">call</span>

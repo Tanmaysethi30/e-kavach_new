@@ -340,8 +340,11 @@ export default function PatientSettings() {
       const hash = window.location.hash.replace('#', '').toLowerCase();
       if (['profile', 'abha', 'emergency', 'notifications'].includes(hash)) {
         setActiveModule(hash);
+      } else if (!hash) {
+        setActiveModule('profile');
       }
     };
+    handleHash();
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
   }, []);

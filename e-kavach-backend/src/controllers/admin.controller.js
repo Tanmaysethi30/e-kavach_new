@@ -86,8 +86,36 @@ class AdminController {
 
   async getStaff(req, res, next) {
     try {
-      const staff = await adminService.getStaff();
+      const hospitalId = req.user?.hospitalAdminProfile?.hospitalId || req.user?.hospitalId || 'hosp-apollo-greams';
+      const staff = await adminService.getStaff(hospitalId);
       res.json({ success: true, staff });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createStaff(req, res, next) {
+    try {
+      const staff = await adminService.createStaff(req.body, req.user);
+      res.status(201).json({ success: true, message: 'Staff member registered successfully', staff });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async updateStaff(req, res, next) {
+    try {
+      const staff = await adminService.updateStaff(req.params.id, req.body);
+      res.json({ success: true, message: 'Staff member updated successfully', staff });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async deleteStaff(req, res, next) {
+    try {
+      const staff = await adminService.deleteStaff(req.params.id);
+      res.json({ success: true, message: 'Staff member removed successfully', staff });
     } catch (err) {
       next(err);
     }
@@ -154,6 +182,15 @@ class AdminController {
     try {
       const network = await adminService.getHospitalNetwork();
       res.json({ success: true, network });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async createNetworkNode(req, res, next) {
+    try {
+      const node = await adminService.createNetworkNode(req.body);
+      res.status(201).json({ success: true, message: 'Hospital network node connected successfully', node });
     } catch (err) {
       next(err);
     }
