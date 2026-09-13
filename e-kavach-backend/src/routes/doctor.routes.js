@@ -12,6 +12,7 @@ router.get('/triage-queue', (req, res, next) => doctorController.getTriageQueue(
 router.post('/scan', emergencyLimiter, (req, res, next) => doctorController.scanPatient(req, res, next));
 router.post('/golden-hour-scan', emergencyLimiter, (req, res, next) => doctorController.scanPatient(req, res, next));
 router.post('/patients', (req, res, next) => doctorController.addPatient(req, res, next));
+router.get('/patients', (req, res, next) => doctorController.getPatients(req, res, next));
 router.get('/network', (req, res, next) => doctorController.getNetwork(req, res, next));
 router.get('/credentials', (req, res, next) => doctorController.getCredentials(req, res, next));
 router.get('/appointments', (req, res, next) => doctorController.getAppointments(req, res, next));

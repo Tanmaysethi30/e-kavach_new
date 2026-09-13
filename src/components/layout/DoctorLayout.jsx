@@ -49,7 +49,6 @@ export default function DoctorLayout() {
     { to: '/doctor/add-patient', label: 'Patients', icon: 'personal_injury' },
     { to: '/doctor/network', label: 'Doctor Network', icon: 'hub' },
     { to: '/doctor/messages', label: 'Messages / Consults', icon: 'forum' },
-    { to: '/doctor/notifications', label: 'Alerts & Notifications', icon: 'notifications' },
     { to: '/doctor/settings', label: 'Settings', icon: 'tune' },
   ];
 
@@ -200,14 +199,6 @@ export default function DoctorLayout() {
             >
               <span className="material-symbols-outlined text-[16px]">qr_code_scanner</span>
               <span className="hidden sm:inline">Emergency Scan</span>
-            </Link>
-            <Link
-              to="/doctor/notifications"
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition-colors border border-slate-200/60 relative"
-              title="Clinical Alerts"
-            >
-              <span className="material-symbols-outlined text-[19px]">notifications</span>
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error"></span>
             </Link>
             <Link
               to="/doctor/settings"

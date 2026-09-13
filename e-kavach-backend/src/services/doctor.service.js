@@ -47,29 +47,121 @@ class DoctorService {
     const startTime = Date.now();
 
     let patient = null;
+    let qrParsed = null;
 
-    // 1. Try finding by passToken or emergencyToken
-    const token = passToken || (qrData && qrData.includes('TOKEN:') ? qrData.split('TOKEN:')[1].split(':')[0] : null) || qrData;
+    // 1. Try parsing JSON format from QR payload
+    if (typeof qrData === 'string' && qrData.trim().startsWith('{') && qrData.trim().endsWith('}')) {
+      try {
+        qrParsed = JSON.parse(qrData.trim());
+      } catch (_e) {}
+    } else if (typeof qrData === 'object' && qrData !== null) {
+      qrParsed = qrData;
+    }
 
-    if (token) {
+    const tokenCandidates = [
+      passToken,
+      qrParsed?.passToken,
+      qrParsed?.token,
+      qrParsed?.emergencyId,
+      qrParsed?.ref,
+      qrParsed?.patientId,
+      qrParsed?.id,
+      (typeof qrData === 'string' && qrData.includes('TOKEN:') ? qrData.split('TOKEN:')[1].split(':')[0].split(';')[0] : null),
+      typeof qrData === 'string' ? qrData : null
+    ].filter(Boolean);
+
+    const abhaCandidates = [
+      abhaNumber,
+      qrParsed?.abhaNumber,
+      qrParsed?.abha,
+      qrParsed?.patientAbha,
+      (typeof qrData === 'string' && qrData.includes('ABHA:') ? qrData.split('ABHA:')[1].split(':')[0].split(';')[0] : null),
+    ].filter(Boolean);
+
+    const nameCandidate = qrParsed?.name || qrParsed?.patientName || qrParsed?.fullName;
+
+    // 2. Search db.emergencyPass
+    for (const t of tokenCandidates) {
+      if (!t || typeof t !== 'string') continue;
       const emergencyPass = await db.emergencyPass.findFirst({
-        where: { passToken: token },
+        where: {
+          OR: [
+            { passToken: t },
+            { id: t },
+            { patientProfileId: t },
+          ]
+        },
         include: { patientProfile: true },
       });
 
       if (emergencyPass && emergencyPass.patientProfile) {
         patient = emergencyPass.patientProfile;
+        break;
       }
     }
 
-    // 2. Try finding by ABHA number if not found
-    if (!patient && (abhaNumber || (qrData && qrData.includes('ABHA:')))) {
-      const targetAbha = abhaNumber || qrData.split('ABHA:')[1].split(':')[0];
+    // 3. Search db.patientProfile by ABHA, ID, registration_id, name, or token
+    if (!patient) {
       const allPatients = await db.patientProfile.findMany();
-      patient = allPatients.find(p => p.abhaNumber === targetAbha || decryptPII(p.abhaNumber) === targetAbha);
+      for (const targetAbha of abhaCandidates) {
+        if (!targetAbha || typeof targetAbha !== 'string') continue;
+        const cleanTarget = targetAbha.replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+        patient = allPatients.find(p => {
+          const cleanPAbha = (p.abhaNumber || '').replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+          const cleanDecrypted = (decryptPII(p.abhaNumber) || '').replace(/[^0-9A-Za-z]/g, '').toLowerCase();
+          return cleanPAbha === cleanTarget || cleanDecrypted === cleanTarget || cleanPAbha.includes(cleanTarget);
+        });
+        if (patient) break;
+      }
+
+      if (!patient) {
+        for (const t of tokenCandidates) {
+          if (!t || typeof t !== 'string') continue;
+          patient = allPatients.find(p => 
+            p.id === t || 
+            p.userId === t || 
+            p.registration_id === t || 
+            p.emergencyToken === t ||
+            (p.emergencyToken && p.emergencyToken.toLowerCase().includes(t.toLowerCase()))
+          );
+          if (patient) break;
+        }
+      }
+
+      if (!patient && nameCandidate) {
+        const cleanName = String(nameCandidate).trim().toLowerCase();
+        patient = allPatients.find(p => p.name && p.name.toLowerCase().includes(cleanName));
+      }
     }
 
-    // 3. Fallback to default emergency patient Rajesh Sharma if scanning mock demo tags
+    // 4. If payload itself contains direct patient medical/demographic data (e.g. from generated pass/card)
+    if (!patient && qrParsed && (qrParsed.name || qrParsed.patientName || qrParsed.abhaNumber || qrParsed.emergencyId)) {
+      const pName = qrParsed.name || qrParsed.patientName || 'Verified Patient';
+      const pAbha = qrParsed.abhaNumber || qrParsed.abha || `9824-${Math.floor(1000 + Math.random() * 9000)}-TN`;
+      const pBlood = qrParsed.bloodGroup || qrParsed.blood || 'O+ (Rh Pos)';
+      const pGender = qrParsed.gender || 'Not Specified';
+      const pAge = qrParsed.age ? parseInt(qrParsed.age, 10) : 38;
+      const pAllergies = qrParsed.allergies ? (Array.isArray(qrParsed.allergies) ? qrParsed.allergies : [qrParsed.allergies]) : [];
+      const pConditions = qrParsed.conditions || qrParsed.chronicConditions || (qrParsed.condition ? [qrParsed.condition] : []);
+
+      patient = await db.patientProfile.create({
+        data: {
+          name: pName,
+          abhaNumber: pAbha,
+          bloodGroup: pBlood,
+          gender: pGender,
+          age: pAge,
+          allergies: pAllergies,
+          chronicConditions: Array.isArray(pConditions) ? pConditions : [pConditions],
+          emergencyContacts: qrParsed.emergencyContacts || (qrParsed.emergencyContact ? [{ name: qrParsed.emergencyContact, relation: 'ICE Contact', phone: '+91 98401 22819' }] : []),
+          emergencyToken: qrParsed.token || qrParsed.emergencyId || `EK-TR-${Math.floor(10000 + Math.random() * 90000)}-V4`,
+          hospitalAffiliation: 'Apollo Greams Trauma Hub',
+          userId: `user_qr_${Date.now()}`,
+        }
+      });
+    }
+
+    // 5. If still no patient found, check if a patient exists with default id or create an informative record
     if (!patient) {
       patient = await db.patientProfile.findFirst({
         where: { id: 'patient-rajesh' },
@@ -101,10 +193,10 @@ class DoctorService {
       latencyMs: elapsedMs,
     });
 
-    // Return Golden Hour triage summary with top-notch vital stats
+    // Return Golden Hour triage summary with vital stats
     const patientAge = patient.dob
       ? Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 3600 * 1000))
-      : (patient.age || 52);
+      : (patient.age || 42);
 
     return {
       success: true,
@@ -118,17 +210,17 @@ class DoctorService {
         abhaNumber: decryptPII(patient.abhaNumber) || patient.abhaNumber,
         bloodGroup: emergencyPass?.bloodGroup || patient.bloodGroup || 'O+ (Rh Pos)',
         bp: patient.bp || '128/82 mmHg',
-        bloodSugar: patient.bloodSugar || 'Fasting 118 mg/dL • Type II DM',
+        bloodSugar: patient.bloodSugar || 'Fasting 118 mg/dL',
         gender: patient.gender || 'Male',
         age: patientAge,
         height: patient.height || '174 cm',
         weight: patient.weight || '76 kg',
-        criticalAllergies: emergencyPass ? emergencyPass.criticalAllergies : (patient.allergies || ['Penicillin (Severe anaphylaxis)']).join(', '),
-        allergies: patient.allergies || ['Penicillin (Severe anaphylaxis)'],
-        chronicConditions: emergencyPass ? emergencyPass.chronicConditions : (patient.chronicConditions || ['Type II Diabetes (Insulin Dependent)', 'Mild Hypertension']).join(', '),
-        implants: emergencyPass ? emergencyPass.implants : (patient.implants || ['Coronary Stent (DES - 2021)']).join(', '),
+        criticalAllergies: emergencyPass ? emergencyPass.criticalAllergies : (Array.isArray(patient.allergies) ? patient.allergies.join(', ') : (patient.allergies || 'None reported')),
+        allergies: Array.isArray(patient.allergies) ? patient.allergies : [patient.allergies || 'None'],
+        chronicConditions: emergencyPass ? emergencyPass.chronicConditions : (Array.isArray(patient.chronicConditions) ? patient.chronicConditions.join(', ') : (patient.chronicConditions || 'None reported')),
+        implants: emergencyPass ? emergencyPass.implants : (Array.isArray(patient.implants) ? patient.implants.join(', ') : (patient.implants || 'None recorded')),
         emergencyContacts: emergencyPass ? emergencyPass.iceContacts : (patient.emergencyContacts || [
-          { name: 'Ananya S.', relation: 'Spouse', phone: '+91 98401 22819', priority: 1, verified: true }
+          { name: 'ICE Emergency Contact', relation: 'Contact', phone: '+91 98401 22819', priority: 1, verified: true }
         ]),
         emergencyToken: patient.emergencyToken,
         status: 'CRITICAL_TRIAGE_LOADED',
@@ -137,8 +229,8 @@ class DoctorService {
         bloodGroup: emergencyPass?.bloodGroup || patient.bloodGroup || 'O+ (Rh Pos)',
         bp: patient.bp || '128/82 mmHg',
         bloodSugar: patient.bloodSugar || 'Fasting 118 mg/dL (HbA1c 6.8%)',
-        allergies: patient.allergies || ['Penicillin (Severe anaphylaxis)'],
-        chronicConditions: patient.chronicConditions || ['Type II Diabetes (Insulin Dependent)', 'Mild Hypertension'],
+        allergies: patient.allergies || [],
+        chronicConditions: patient.chronicConditions || [],
         gender: patient.gender || 'Male',
         age: patientAge,
         height: patient.height || '174 cm',
@@ -150,19 +242,33 @@ class DoctorService {
     };
   }
 
-  async addPatient({ name, abhaNumber, bloodGroup, gender, condition, vitals, bayNumber, triageColor, priorityLevel }, doctorUser) {
-    const hospitalId = doctorUser && doctorUser.doctorProfile ? 'hosp-apollo-greams' : 'hosp-apollo-greams';
+  async addPatient({ name, abhaNumber, bloodGroup, gender, condition, vitals, bayNumber, triageColor, priorityLevel, phone, contactNumber, age, allergies, chronicConditions }, doctorUser) {
+    const hospitalId = doctorUser && doctorUser.doctorProfile ? (doctorUser.doctorProfile.hospitalId || 'hosp-apollo-greams') : 'hosp-apollo-greams';
+
+    const cleanAllergies = Array.isArray(allergies) 
+      ? allergies 
+      : (typeof allergies === 'string' && allergies.trim() ? [allergies.trim()] : []);
+    
+    const cleanConditions = Array.isArray(chronicConditions)
+      ? chronicConditions
+      : (condition ? [condition] : []);
+
+    const userPhone = phone || contactNumber || '+91 98400 00000';
 
     // 1. Create Patient Profile
     const profile = await db.patientProfile.create({
       data: {
-        name,
-        abhaNumber: abhaNumber || `9824-${Math.floor(1000 + Math.random() * 9000)}-TN`,
-        bloodGroup: bloodGroup || 'Unknown',
+        name: (name || 'Verified Patient').trim(),
+        abhaNumber: abhaNumber || `9824-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-TN`,
+        bloodGroup: bloodGroup || 'O+ Positive',
         gender: gender || 'Not Specified',
-        chronicConditions: condition ? [condition] : [],
-        allergies: [],
-        emergencyContacts: [],
+        age: age ? parseInt(age, 10) : 40,
+        phone: userPhone,
+        chronicConditions: cleanConditions,
+        allergies: cleanAllergies,
+        emergencyContacts: [
+          { name: 'Emergency Contact', relation: 'Family', phone: userPhone, priority: 1, verified: true }
+        ],
         emergencyToken: `EK-TR-${Math.floor(10000 + Math.random() * 90000)}-V4`,
         hospitalAffiliation: 'Apollo Greams Trauma Hub',
         userId: `user_auto_${Date.now()}`,
@@ -177,17 +283,27 @@ class DoctorService {
         assignedDoctorId: doctorUser && doctorUser.doctorProfile ? doctorUser.doctorProfile.id : 'doctor-kavitha',
         triageColor: triageColor || 'YELLOW',
         priorityLevel: priorityLevel || 'Priority 2 (Urgent)',
-        bayNumber: bayNumber || 'Bay 05',
-        patientName: name,
+        bayNumber: bayNumber || 'Bay 03',
+        patientName: profile.name,
         abhaNumber: profile.abhaNumber,
         arrivalTime: new Date(),
         vitals: vitals || { heartRate: '80 bpm', bp: '120/80', spO2: '98%', respRate: '18 /min' },
-        condition: condition || 'Emergency Ingress',
+        condition: condition || 'Emergency Walk-in / Ingress',
         status: 'INGRESS',
       },
     });
 
     return { profile, triage };
+  }
+
+  async getPatients() {
+    const profiles = await db.patientProfile.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    const triageEntries = await db.triageEntry.findMany({
+      orderBy: { arrivalTime: 'desc' },
+    });
+    return { profiles, triageEntries };
   }
 
   async getNetworkNodes() {
@@ -830,93 +946,6 @@ class DoctorService {
       justification: clinicalJustification,
       patient,
       records,
-    };
-  }
-
-  async getAppointments(doctorId) {
-    let appointments = [];
-    try {
-      appointments = await db.appointment.findMany({
-        orderBy: { scheduledAt: 'desc' },
-        include: {
-          patientProfile: true,
-          doctorProfile: true,
-          hospital: true,
-        },
-      });
-
-      // Filter by doctor if appointments exist specifically for this doctor
-      if (doctorId) {
-        const docSpecific = appointments.filter(
-          (a) =>
-            a.doctorProfileId === doctorId ||
-            a.doctorProfile?.userId === doctorId ||
-            a.doctorProfile?.id === doctorId ||
-            (a.doctorProfile?.name && a.doctorProfile.name.toLowerCase().includes('kavitha'))
-        );
-        if (docSpecific.length > 0) {
-          appointments = docSpecific;
-        }
-      }
-
-      // Map clean fields
-      return appointments.map((a) => ({
-        id: a.id,
-        patientProfileId: a.patientProfileId,
-        patientName: a.patientName || a.patientProfile?.name || 'Verified Patient',
-        patientPhone: a.patientPhone || a.patientProfile?.phone || '+91 98401 22819',
-        patientAbha: a.patientAbha || a.patientProfile?.abhaNumber || '9824-8819-3320-TN',
-        doctorProfileId: a.doctorProfileId,
-        doctorName: a.doctorProfile?.name || 'Dr. Kavitha Menon',
-        department: a.department || 'Cardiology',
-        appointmentDate: a.scheduledAt || a.appointmentDate || new Date(),
-        scheduledAt: a.scheduledAt || a.appointmentDate || new Date(),
-        timeSlot: a.timeSlot || '10:30 AM',
-        status: a.status || 'PENDING',
-        mode: a.mode || 'IN_PERSON',
-        symptoms: a.symptoms || 'Cardiac Checkup & Consultation',
-        tokenNumber: a.tokenNumber || `AP-SLOT-${Math.floor(100 + Math.random() * 900)}`,
-        notes: a.notes,
-        createdAt: a.createdAt,
-      }));
-    } catch (err) {
-      console.error('Error in doctor getAppointments:', err);
-      return [];
-    }
-  }
-
-  async updateAppointmentStatus(appointmentId, status) {
-    const updated = await db.appointment.update({
-      where: { id: appointmentId },
-      data: { status },
-      include: {
-        patientProfile: true,
-        doctorProfile: true,
-      },
-    });
-
-    try {
-      const socketService = require('./socket.service');
-      socketService.broadcastAppointment({
-        type: 'APPOINTMENT_STATUS_UPDATED',
-        appointment: updated,
-        status,
-        message: `Appointment for ${updated.patientProfile?.name || 'Patient'} has been marked as ${status}.`,
-      });
-    } catch (_wsErr) {}
-
-    return updated;
-  }
-
-  async getCredentials(doctorId) {
-    return {
-      nmcNumber: 'MD-44912-TN',
-      council: 'Tamil Nadu Medical Council',
-      qualifications: 'MBBS, MD (General Medicine), DM (Cardiology)',
-      specialty: 'Cardiology & Intensive Care',
-      hospital: 'Apollo Greams Super-Speciality Trauma Center',
-      verified: true,
-      abdmTier: 'ABDM Tier-3 Apex Node',
     };
   }
 }

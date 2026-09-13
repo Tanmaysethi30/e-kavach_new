@@ -204,37 +204,40 @@ export function savePatientToRegistry(patientData, broadcast = true, source = 's
 
   const registry = getRegistry();
   const emergencyId = patientData.emergencyId || getOrCreateEmergencyId(patientData);
-  const abhaNumber = patientData.abhaNumber || patientData.id || '9824-8819-3320-TN';
+  const abhaNumber = patientData.abhaNumber || patientData.id || `9824-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-TN`;
 
-  // Inherit existing medical history/records or defaults if not provided
-  const existing = registry[emergencyId] || registry[abhaNumber] || DEFAULT_PATIENT_PROFILE;
+  // Look for existing entry for this specific patient only
+  const existing = registry[emergencyId] || registry[abhaNumber] || (patientData.id && registry[patientData.id]) || {};
+
+  const patientName = patientData.name || patientData.fullName || existing.name || 'Verified Patient';
 
   const updatedProfile = {
     ...existing,
     ...patientData,
+    id: patientData.id || existing.id || `patient-${Date.now()}`,
     emergencyId,
     abhaNumber,
-    token: `EK-TR-${abhaNumber.replace(/[^0-9]/g, '').slice(-4) || '8819'}-V4`,
-    name: patientData.name || patientData.fullName || existing.name,
-    fullName: patientData.name || patientData.fullName || existing.fullName,
-    bloodGroup: patientData.bloodGroup || existing.bloodGroup,
-    allergies: patientData.allergies || existing.allergies,
-    conditions: patientData.conditions || existing.conditions,
-    chronicConditions: patientData.chronicConditions || patientData.conditions || existing.chronicConditions,
-    pastIllnesses: patientData.pastIllnesses || existing.pastIllnesses,
-    surgeries: patientData.surgeries || existing.surgeries,
-    bpLevel: patientData.bpLevel || existing.bpLevel,
-    bloodSugar: patientData.bloodSugar || existing.bloodSugar,
-    hasDiabetes: patientData.hasDiabetes || existing.hasDiabetes,
-    diabetesType: patientData.diabetesType || existing.diabetesType,
-    diabetesMedication: patientData.diabetesMedication || existing.diabetesMedication,
-    currentMedications: patientData.currentMedications || existing.currentMedications,
-    emergencyContactName: patientData.emergencyContactName || existing.emergencyContactName,
-    emergencyContactRelation: patientData.emergencyContactRelation || existing.emergencyContactRelation,
-    emergencyContactPhone: patientData.emergencyContactPhone || existing.emergencyContactPhone,
-    emergencyInstructions: patientData.emergencyInstructions || existing.emergencyInstructions,
-    prescriptions: patientData.prescriptions || existing.prescriptions,
-    labReports: patientData.labReports || existing.labReports,
+    token: patientData.token || existing.token || `EK-TR-${abhaNumber.replace(/[^0-9]/g, '').slice(-4) || '8819'}-V4`,
+    name: patientName,
+    fullName: patientName,
+    bloodGroup: patientData.bloodGroup || existing.bloodGroup || 'O+ (Rh Pos)',
+    allergies: patientData.allergies || existing.allergies || 'None reported',
+    conditions: patientData.conditions || existing.conditions || 'None reported',
+    chronicConditions: patientData.chronicConditions || patientData.conditions || existing.chronicConditions || 'None reported',
+    pastIllnesses: patientData.pastIllnesses || existing.pastIllnesses || 'None',
+    surgeries: patientData.surgeries || existing.surgeries || 'None recorded',
+    bpLevel: patientData.bpLevel || existing.bpLevel || (patientData.vitals ? patientData.vitals.bp || patientData.vitals : '120/80 mmHg'),
+    bloodSugar: patientData.bloodSugar || existing.bloodSugar || 'Normal Fasting Glycemia',
+    hasDiabetes: patientData.hasDiabetes || existing.hasDiabetes || 'No',
+    diabetesType: patientData.diabetesType || existing.diabetesType || 'N/A',
+    diabetesMedication: patientData.diabetesMedication || existing.diabetesMedication || 'N/A',
+    currentMedications: patientData.currentMedications || existing.currentMedications || 'None active',
+    emergencyContactName: patientData.emergencyContactName || existing.emergencyContactName || 'Emergency Family Contact',
+    emergencyContactRelation: patientData.emergencyContactRelation || existing.emergencyContactRelation || 'Family',
+    emergencyContactPhone: patientData.emergencyContactPhone || existing.emergencyContactPhone || (patientData.phone || '+91 98401 22819'),
+    emergencyInstructions: patientData.emergencyInstructions || existing.emergencyInstructions || 'ABDM Golden Hour Emergency Access Permitted.',
+    prescriptions: patientData.prescriptions || existing.prescriptions || [],
+    labReports: patientData.labReports || existing.labReports || [],
     profileCompleted: true,
     lastUpdated: new Date().toISOString(),
   };
@@ -283,13 +286,36 @@ export function lookupPatientInRegistry(query) {
         parsed.ref,
         parsed.abhaNumber,
         parsed.abha,
+        parsed.patientAbha,
         parsed.token,
         parsed.passToken,
         parsed.id,
+        parsed.patientId,
       ].filter(Boolean);
 
       for (const key of candidates) {
         if (registry[key]) return registry[key];
+      }
+
+      // If payload itself carries patient fields, create & return direct profile
+      if (parsed.name || parsed.patientName || parsed.fullName || parsed.abhaNumber || parsed.emergencyId) {
+        const directPatient = savePatientToRegistry({
+          id: parsed.id || parsed.patientId || `qr-patient-${Date.now()}`,
+          name: parsed.name || parsed.patientName || parsed.fullName,
+          fullName: parsed.name || parsed.patientName || parsed.fullName,
+          abhaNumber: parsed.abhaNumber || parsed.abha,
+          emergencyId: parsed.emergencyId || parsed.ref,
+          bloodGroup: parsed.bloodGroup || parsed.blood,
+          gender: parsed.gender,
+          age: parsed.age,
+          allergies: parsed.allergies,
+          chronicConditions: parsed.chronicConditions || parsed.conditions || parsed.condition,
+          bpLevel: parsed.vitals?.bp || parsed.bp || parsed.vitals,
+          bloodSugar: parsed.bloodSugar,
+          emergencyContactName: parsed.emergencyContact || parsed.emergencyContactName,
+          emergencyContactPhone: parsed.emergencyPhone || parsed.emergencyContactPhone,
+        }, false);
+        return directPatient;
       }
     } catch (_e) {}
   }
@@ -309,24 +335,29 @@ export function lookupPatientInRegistry(query) {
     const cleanName = (profile.name || '').replace(/[^0-9A-Za-z]/g, '').toLowerCase();
 
     if (
-      cleanKey.includes(cleanQuery) ||
-      cleanAbha.includes(cleanQuery) ||
-      cleanEmg.includes(cleanQuery) ||
-      cleanToken.includes(cleanQuery) ||
-      cleanName.includes(cleanQuery)
+      cleanKey === cleanQuery ||
+      cleanAbha === cleanQuery ||
+      cleanEmg === cleanQuery ||
+      cleanToken === cleanQuery ||
+      cleanName === cleanQuery ||
+      (cleanQuery.length > 4 && (cleanAbha.includes(cleanQuery) || cleanEmg.includes(cleanQuery) || cleanName.includes(cleanQuery)))
     ) {
       return profile;
     }
   }
 
-  // 4. Fallback to active logged in user if stored in local storage
+  // 4. If search query explicitly matches Rajesh
+  if (cleanQuery.includes('rajesh') || cleanQuery.includes('98248819')) {
+    return DEFAULT_PATIENT_PROFILE;
+  }
+
+  // 5. Fallback to active logged in user if stored in local storage
   try {
     const savedUser = localStorage.getItem('ekavach_user');
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
       if (parsed.role === 'patient') {
         return {
-          ...DEFAULT_PATIENT_PROFILE,
           ...parsed,
           emergencyId: parsed.emergencyId || getOrCreateEmergencyId(parsed),
         };
@@ -334,7 +365,23 @@ export function lookupPatientInRegistry(query) {
     }
   } catch (_e) {}
 
-  return DEFAULT_PATIENT_PROFILE;
+  // 6. Return dynamic profile matching the query
+  return {
+    id: `patient-${Date.now()}`,
+    name: rawStr.includes('ABHA') ? `Patient ${rawStr.slice(-6)}` : `Patient (${rawStr.slice(0, 16)})`,
+    fullName: rawStr.includes('ABHA') ? `Patient ${rawStr.slice(-6)}` : `Patient (${rawStr.slice(0, 16)})`,
+    abhaNumber: rawStr.includes('-') ? rawStr : `9824-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-TN`,
+    emergencyId: `EK-EMG-${Math.floor(1000 + Math.random() * 9000)}`,
+    token: `EK-TR-${Math.floor(1000 + Math.random() * 9000)}-V4`,
+    bloodGroup: 'O+ (Rh Pos)',
+    allergies: 'None recorded',
+    chronicConditions: 'None recorded',
+    bpLevel: '120/80 mmHg',
+    bloodSugar: 'Normal Glycemia',
+    emergencyContactName: 'ICE Contact',
+    emergencyContactPhone: '+91 98401 00000',
+    profileCompleted: true,
+  };
 }
 
 /**

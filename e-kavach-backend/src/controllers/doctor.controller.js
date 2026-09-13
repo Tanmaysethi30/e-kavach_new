@@ -59,6 +59,15 @@ class DoctorController {
     }
   }
 
+  async getPatients(req, res, next) {
+    try {
+      const data = await doctorService.getPatients();
+      res.json({ success: true, ...data });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   async getNetwork(req, res, next) {
     try {
       const network = await doctorService.getNetworkNodes();
