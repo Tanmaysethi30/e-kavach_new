@@ -44,7 +44,7 @@ const socketService = resolveBackendModule('e-kavach-backend/src/services/socket
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = parseInt(process.env.PORT || '3000', 10);
 
   // Instant Cloud Run & container health probe endpoint
   app.get(['/health', '/api/health', '/healthz', '/livez'], (req: Request, res: Response) => {
@@ -82,12 +82,14 @@ async function startServer() {
 
   // Frontend integration via Vite middleware in dev or static files in prod
   if (process.env.NODE_ENV !== 'production') {
+    const isHmrDisabled = process.env.DISABLE_HMR === 'true';
     const vite = await createViteServer({
       server: {
         middlewareMode: true,
         host: '0.0.0.0',
         port: PORT,
         allowedHosts: true,
+        hmr: isHmrDisabled ? false : undefined,
       },
       appType: 'spa',
     });

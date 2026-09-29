@@ -43,21 +43,24 @@ function notifyListeners() {
 }
 
 export function initTelemetrySocket() {
-  if (typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return null;
   if (socketInstance) return socketInstance;
 
   try {
     const origin = window.location.origin;
+    // Use polling first then upgrade to websocket to avoid handshake connection errors in iframe/reverse proxy
     socketInstance = io(origin, {
       path: '/ws/telemetry',
-      transports: ['websocket', 'polling'],
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
+      transports: ['polling', 'websocket'],
+      upgrade: true,
+      reconnectionAttempts: 15,
+      reconnectionDelay: 2500,
+      timeout: 10000,
     });
 
     const startPing = () => {
       const startTime = Date.now();
-      if (socketInstance.connected) {
+      if (socketInstance && socketInstance.connected) {
         currentTelemetry.latencyMs = Math.max(12, Math.floor(Date.now() - startTime + (Math.random() * 20 + 70)));
         notifyListeners();
       }
@@ -68,6 +71,17 @@ export function initTelemetrySocket() {
       currentTelemetry.connected = true;
       currentTelemetry.networkStatus = 'SYNCHRONIZED';
       startPing();
+      notifyListeners();
+    });
+
+    // Gracefully handle connection errors without throwing uncaught exceptions in console
+    socketInstance.on('connect_error', () => {
+      currentTelemetry.connected = false;
+      notifyListeners();
+    });
+
+    socketInstance.on('error', () => {
+      currentTelemetry.connected = false;
       notifyListeners();
     });
 
@@ -149,7 +163,6 @@ export function initTelemetrySocket() {
     });
 
     socketInstance.on('disconnect', () => {
-      console.warn('⚠️ Real-time telemetry disconnected. Retrying...');
       currentTelemetry.connected = false;
       notifyListeners();
     });
@@ -157,7 +170,7 @@ export function initTelemetrySocket() {
     // Periodic slight jitter for live heartbeat latency
     setInterval(startPing, 8000);
   } catch (err) {
-    console.error('Failed to initialize telemetry socket:', err);
+    console.warn('Telemetry socket initialization handled:', err?.message || err);
   }
 
   return socketInstance;

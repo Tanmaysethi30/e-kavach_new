@@ -121,13 +121,15 @@ e-kavach/
 
 ---
 
-## 🚦 Getting Started
+## 🚦 Getting Started & Local Setup
+
+For an exhaustive, step-by-step installation guide for Windows, macOS, and Linux, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
 
 ### Prerequisites
-- **Node.js**: `v18.0.0` or higher
-- **npm**: `v9.0.0` or higher (or `pnpm` / `yarn`)
+- **Node.js**: `v18.0.0` or higher (`v20` LTS recommended)
+- **npm**: `v9.0.0` or higher (bundled with Node.js)
 
-### 1. Clone the Repository
+### 1. Clone or Download the Project
 ```bash
 git clone https://github.com/Avinesh-Shukla/E-Kavaach.git
 cd E-Kavaach
@@ -138,22 +140,18 @@ cd E-Kavaach
 npm install
 ```
 
-### 3. Launch Development Server
+### 3. Launch the Unified Fullstack Server
 ```bash
 npm run dev
 ```
-Open your browser at `http://localhost:5173` to explore the platform.
+Open your browser at **`http://localhost:3000`** to access the complete application (Frontend + Express API + Socket.IO Telemetry).
 
 ### 4. Build for Production
 ```bash
 npm run build
+npm start
 ```
-The optimized production output will be generated inside the `dist/` directory.
-
-### 5. Preview Production Build
-```bash
-npm run preview
-```
+The optimized bundle will be compiled and served on `http://localhost:3000`.
 
 ---
 

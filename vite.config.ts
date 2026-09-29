@@ -16,6 +16,7 @@ export default defineConfig(() => {
       host: '0.0.0.0',
       port: 3000,
       allowedHosts: true as const,
+      hmr: isHmrDisabled ? false : undefined,
       watch: isHmrDisabled ? null : {},
     },
   };

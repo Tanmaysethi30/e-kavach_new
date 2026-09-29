@@ -14,10 +14,18 @@ class SocketService {
         methods: ['GET', 'POST'],
         credentials: true,
       },
+      transports: ['polling', 'websocket'],
+      allowEIO3: true,
+      pingTimeout: 30000,
+      pingInterval: 10000,
     });
 
     this.io.on('connection', (socket) => {
       console.log(`[WS TELEMETRY] Client connected: ${socket.id}`);
+
+      socket.on('error', (err) => {
+        console.warn(`[WS TELEMETRY] Socket error for ${socket.id}:`, err?.message || err);
+      });
 
       // Send immediate telemetry snapshot on connect
       socket.emit('telemetry:snapshot', {
