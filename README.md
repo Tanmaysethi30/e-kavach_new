@@ -1,4 +1,4 @@
-# E-KAVACH (ई-कवच) 🏥
+# E-KAWACH (ई-कवच) 🏥
 ### Universal Emergency Health Access & Clinical Network Platform
 
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
