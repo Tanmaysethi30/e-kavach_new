@@ -88,8 +88,12 @@ class IvrDispatcherService {
 
     let targetHospitalObj = {
       id: 'hosp-apollo-greams',
+      universalHospitalId: 'HOSP-APOLLO-001',
+      hospitalId: 'HOSP-APOLLO-001',
+      code: 'AP-HSP-842-TN',
+      registrationNumber: 'AP-HSP-842-TN',
       name: 'Apollo Greams Trauma Hub',
-      address: 'Greams Road, Thousand Lights',
+      address: '21 Greams Lane, Off Greams Road, Thousand Lights',
       city: 'Chennai',
       contactPhone: '+91 44 2829 0200',
     };

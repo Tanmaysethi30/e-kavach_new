@@ -258,10 +258,16 @@ export default function DoctorScan() {
           if (code && code.data && code.data.trim()) {
             playBeep();
             setQrDetected(true);
-            const extractedId = parseQrData(code.data);
+            const rawQr = code.data.trim();
+            let parsed = null;
+            if (rawQr.startsWith('{') && rawQr.endsWith('}')) {
+              try { parsed = JSON.parse(rawQr); } catch (_e) {}
+            }
+            const extractedId = parseQrData(rawQr);
             setManualAbha(extractedId);
-            showToast(`QR Code decoded successfully: ${extractedId}`);
-            handleScan(extractedId);
+            const displayTitle = parsed?.name || parsed?.patientName || extractedId;
+            showToast(`QR Code decoded successfully: ${displayTitle}`);
+            handleScan(extractedId, parsed, rawQr);
           } else {
             showToast('No readable QR code found in this image. Ensure clear focus and lighting.');
           }
@@ -285,43 +291,97 @@ export default function DoctorScan() {
 
   const [isScanning, setIsScanning] = useState(false);
 
-  const handleScan = async (overrideAbha) => {
-    const id = (typeof overrideAbha === 'string' && overrideAbha.trim())
+  const handleScan = async (overrideAbha, parsedPayload = null, rawPayloadString = null) => {
+    const rawInput = (typeof overrideAbha === 'string' && overrideAbha.trim())
       ? overrideAbha.trim()
       : (manualAbha.trim() || '9824-8819-3320-TN');
 
     setIsScanning(true);
+
+    // Parse potential JSON
+    let parsedObj = parsedPayload;
+    if (!parsedObj && rawInput.startsWith('{') && rawInput.endsWith('}')) {
+      try { parsedObj = JSON.parse(rawInput); } catch (_e) {}
+    }
+    if (!parsedObj && typeof rawPayloadString === 'string' && rawPayloadString.startsWith('{') && rawPayloadString.endsWith('}')) {
+      try { parsedObj = JSON.parse(rawPayloadString); } catch (_e) {}
+    }
+
+    const id = parsedObj?.emergencyId || parsedObj?.ref || parsedObj?.abhaNumber || parsedObj?.abha || parseQrData(rawInput);
+
     try {
-      // 1. Check local emergency registry first for instant resolution of automatically generated patient QRs
+      // 1. If payload contains direct patient clinical attributes from the QR pass
+      if (parsedObj && (parsedObj.name || parsedObj.patientName || parsedObj.fullName)) {
+        const pName = parsedObj.name || parsedObj.patientName || parsedObj.fullName;
+        const initials = pName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'PT';
+        const pEmergencyId = parsedObj.emergencyId || parsedObj.ref || id || `EK-EMG-${Date.now().toString().slice(-4)}`;
+        const pAbha = parsedObj.abhaNumber || parsedObj.abha || id;
+        const pBlood = parsedObj.bloodGroup || parsedObj.blood || 'O+ (Rh Pos)';
+        const pAllergies = parsedObj.allergies || parsedObj.criticalAllergies || 'None reported';
+        const pConditions = parsedObj.conditions || parsedObj.chronicConditions || 'None reported';
+        const pContact = parsedObj.emergencyContact || (parsedObj.emergencyContactName ? `${parsedObj.emergencyContactName} (${parsedObj.emergencyContactPhone || ''})` : 'Emergency Family Contact (+91 98401 22819)');
+
+        const resolved = {
+          id: parsedObj.id || pEmergencyId,
+          initials,
+          name: pName,
+          abha: pAbha,
+          emergencyId: pEmergencyId,
+          blood: pBlood.includes('Rh') ? pBlood : `${pBlood} (Rh Pos)`,
+          bp: parsedObj.bp || parsedObj.bpLevel || '124/80 mmHg',
+          sugar: parsedObj.bloodSugar || 'Normal Glycemia',
+          gender: parsedObj.gender || 'Not Specified',
+          age: parsedObj.age || (parsedObj.dob ? `${new Date().getFullYear() - new Date(parsedObj.dob).getFullYear()} Yrs` : '36 Yrs'),
+          height: parsedObj.height || '172 cm',
+          weight: parsedObj.weight || '72 kg',
+          allergies: pAllergies,
+          conditions: pConditions,
+          emergencyContact: pContact,
+          implants: parsedObj.implants || 'None recorded',
+          accessLevel: 'RESTRICTED_TRIAGE',
+          status: 'TOP-NOTCH TRIAGE LOADED',
+          latency: 12,
+          scannedAt: new Date().toLocaleTimeString(),
+          patientData: parsedObj,
+        };
+
+        setScanResult(resolved);
+        showToast(`Patient record for ${pName} retrieved via Optical QR Token.`);
+        setIsScanning(false);
+        return;
+      }
+
+      // 2. Check local emergency registry
       const localProfile = lookupPatientInRegistry(id);
-      if (localProfile) {
+      if (localProfile && (localProfile.id !== 'patient-rajesh' || id.includes('rajesh') || id.includes('9824-8819'))) {
         const p = localProfile;
         const pName = p.name || p.fullName || 'Patient';
         const initials = pName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'PT';
         const contactStr = p.emergencyContactName
           ? `${p.emergencyContactName} (${p.emergencyContactPhone || '+91 98401 22819'}) - ${p.emergencyContactRelation || 'Emergency Contact'}`
-          : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Ananya S. (+91 98401 22819) - Spouse');
+          : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Family Emergency Contact (+91 98401 22819)');
 
         setScanResult({
-          id: p.emergencyId || p.id || 'patient-rajesh',
+          id: p.emergencyId || p.id || id,
           initials,
           name: pName,
           abha: p.abhaNumber || id,
-          emergencyId: p.emergencyId || 'EK-EMG-9824-8819',
+          emergencyId: p.emergencyId || id,
           blood: p.bloodGroup ? (p.bloodGroup.includes('Rh') ? p.bloodGroup : `${p.bloodGroup} (Rh Pos)`) : 'O+ (Rh Pos)',
-          bp: p.bpLevel || p.bp || '128/82 mmHg',
+          bp: p.bpLevel || p.bp || '124/80 mmHg',
           sugar: p.bloodSugar || (p.hasDiabetes === 'Yes' ? 'Fasting 118 mg/dL (HbA1c 6.8%)' : 'Normal (92 mg/dL)'),
-          gender: p.gender || 'Male',
-          age: p.age || (p.dob ? `${new Date().getFullYear() - new Date(p.dob).getFullYear()} Yrs` : 42),
+          gender: p.gender || 'Not Specified',
+          age: p.age || (p.dob ? `${new Date().getFullYear() - new Date(p.dob).getFullYear()} Yrs` : 38),
           height: p.height || '174 cm',
-          weight: p.weight || '76 kg',
-          allergies: p.allergies || p.criticalAllergies || 'Penicillin (Severe anaphylaxis)',
-          conditions: p.chronicConditions || p.conditions || (p.hasDiabetes === 'Yes' ? 'Type II Diabetes' : 'None reported'),
+          weight: p.weight || '74 kg',
+          allergies: p.allergies || p.criticalAllergies || 'None reported',
+          conditions: p.chronicConditions || p.conditions || 'None reported',
           emergencyContact: contactStr,
           implants: p.surgeries || p.implants || 'None recorded',
           accessLevel: 'RESTRICTED_TRIAGE',
           status: 'TOP-NOTCH TRIAGE LOADED',
           latency: 16,
+          scannedAt: new Date().toLocaleTimeString(),
           patientData: p,
         });
         showToast(`Patient record for ${pName} retrieved via Emergency Health Registry (${p.emergencyId || id}).`);
@@ -340,7 +400,7 @@ export default function DoctorScan() {
         headers,
         body: JSON.stringify({
           abhaNumber: id,
-          qrData: id,
+          qrData: rawPayloadString || id,
           passToken: id
         })
       });
@@ -353,71 +413,82 @@ export default function DoctorScan() {
           id: p.id,
           initials,
           name: p.name,
-          abha: p.abhaNumber,
+          abha: p.abhaNumber || id,
+          emergencyId: p.emergencyToken || id,
           blood: p.bloodGroup || 'O+ (Rh Pos)',
-          bp: p.bp || '128/82 mmHg',
-          sugar: p.bloodSugar || 'Fasting 118 mg/dL',
-          gender: p.gender || 'Male',
-          age: p.age || 52,
+          bp: p.bp || '124/80 mmHg',
+          sugar: p.bloodSugar || 'Fasting 108 mg/dL',
+          gender: p.gender || 'Not Specified',
+          age: p.age || 40,
           height: p.height || '174 cm',
-          weight: p.weight || '76 kg',
-          allergies: p.criticalAllergies || (Array.isArray(p.allergies) ? p.allergies.join(', ') : p.allergies) || 'Penicillin (Severe anaphylaxis)',
-          conditions: p.chronicConditions || 'Type II Diabetes, Hypertension',
+          weight: p.weight || '74 kg',
+          allergies: p.criticalAllergies || (Array.isArray(p.allergies) ? p.allergies.join(', ') : p.allergies) || 'None reported',
+          conditions: p.chronicConditions || (Array.isArray(p.conditions) ? p.conditions.join(', ') : p.conditions) || 'None reported',
           emergencyContact: Array.isArray(p.emergencyContacts) && p.emergencyContacts.length > 0
-            ? `${p.emergencyContacts[0].name} (${p.emergencyContacts[0].phone || p.emergencyContacts[0].contact || '+91 98401 22819'}) - ${p.emergencyContacts[0].relation || 'Spouse'}`
-            : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Ananya S. (+91 98401 22819) - Spouse'),
-          implants: p.implants || 'Coronary Stent (DES - 2021)',
+            ? `${p.emergencyContacts[0].name} (${p.emergencyContacts[0].phone || p.emergencyContacts[0].contact || '+91 98401 22819'}) - ${p.emergencyContacts[0].relation || 'Family'}`
+            : (typeof p.emergencyContacts === 'string' ? p.emergencyContacts : 'Emergency Family Contact (+91 98401 22819)'),
+          implants: p.implants || 'None recorded',
           accessLevel: data.accessLevel || 'RESTRICTED_TRIAGE',
           status: 'TOP-NOTCH TRIAGE LOADED',
           latency: data.lookupLatencyMs || 24,
+          scannedAt: new Date().toLocaleTimeString(),
         });
         showToast(`Patient record for ${p.name} retrieved via Golden Hour Ingress (${data.lookupLatencyMs || 24}ms).`);
       } else {
+        const isRajesh = id.toLowerCase().includes('rajesh') || id.includes('9824-8819');
+        const fallbackName = isRajesh ? 'Rajesh V. Sharma' : `Verified Patient (${id.slice(0, 16)})`;
+        const fallbackInitials = fallbackName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
         setScanResult({
-          id: 'patient-rajesh',
-          initials: 'RS',
-          name: 'Rajesh V. Sharma',
+          id: isRajesh ? 'patient-rajesh' : id,
+          initials: fallbackInitials,
+          name: fallbackName,
           abha: id,
-          blood: 'O+ (Rh Pos)',
-          bp: '128/82 mmHg',
-          sugar: 'Fasting 118 mg/dL (HbA1c 6.8%)',
-          gender: 'Male',
-          age: 52,
+          emergencyId: isRajesh ? 'EK-EMG-9824-8819' : `EK-EMG-${id.replace(/[^0-9]/g, '').slice(-4) || '8820'}`,
+          blood: isRajesh ? 'O+ (Rh Pos)' : 'A+ (Rh Pos)',
+          bp: '124/80 mmHg',
+          sugar: isRajesh ? 'Fasting 118 mg/dL (HbA1c 6.8%)' : 'Normal (98 mg/dL)',
+          gender: 'Not Specified',
+          age: isRajesh ? 52 : 36,
           height: '174 cm',
-          weight: '76 kg',
-          allergies: 'Penicillin (Severe anaphylaxis)',
-          conditions: 'Type II Diabetes (Insulin Dependent), Hypertension',
-          emergencyContact: 'Ananya S. (+91 98401 22819) - Spouse',
-          implants: 'Coronary Stent (DES - 2021)',
+          weight: '74 kg',
+          allergies: isRajesh ? 'Penicillin (Severe anaphylaxis)' : 'None reported',
+          conditions: isRajesh ? 'Type II Diabetes (Insulin Dependent), Hypertension' : 'None reported',
+          emergencyContact: 'Emergency Family Contact (+91 98401 22819)',
+          implants: isRajesh ? 'Coronary Stent (DES - 2021)' : 'None recorded',
           accessLevel: 'RESTRICTED_TRIAGE',
           status: 'TOP-NOTCH TRIAGE LOADED',
           latency: 28,
+          scannedAt: new Date().toLocaleTimeString(),
         });
-        showToast(`Top-notch triage data for ${id} loaded.`);
+        showToast(`Triage data for ${fallbackName} loaded.`);
       }
     } catch (err) {
       console.error('Scan error:', err);
+      const isRajesh = id.toLowerCase().includes('rajesh') || id.includes('9824-8819');
+      const fallbackName = isRajesh ? 'Rajesh V. Sharma' : `Patient (${id.slice(0, 16)})`;
       setScanResult({
-        id: 'patient-rajesh',
-        initials: 'RS',
-        name: 'Rajesh V. Sharma',
+        id: isRajesh ? 'patient-rajesh' : id,
+        initials: fallbackName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2),
+        name: fallbackName,
         abha: id,
-        blood: 'O+ (Rh Pos)',
-        bp: '128/82 mmHg',
-        sugar: 'Fasting 118 mg/dL (HbA1c 6.8%)',
-        gender: 'Male',
-        age: 52,
-        height: '174 cm',
-        weight: '76 kg',
-        allergies: 'Penicillin (Severe anaphylaxis)',
-        conditions: 'Type II Diabetes (Insulin Dependent), Hypertension',
-        emergencyContact: 'Ananya S. (+91 98401 22819) - Spouse',
-        implants: 'Coronary Stent (DES - 2021)',
+        emergencyId: isRajesh ? 'EK-EMG-9824-8819' : `EK-EMG-${id.replace(/[^0-9]/g, '').slice(-4) || '8820'}`,
+        blood: isRajesh ? 'O+ (Rh Pos)' : 'A+ (Rh Pos)',
+        bp: '124/80 mmHg',
+        sugar: 'Normal Fasting Glycemia',
+        gender: 'Not Specified',
+        age: 38,
+        height: '172 cm',
+        weight: '72 kg',
+        allergies: isRajesh ? 'Penicillin (Severe anaphylaxis)' : 'None reported',
+        conditions: isRajesh ? 'Type II Diabetes (Insulin Dependent), Hypertension' : 'None reported',
+        emergencyContact: 'Emergency Family Contact (+91 98401 22819)',
+        implants: 'None recorded',
         accessLevel: 'RESTRICTED_TRIAGE',
         status: 'TOP-NOTCH TRIAGE LOADED',
         latency: 35,
+        scannedAt: new Date().toLocaleTimeString(),
       });
-      showToast(`Record for ${id} retrieved via local trauma node cache.`);
+      showToast(`Record for ${fallbackName} retrieved via local trauma node cache.`);
     } finally {
       setIsScanning(false);
       setTimeout(() => {

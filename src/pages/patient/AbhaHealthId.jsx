@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import QRCode from 'qrcode';
+import { createQrReferencePayload } from '../../utils/emergencyRegistry';
 
 export default function AbhaHealthId() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [toastMessage, setToastMessage] = useState(null);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
 
   const abhaVal = currentUser?.abhaNumber || currentUser?.id || '9824-8819-3320-1192';
   const phrVal = currentUser?.email || (currentUser?.name ? `${currentUser.name.toLowerCase().replace(/\s+/g, '.')}@abdm` : 'user@abdm');
@@ -13,6 +16,37 @@ export default function AbhaHealthId() {
   const rawAadhaar = currentUser?.aadhaarNumber || currentUser?.aadhaar;
   const aadhaarVal = rawAadhaar || '9824-8819-3320';
   const phoneVal = currentUser?.phone || 'Not provided';
+
+  useEffect(() => {
+    let isMounted = true;
+    const generateQR = async () => {
+      try {
+        const payload = createQrReferencePayload({
+          ...(currentUser || {}),
+          name: nameVal,
+          abhaNumber: abhaVal,
+          id: currentUser?.id || abhaVal,
+        });
+        const url = await QRCode.toDataURL(payload, {
+          width: 260,
+          margin: 1.5,
+          color: {
+            dark: '#00354c',
+            light: '#ffffff',
+          },
+        });
+        if (isMounted) {
+          setQrCodeUrl(url);
+        }
+      } catch (err) {
+        console.error('Error generating ABHA QR:', err);
+      }
+    };
+    generateQR();
+    return () => {
+      isMounted = false;
+    };
+  }, [abhaVal, nameVal, currentUser]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -226,28 +260,19 @@ export default function AbhaHealthId() {
     <span className="font-label-sm text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
       Quick Trauma Wristband / QR Token
     </span>
-    <div className="p-3 rounded-xl bg-white border border-surface-container-highest shadow-sm">
-      <svg className="w-32 h-32 text-primary" fill="currentColor" viewBox="0 0 100 100">
-        <rect fill="none" height="26" rx="4" stroke="currentColor" strokeWidth="4" width="26" x="5" y="5"></rect>
-        <rect fill="currentColor" height="14" width="14" x="11" y="11"></rect>
-        <rect fill="none" height="26" rx="4" stroke="currentColor" strokeWidth="4" width="26" x="69" y="5"></rect>
-        <rect fill="currentColor" height="14" width="14" x="75" y="11"></rect>
-        <rect fill="none" height="26" rx="4" stroke="currentColor" strokeWidth="4" width="26" x="5" y="69"></rect>
-        <rect fill="currentColor" height="14" width="14" x="11" y="75"></rect>
-        <rect height="6" width="6" x="36" y="8"></rect>
-        <rect height="6" width="8" x="46" y="8"></rect>
-        <rect height="6" width="8" x="36" y="18"></rect>
-        <rect height="8" width="6" x="48" y="20"></rect>
-        <rect height="10" width="10" x="36" y="36"></rect>
-        <rect height="6" width="12" x="52" y="36"></rect>
-        <rect height="8" width="8" x="70" y="36"></rect>
-        <rect height="8" width="8" x="84" y="46"></rect>
-        <rect height="14" width="6" x="36" y="52"></rect>
-        <rect height="8" width="12" x="48" y="48"></rect>
-        <rect height="12" width="8" x="64" y="52"></rect>
-        <rect height="6" width="14" x="46" y="68"></rect>
-        <rect height="12" width="6" x="36" y="78"></rect>
-      </svg>
+    <div className="p-3 rounded-xl bg-white border border-surface-container-highest shadow-sm flex items-center justify-center min-w-[140px] min-h-[140px]">
+      {qrCodeUrl ? (
+        <img
+          src={qrCodeUrl}
+          alt={`ABHA QR Code for ${nameVal}`}
+          className="w-32 h-32 object-contain rounded-lg"
+        />
+      ) : (
+        <div className="flex flex-col items-center justify-center w-32 h-32 text-slate-400 gap-1 text-xs">
+          <span className="material-symbols-outlined animate-spin text-[24px]">sync</span>
+          <span>Generating QR...</span>
+        </div>
+      )}
     </div>
     <span className="font-mono text-xs text-primary font-bold tracking-wider">{abhaVal}</span>
     <button

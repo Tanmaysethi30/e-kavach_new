@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import EmergencyMarquee from '../common/EmergencyMarquee';
 import Avatar from '../common/Avatar';
 import LogoImg from '../../assets/images/Logo.jpg';
 import { useAuth } from '../../context/AuthContext';
+import SirenAlertModal from '../common/SirenAlertModal';
+import { subscribeEmergencyAlert } from '../../services/telemetry';
 
 export default function DoctorLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [activeEmergencyAlert, setActiveEmergencyAlert] = useState(null);
+  const [isSimulatingIvr, setIsSimulatingIvr] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Listen for real-time IVR emergency dispatch events across the doctor console
+  useEffect(() => {
+    const unsub = subscribeEmergencyAlert((alertData) => {
+      console.log('🚨 [DOCTOR CONSOLE] Real-time emergency IVR SOS received:', alertData);
+      setActiveEmergencyAlert(alertData);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
+
+  const handleSimulateIvrCall = async () => {
+    setIsSimulatingIvr(true);
+    try {
+      const res = await fetch('/api/ai/ivr-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_phone_number: '+91 98401 22819',
+          approximate_location: 'Central Trauma Axis, Bay 01',
+          hospital_name: 'Apollo Greams Trauma Hub',
+          detected_language: 'hi',
+          transcript: 'Emergency SOS: Severe trauma triage request routed to Universal Hospital Apollo Greams Trauma Hub.',
+        }),
+      });
+      const data = await res.json();
+      if (data.alertData) {
+        setActiveEmergencyAlert(data.alertData);
+      }
+    } catch (err) {
+      console.error('Error triggering test IVR dispatch:', err);
+    } finally {
+      setIsSimulatingIvr(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!currentUser) {
@@ -193,6 +233,18 @@ export default function DoctorLayout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Test IVR SOS Trigger */}
+            <button
+              type="button"
+              onClick={handleSimulateIvrCall}
+              disabled={isSimulatingIvr}
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-label-sm text-xs font-bold shadow-sm shadow-red-600/20 transition-all cursor-pointer disabled:opacity-50"
+              title="Test incoming IVR Voice Emergency Call"
+            >
+              <span className="material-symbols-outlined text-[16px] animate-bounce">phone_in_talk</span>
+              <span className="hidden sm:inline">{isSimulatingIvr ? 'Calling...' : 'Test IVR Call'}</span>
+            </button>
+
             <Link
               to="/doctor/scan"
               className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-label-lg text-xs font-semibold shadow-sm shadow-rose-600/20 transition-all no-underline"
@@ -218,6 +270,14 @@ export default function DoctorLayout() {
             </button>
           </div>
         </header>
+
+        {/* Global Emergency Siren Alert Modal */}
+        {activeEmergencyAlert && (
+          <SirenAlertModal
+            alertData={activeEmergencyAlert}
+            onClose={() => setActiveEmergencyAlert(null)}
+          />
+        )}
 
         {/* Page Content */}
         <main

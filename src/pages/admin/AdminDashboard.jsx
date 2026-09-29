@@ -17,15 +17,12 @@ import {
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { subscribeTriage, subscribeReferrals, subscribeEmergencyAlert } from '../../services/telemetry';
-import SirenAlertModal from '../../components/common/SirenAlertModal';
-
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [toastMessage, setToastMessage] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTelemetryPatient, setActiveTelemetryPatient] = useState(null);
-  const [activeSirenAlert, setActiveSirenAlert] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Live Summary State fetched from DB
@@ -205,7 +202,6 @@ export default function AdminDashboard() {
 
     const unsubEmergencyAlert = subscribeEmergencyAlert((alertData) => {
       if (alertData) {
-        setActiveSirenAlert(alertData);
         const p = alertData.patient || {};
         const newItem = {
           id: alertData.alertId || `ivr-${Date.now()}`,
@@ -344,14 +340,6 @@ ${triageList.map((t) => `${t.bay}: ${t.name} (${t.abha}) - ${t.priority} - ${t.c
             </div>
           </div>
         </div>
-      )}
-
-      {/* Siren Alert Emergency SOS Modal */}
-      {activeSirenAlert && (
-        <SirenAlertModal
-          alertData={activeSirenAlert}
-          onClose={() => setActiveSirenAlert(null)}
-        />
       )}
 
       {/* Telemetry Live Modal */}

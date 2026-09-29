@@ -1,4 +1,4 @@
-# E-KAWACH (ई-कवच) 🏥
+# E-KAVACH (ई-कवच) 🏥
 ### Universal Emergency Health Access & Clinical Network Platform
 
 [![React](https://img.shields.io/badge/React-18.3.1-61DAFB?style=flat-square&logo=react&logoColor=black)](https://reactjs.org/)
@@ -123,7 +123,9 @@ e-kavach/
 
 ## 🚦 Getting Started & Local Setup
 
-For an exhaustive, step-by-step installation guide for Windows, macOS, and Linux, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
+- For an exhaustive, step-by-step local installation guide for Windows, macOS, and Linux, see **[LOCAL_SETUP.md](LOCAL_SETUP.md)**.
+- To host directly from your **own local computer** using your GoDaddy domain (`ekawach.co.in`), see **[LOCAL_HOSTING_WITH_GODADDY.md](LOCAL_HOSTING_WITH_GODADDY.md)**.
+- To deploy to a 24/7 cloud server (Render, Railway, VPS), see **[GODADDY_DOMAIN_AND_DEPLOYMENT.md](GODADDY_DOMAIN_AND_DEPLOYMENT.md)**.
 
 ### Prerequisites
 - **Node.js**: `v18.0.0` or higher (`v20` LTS recommended)

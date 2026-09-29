@@ -1,14 +1,54 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
 import EmergencyMarquee from '../common/EmergencyMarquee';
 import Avatar from '../common/Avatar';
 import LogoImg from '../../assets/images/Logo.jpg';
 import { useAuth } from '../../context/AuthContext';
+import SirenAlertModal from '../common/SirenAlertModal';
+import { subscribeEmergencyAlert } from '../../services/telemetry';
 
 export default function AdminLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [activeEmergencyAlert, setActiveEmergencyAlert] = useState(null);
+  const [isSimulatingIvr, setIsSimulatingIvr] = useState(false);
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Listen for real-time IVR emergency dispatch siren events across the hospital
+  useEffect(() => {
+    const unsub = subscribeEmergencyAlert((alertData) => {
+      console.log('🚨 [UNIVERSAL HOSPITAL] Emergency IVR SOS received:', alertData);
+      setActiveEmergencyAlert(alertData);
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, []);
+
+  const handleSimulateIvrCall = async () => {
+    setIsSimulatingIvr(true);
+    try {
+      const res = await fetch('/api/ai/ivr-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          patient_phone_number: '+91 98401 22819',
+          approximate_location: 'Central Trauma Axis, Bay 01',
+          hospital_name: 'Apollo Greams Trauma Hub',
+          detected_language: 'hi',
+          transcript: 'Emergency SOS: Severe trauma dispatch request routed to Universal Hospital Apollo Greams Trauma Hub.',
+        }),
+      });
+      const data = await res.json();
+      if (data.alertData) {
+        setActiveEmergencyAlert(data.alertData);
+      }
+    } catch (err) {
+      console.error('Error triggering test IVR dispatch:', err);
+    } finally {
+      setIsSimulatingIvr(false);
+    }
+  };
 
   React.useEffect(() => {
     if (!currentUser) {
@@ -41,6 +81,8 @@ export default function AdminLayout() {
   const adminTitle = currentUser?.title || 'Hospital Administrator';
   const adminHospital = currentUser?.hospital || currentUser?.name || 'Apollo Greams Trauma Hub';
   const adminTag = currentUser?.tag || 'VERIFIED ADMIN';
+  const universalHospitalId = 'HOSP-APOLLO-001';
+  const abdmFacilityId = 'IN-TN-CHN-84201';
 
   const navItems = [
     { to: '/admin/dashboard', label: 'Dashboard', icon: 'grid_view' },
@@ -56,6 +98,14 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-surface font-body-md text-on-surface antialiased">
       <EmergencyMarquee />
+
+      {/* Global Real-time IVR Siren Alert Modal */}
+      {activeEmergencyAlert && (
+        <SirenAlertModal
+          alertData={activeEmergencyAlert}
+          onClose={() => setActiveEmergencyAlert(null)}
+        />
+      )}
 
       {/* Mobile Backdrop */}
       {mobileNavOpen && (
@@ -89,6 +139,28 @@ export default function AdminLayout() {
             </Link>
           </div>
 
+          {/* Universal Hospital Identity Badge */}
+          <div className="bg-gradient-to-br from-primary/10 via-surface-container-lowest to-surface-container-lowest p-3.5 rounded-2xl mb-space-md border border-primary/20 shadow-xs">
+            <div className="flex items-center justify-between gap-1 mb-1.5">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary text-white text-[10px] font-mono font-bold tracking-wider uppercase">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                {universalHospitalId}
+              </span>
+              <span className="text-[10px] font-mono font-medium text-slate-500">
+                ABDM: {abdmFacilityId}
+              </span>
+            </div>
+            <div className="font-label-md text-sm font-bold text-slate-900 truncate">
+              {adminHospital}
+            </div>
+            <div className="text-[11px] text-slate-500 flex items-center justify-between mt-1">
+              <span>Universal Ingress Node</span>
+              <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                <span className="w-1 h-1 rounded-full bg-emerald-600"></span> IVR SOS Active
+              </span>
+            </div>
+          </div>
+
           {/* Admin Profile Card */}
           <div className="bg-surface-container-lowest p-space-sm rounded-xl mb-space-lg shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
             <div className="flex items-start gap-space-sm">
@@ -101,9 +173,6 @@ export default function AdminLayout() {
                 </div>
                 <div className="font-label-md text-label-md text-on-surface-variant leading-none mb-space-xs">
                   {adminTitle}
-                </div>
-                <div className="font-body-sm text-body-sm text-on-surface-variant/80 truncate mb-space-xs">
-                  {adminHospital}
                 </div>
                 <span className="inline-flex items-center px-space-xs py-space-2xs rounded-full bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-[11px] font-semibold">
                   <span className="w-1.5 h-1.5 rounded-full bg-tertiary mr-1"></span>
@@ -139,14 +208,14 @@ export default function AdminLayout() {
           <div className="flex items-center gap-space-xs mb-1">
             <span className="w-2 h-2 rounded-full bg-tertiary-container animate-pulse"></span>
             <span className="font-label-sm text-label-sm text-primary font-semibold tracking-wide">
-              NODE ACTIVE
+              UNIVERSAL NODE ONLINE
             </span>
           </div>
           <div className="font-body-sm text-body-sm text-on-surface-variant leading-tight">
-            Hospital Supercluster 01 | Port #842
+            Universal Hospital ID: {universalHospitalId}
           </div>
           <div className="font-label-sm text-label-sm text-secondary font-medium mt-space-2xs">
-            0.09s ping • TLS Secured
+            Voice IVR SOS • Zero Drop Telemetry
           </div>
         </div>
       </aside>
@@ -179,10 +248,22 @@ export default function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-space-sm sm:gap-space-md shrink-0">
-              <div className="hidden md:inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high text-on-surface">
-                <span className="w-2 h-2 rounded-full bg-tertiary"></span>
+              {/* Universal Hospital & Test IVR Trigger */}
+              <button
+                type="button"
+                onClick={handleSimulateIvrCall}
+                disabled={isSimulatingIvr}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-label-sm text-xs font-bold transition-all shadow-sm shadow-red-600/20 cursor-pointer disabled:opacity-50"
+                title="Simulate incoming IVR Voice Emergency Call"
+              >
+                <span className="material-symbols-outlined text-[16px] animate-bounce">phone_in_talk</span>
+                <span>{isSimulatingIvr ? 'Calling...' : 'Test IVR Call'}</span>
+              </button>
+
+              <div className="hidden xl:inline-flex items-center gap-space-xs px-space-sm py-space-xs rounded-full bg-surface-container-high text-on-surface">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span className="font-label-sm text-label-sm font-medium">
-                  Live Hospital Grid: Operational
+                  {universalHospitalId} (Active)
                 </span>
               </div>
               <button
@@ -191,12 +272,6 @@ export default function AdminLayout() {
               >
                 <span className="material-symbols-outlined text-[22px]">notifications</span>
                 <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-error ring-2 ring-surface"></span>
-              </button>
-              <button
-                className="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors"
-                title="Help & Support"
-              >
-                <span className="material-symbols-outlined text-[22px]">help</span>
               </button>
               <Avatar name={adminName} initials={adminInitials} role="admin" size="sm" />
               <button

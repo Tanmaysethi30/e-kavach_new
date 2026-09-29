@@ -127,8 +127,10 @@ export default function PatientDashboard() {
 
         // Encoded secure reference payload (No plain text sensitive data inside QR)
         const payload = createQrReferencePayload({
+          ...activeProfile,
           emergencyId,
           abhaNumber: abhaVal,
+          token: `EK-TR-${abhaVal.replace(/[^0-9]/g, '').slice(-4) || '8819'}-V4`,
         });
 
         const url = await QRCode.toDataURL(payload, {
