@@ -140,7 +140,7 @@ class DoctorService {
       const pAbha = qrParsed.abhaNumber || qrParsed.abha || `9824-${Math.floor(1000 + Math.random() * 9000)}-TN`;
       const pBlood = qrParsed.bloodGroup || qrParsed.blood || 'O+ (Rh Pos)';
       const pGender = qrParsed.gender || 'Not Specified';
-      const pAge = qrParsed.age ? parseInt(qrParsed.age, 10) : 38;
+      const pAge = qrParsed.age ? parseInt(qrParsed.age, 10) : (qrParsed.dob ? Math.floor((new Date() - new Date(qrParsed.dob)) / (365.25 * 24 * 3600 * 1000)) : 42);
       const pAllergies = qrParsed.allergies ? (Array.isArray(qrParsed.allergies) ? qrParsed.allergies : [qrParsed.allergies]) : [];
       const pConditions = qrParsed.conditions || qrParsed.chronicConditions || (qrParsed.condition ? [qrParsed.condition] : []);
 
@@ -184,7 +184,7 @@ class DoctorService {
               abhaNumber: abhaCandidates[0] || `9824-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-TN`,
               bloodGroup: qrParsed?.bloodGroup || 'O+ (Rh Pos)',
               gender: qrParsed?.gender || 'Not Specified',
-              age: qrParsed?.age ? parseInt(qrParsed.age, 10) : 34,
+              age: qrParsed?.age ? parseInt(qrParsed.age, 10) : (qrParsed?.dob ? Math.floor((new Date() - new Date(qrParsed.dob)) / (365.25 * 24 * 3600 * 1000)) : 42),
               allergies: qrParsed?.allergies || ['None reported'],
               chronicConditions: qrParsed?.chronicConditions || ['None recorded'],
               emergencyContacts: [{ name: qrParsed?.emergencyContact || 'Emergency Contact', phone: '+91 98401 22819', relation: 'Family' }],
@@ -229,7 +229,7 @@ class DoctorService {
       accessType: 'EMERGENCY_PASS_BYPASS',
       reason: 'Golden Hour Emergency Scanner Ingress Protocol',
       ipAddress: '10.14.22.90',
-      userAgent: 'E-KAVACH ER Scan Terminal v2.4',
+      userAgent: 'E-KAWACH ER Scan Terminal v2.4',
       latencyMs: elapsedMs,
     });
 
@@ -803,7 +803,7 @@ class DoctorService {
 
     const patientAge = patient?.dob
       ? Math.floor((new Date() - new Date(patient.dob)) / (365.25 * 24 * 3600 * 1000))
-      : (patient?.age || 52);
+      : (patient?.age ? parseInt(patient.age, 10) : 42);
 
     // Top-notch triage vitals deck (Always accessible)
     const triageData = {
@@ -845,7 +845,7 @@ class DoctorService {
           ? `Verified Active Appointment Consultation (${activeAppointment?.tokenNumber || 'EK-SLOT-101'})`
           : 'ABDM Verified Patient Consent Grant',
         ipAddress: '10.14.22.90',
-        userAgent: 'E-KAVACH Doctor Clinical Portal v2.4',
+        userAgent: 'E-KAWACH Doctor Clinical Portal v2.4',
         latencyMs: 16,
       });
 
@@ -937,7 +937,7 @@ class DoctorService {
       accessType: 'EMERGENCY_BREAK_GLASS',
       reason: `[ABDM BREAK-GLASS] Emergency Condition: ${emergencyCondition} | Clinical Justification: ${clinicalJustification} | Authorized by Dr. ${doctorName} (NMC: ${nmcNumber}) | Location: ${hospitalName}`,
       ipAddress: clientIp,
-      userAgent: 'E-KAVACH Doctor Emergency Break-Glass Portal (ABDM Tier-3)',
+      userAgent: 'E-KAWACH Doctor Emergency Break-Glass Portal (ABDM Tier-3)',
       latencyMs: 14,
     });
 

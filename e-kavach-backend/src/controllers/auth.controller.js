@@ -24,7 +24,7 @@ class AuthController {
       const validated = registerSchema.parse(req.body);
       const result = await authService.register(validated);
 
-      res.cookie('ekavach_access_token', result.accessToken, {
+      res.cookie('ekawach_access_token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -48,7 +48,7 @@ class AuthController {
       const validated = loginSchema.parse(req.body);
       const result = await authService.login(validated);
 
-      res.cookie('ekavach_access_token', result.accessToken, {
+      res.cookie('ekawach_access_token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -89,7 +89,7 @@ class AuthController {
     try {
       const result = await authService.createPassword(req.body);
 
-      res.cookie('ekavach_access_token', result.accessToken, {
+      res.cookie('ekawach_access_token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -110,7 +110,7 @@ class AuthController {
     try {
       const result = await authService.googleLocal(req.body);
 
-      res.cookie('ekavach_access_token', result.accessToken, {
+      res.cookie('ekawach_access_token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -142,7 +142,7 @@ class AuthController {
       const { phone, email, otp, role } = req.body;
       const result = await authService.verifyOTP({ phone, email, otp, role });
 
-      res.cookie('ekavach_access_token', result.accessToken, {
+      res.cookie('ekawach_access_token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -161,10 +161,10 @@ class AuthController {
 
   async refresh(req, res, next) {
     try {
-      const token = req.body?.refreshToken || req.cookies?.ekavach_refresh_token;
+      const token = req.body?.refreshToken || req.cookies?.ekawach_refresh_token;
       const result = await authService.refreshTokens(token);
 
-      res.cookie('ekavach_access_token', result.accessToken, {
+      res.cookie('ekawach_access_token', result.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -182,7 +182,7 @@ class AuthController {
 
   async logout(req, res, next) {
     try {
-      res.clearCookie('ekavach_access_token');
+      res.clearCookie('ekawach_access_token');
       const userId = req.user ? req.user.id : null;
       await authService.logout(userId);
       res.json({

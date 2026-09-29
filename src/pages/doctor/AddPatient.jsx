@@ -30,7 +30,7 @@ export default function AddPatient() {
   const fetchPatientsList = async () => {
     try {
       setLoadingPatients(true);
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch('/api/doctor/patients', {
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ export default function AddPatient() {
     let abhaNumber = '9824-' + Math.floor(1000 + Math.random() * 9000) + '-' + Math.floor(1000 + Math.random() * 9000) + '-TN';
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -236,7 +236,7 @@ export default function AddPatient() {
               <span className="text-xs text-slate-500 font-medium">Shift #42-B</span>
             </div>
             <h1 className="text-2xl font-bold text-[#0B1F3A] tracking-tight">Add New Patient</h1>
-            <p className="text-sm text-slate-600 mt-0.5">Manually onboard walk-in, urgent transfer, or referred patients into E-KAVACH core records.</p>
+            <p className="text-sm text-slate-600 mt-0.5">Manually onboard walk-in, urgent transfer, or referred patients into E-KAWACH core records.</p>
           </div>
           <div className="flex items-center gap-2 self-start md:self-auto">
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-teal-50 text-teal-900 text-xs font-semibold">

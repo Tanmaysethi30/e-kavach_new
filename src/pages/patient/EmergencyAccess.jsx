@@ -5,7 +5,20 @@ import HospitalMap from '../../components/patient/HospitalMap';
 import HospitalList from '../../components/patient/HospitalList';
 import EmergencySosModal from '../../components/patient/EmergencySosModal';
 import { useAuth } from '../../context/AuthContext';
-import { detectClientIpLocation } from '../../utils/geolocation';
+import { detectClientIpLocation, searchLocationByQuery } from '../../utils/geolocation';
+
+const INDIAN_CITY_PRESETS = [
+  { name: '📍 Auto GPS', isGps: true },
+  { name: 'Delhi NCR', lat: 28.6139, lng: 77.2090, city: 'New Delhi', label: 'New Delhi (AIIMS / Safdarjung Grid)' },
+  { name: 'Indore', lat: 22.7196, lng: 75.8577, city: 'Indore', label: 'Indore, Madhya Pradesh' },
+  { name: 'Mumbai', lat: 19.0760, lng: 72.8777, city: 'Mumbai', label: 'Mumbai, Maharashtra' },
+  { name: 'Bengaluru', lat: 12.9716, lng: 77.5946, city: 'Bengaluru', label: 'Bengaluru, Karnataka' },
+  { name: 'Chennai', lat: 13.0604, lng: 80.2496, city: 'Chennai', label: 'Chennai, Tamil Nadu' },
+  { name: 'Jaipur', lat: 26.9124, lng: 75.7873, city: 'Jaipur', label: 'Jaipur, Rajasthan' },
+  { name: 'Kolkata', lat: 22.5726, lng: 88.3639, city: 'Kolkata', label: 'Kolkata, West Bengal' },
+  { name: 'Hyderabad', lat: 17.3850, lng: 78.4867, city: 'Hyderabad', label: 'Hyderabad, Telangana' },
+  { name: 'Pune', lat: 18.5204, lng: 73.8567, city: 'Pune', label: 'Pune, Maharashtra' },
+];
 
 export default function EmergencyAccess() {
   const navigate = useNavigate();
@@ -19,15 +32,39 @@ export default function EmergencyAccess() {
   const [selectedHospital, setSelectedHospital] = useState(null);
   const [isLoadingHospitals, setIsLoadingHospitals] = useState(true);
 
-  // Live Patient Location state
-  const [userLocation, setUserLocation] = useState({
-    lat: 22.7196,
-    lng: 75.8577,
-    areaName: 'Indore',
-    city: 'Indore',
-    isDetected: false,
-    label: 'Detecting Live System Geolocation...',
+  // Live Patient Location state (Intelligently initialized)
+  const [userLocation, setUserLocation] = useState(() => {
+    try {
+      const savedProfile = localStorage.getItem('ekawach_patient_profile');
+      const cityCandidate = (savedProfile ? JSON.parse(savedProfile).city : null) || currentUser?.city;
+      if (cityCandidate) {
+        const match = INDIAN_CITY_PRESETS.find((c) => c.city?.toLowerCase() === cityCandidate.toLowerCase() || c.name.toLowerCase() === cityCandidate.toLowerCase());
+        if (match) {
+          return {
+            lat: match.lat,
+            lng: match.lng,
+            areaName: cityCandidate,
+            city: cityCandidate,
+            isDetected: true,
+            label: `${cityCandidate}, India (Registered Profile Location)`,
+          };
+        }
+      }
+    } catch (_e) {}
+    return {
+      lat: 28.6139,
+      lng: 77.2090,
+      areaName: 'New Delhi',
+      city: 'New Delhi',
+      isDetected: false,
+      label: 'Live System Geolocation (Delhi NCR Grid)',
+    };
   });
+
+  const [locationSearchInput, setLocationSearchInput] = useState('');
+  const [locationSearchResults, setLocationSearchResults] = useState([]);
+  const [isSearchingLoc, setIsSearchingLoc] = useState(false);
+  const [showLocDropdown, setShowLocDropdown] = useState(false);
 
   const [isLiveGpsTracking, setIsLiveGpsTracking] = useState(false);
   const watchIdRef = useRef(null);
@@ -142,6 +179,9 @@ export default function EmergencyAccess() {
   useEffect(() => {
     let hasAcquiredGps = false;
 
+    // Immediately fetch emergency hospitals for current location so grid is never blank
+    fetchHospitals(userLocation, false);
+
     // A. Start client-side IP Geolocation immediately (Fast 200ms ISP detection)
     async function initClientIpLocation() {
       try {
@@ -164,7 +204,7 @@ export default function EmergencyAccess() {
     }
     initClientIpLocation();
 
-    // B. Start real-time browser GPS tracking
+    // B. Start real-time browser GPS tracking with graceful multi-tier fallbacks
     if (navigator.geolocation) {
       setIsLiveGpsTracking(true);
 
@@ -172,6 +212,7 @@ export default function EmergencyAccess() {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           hasAcquiredGps = true;
+          setIsLiveGpsTracking(false);
           const coords = {
             lat: parseFloat(pos.coords.latitude.toFixed(5)),
             lng: parseFloat(pos.coords.longitude.toFixed(5)),
@@ -180,13 +221,31 @@ export default function EmergencyAccess() {
           };
           setUserLocation((prev) => ({ ...prev, ...coords }));
           fetchHospitals(coords, true);
-          showToast(`📍 High-Precision Live Location Locked`);
         },
         (err) => {
-          console.warn('Browser GPS permission/timeout:', err.message);
-          setIsLiveGpsTracking(false);
+          console.warn('High-accuracy GPS timed out/declined, attempting network geolocation:', err.message);
+          // Tier 2: Standard accuracy (works on PCs/Laptops via Wi-Fi networks)
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              hasAcquiredGps = true;
+              setIsLiveGpsTracking(false);
+              const coords = {
+                lat: parseFloat(pos.coords.latitude.toFixed(5)),
+                lng: parseFloat(pos.coords.longitude.toFixed(5)),
+                isDetected: true,
+                label: `Network Geolocation (±${Math.round(pos.coords.accuracy)}m)`,
+              };
+              setUserLocation((prev) => ({ ...prev, ...coords }));
+              fetchHospitals(coords, true);
+            },
+            (err2) => {
+              setIsLiveGpsTracking(false);
+              console.warn('Browser GPS unavailable, keeping IP/registered location:', err2.message);
+            },
+            { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+          );
         },
-        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+        { enableHighAccuracy: true, timeout: 4000, maximumAge: 10000 }
       );
 
       // Continuous Watch Position
@@ -210,7 +269,7 @@ export default function EmergencyAccess() {
             });
           },
           (err) => console.warn('Watch position warning:', err.message),
-          { enableHighAccuracy: true, maximumAge: 15000 }
+          { enableHighAccuracy: false, maximumAge: 20000 }
         );
         watchIdRef.current = id;
       } catch (e) {
@@ -225,16 +284,20 @@ export default function EmergencyAccess() {
     };
   }, [fetchHospitals]);
 
-  // Request real Browser GPS coordinates manually
+  // Request real Browser GPS coordinates manually with multi-tier fallback
   const handleRequestGpsLocation = () => {
     if (!navigator.geolocation) {
-      showToast('Geolocation is not supported by your browser environment.');
+      showToast('Geolocation not supported by this browser. Using network/IP location.');
+      fallbackToIp();
       return;
     }
 
-    showToast('Acquiring high-precision live GPS coordinates...');
+    showToast('Acquiring live location...');
+    setIsLiveGpsTracking(true);
+
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        setIsLiveGpsTracking(false);
         const newCoords = {
           lat: parseFloat(pos.coords.latitude.toFixed(5)),
           lng: parseFloat(pos.coords.longitude.toFixed(5)),
@@ -243,29 +306,115 @@ export default function EmergencyAccess() {
         };
         setUserLocation((prev) => ({ ...prev, ...newCoords }));
         fetchHospitals(newCoords, true);
-        showToast(`Live GPS Synced: ${newCoords.lat}° N, ${newCoords.lng}° E`);
+        showToast(`📍 Live GPS Locked: ${newCoords.lat}° N, ${newCoords.lng}° E`);
       },
       (err) => {
-        console.warn('Geolocation error:', err.message);
-        showToast('Could not access live GPS. Using current coordinates.');
+        console.warn('High-accuracy GPS failed, trying network geolocation:', err.message);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            setIsLiveGpsTracking(false);
+            const newCoords = {
+              lat: parseFloat(pos.coords.latitude.toFixed(5)),
+              lng: parseFloat(pos.coords.longitude.toFixed(5)),
+              isDetected: true,
+              label: `Network Geolocation (±${Math.round(pos.coords.accuracy)}m)`,
+            };
+            setUserLocation((prev) => ({ ...prev, ...newCoords }));
+            fetchHospitals(newCoords, true);
+            showToast(`📍 Network Location Synced: ${newCoords.lat}° N, ${newCoords.lng}° E`);
+          },
+          (err2) => {
+            setIsLiveGpsTracking(false);
+            console.warn('Network location also failed:', err2.message);
+            fallbackToIp();
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+        );
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 4000, maximumAge: 10000 }
     );
+  };
+
+  const fallbackToIp = async () => {
+    try {
+      const clientLoc = await detectClientIpLocation();
+      if (clientLoc && clientLoc.lat && clientLoc.lng) {
+        const coords = {
+          lat: clientLoc.lat,
+          lng: clientLoc.lng,
+          areaName: clientLoc.city || 'Local Area',
+          city: clientLoc.city,
+          isDetected: true,
+          label: clientLoc.label || `${clientLoc.city}, India (Verified IP Location)`,
+        };
+        setUserLocation(coords);
+        fetchHospitals(coords, true);
+        showToast(`📍 Synced to your local area: ${clientLoc.city || 'Local Area'}`);
+        return;
+      }
+    } catch (_e) {}
+    showToast('GPS unavailable. Click any city preset below or search an address.');
+  };
+
+  // Switch City Preset (e.g. Delhi NCR, Mumbai, Indore, Jaipur)
+  const handleSelectCityPreset = (preset) => {
+    if (preset.isGps) {
+      handleRequestGpsLocation();
+      return;
+    }
+    const coords = {
+      lat: preset.lat,
+      lng: preset.lng,
+      areaName: preset.city || preset.name,
+      city: preset.city || preset.name,
+      isDetected: true,
+      label: preset.label || `${preset.name}, India`,
+    };
+    setUserLocation(coords);
+    fetchHospitals(coords, true);
+    showToast(`📍 Switched to ${preset.name} Emergency Grid`);
+  };
+
+  // Search Address / Hospital / Locality
+  const handleSearchLocationSubmit = async (e) => {
+    e?.preventDefault();
+    if (!locationSearchInput.trim()) return;
+
+    setIsSearchingLoc(true);
+    try {
+      const results = await searchLocationByQuery(locationSearchInput);
+      setLocationSearchResults(results || []);
+      setShowLocDropdown(true);
+      if (!results || results.length === 0) {
+        showToast('No exact address match found. Try a city or district name.');
+      }
+    } catch (err) {
+      console.warn('Location search error:', err);
+    } finally {
+      setIsSearchingLoc(false);
+    }
+  };
+
+  const handleSelectSearchedLoc = (item) => {
+    setShowLocDropdown(false);
+    setLocationSearchInput('');
+    const coords = {
+      lat: item.lat,
+      lng: item.lng,
+      areaName: item.areaName || item.name || 'Selected Location',
+      city: item.city || 'City Center',
+      displayName: item.displayName,
+      label: item.label || item.displayName || `${item.name}, India`,
+      isDetected: true,
+    };
+    setUserLocation(coords);
+    fetchHospitals(coords, true);
+    showToast(`📍 Centered on ${item.areaName || item.name}`);
   };
 
   // Reset to default central reference
   const handleResetLocation = () => {
-    const defaultCoords = {
-      lat: 22.7196,
-      lng: 75.8577,
-      areaName: 'Indore City',
-      city: 'Indore',
-      isDetected: false,
-      label: 'Indore Reference (22.7196° N, 75.8577° E)',
-    };
-    setUserLocation(defaultCoords);
-    fetchHospitals(defaultCoords, true);
-    showToast('Reset to Central Medical Grid');
+    handleSelectCityPreset(INDIAN_CITY_PRESETS[1]); // Delhi NCR or initial
   };
 
   // Update location from map pin drop or search
@@ -398,7 +547,106 @@ export default function EmergencyAccess() {
 
       {/* 3. MAIN VIEW: REAL-LIFE MAP & HOSPITALS */}
       {activeTab === 'map' && (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-5">
+          {/* Quick Indian City Grid & Search Toolbar */}
+          <div className="bg-surface-container-lowest p-4 rounded-3xl border border-outline-variant/40 shadow-sm flex flex-col gap-3">
+            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+              {/* Left: Active Location Badge & GPS Sync */}
+              <div className="flex items-center gap-2 min-w-0">
+                <button
+                  type="button"
+                  onClick={handleRequestGpsLocation}
+                  disabled={isLiveGpsTracking}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs transition-transform active:scale-95 cursor-pointer"
+                  title="Detect live coordinates via browser/device GPS"
+                >
+                  <span className={`material-symbols-outlined text-[16px] ${isLiveGpsTracking ? 'animate-spin' : ''}`}>
+                    my_location
+                  </span>
+                  <span>{isLiveGpsTracking ? 'Locking GPS...' : 'Auto-Detect GPS'}</span>
+                </button>
+
+                <div className="flex items-center gap-2 min-w-0 px-3 py-1 bg-surface-container-low rounded-xl border border-outline-variant/30 text-xs">
+                  <span className="material-symbols-outlined text-[16px] text-primary shrink-0">pin_drop</span>
+                  <span className="font-semibold text-primary truncate max-w-[220px] md:max-w-[340px]">
+                    {userLocation.label || `${userLocation.areaName || 'Local'}, ${userLocation.city || ''}`}
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/10 text-emerald-700 font-mono font-bold rounded-full shrink-0">
+                    {userLocation.lat?.toFixed(3)}°, {userLocation.lng?.toFixed(3)}°
+                  </span>
+                </div>
+              </div>
+
+              {/* Right: Search any address/locality in India */}
+              <form onSubmit={handleSearchLocationSubmit} className="relative flex-1 md:max-w-xs">
+                <div className="relative flex items-center">
+                  <span className="material-symbols-outlined absolute left-3 text-on-surface-variant text-[16px]">
+                    search
+                  </span>
+                  <input
+                    type="text"
+                    value={locationSearchInput}
+                    onChange={(e) => setLocationSearchInput(e.target.value)}
+                    placeholder="Search city, area, hospital..."
+                    className="w-full pl-8 pr-16 py-1.5 bg-surface-container-low border border-outline-variant/40 rounded-xl text-xs font-medium text-on-surface placeholder:text-on-surface-variant/70 focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSearchingLoc}
+                    className="absolute right-1 px-2.5 py-1 bg-primary text-on-primary rounded-lg text-[10px] font-bold transition-colors cursor-pointer"
+                  >
+                    {isSearchingLoc ? '...' : 'Go'}
+                  </button>
+                </div>
+
+                {/* Dropdown search results */}
+                {showLocDropdown && locationSearchResults.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-surface-container-lowest border border-outline-variant rounded-2xl shadow-2xl z-50 overflow-hidden divide-y divide-outline-variant/20 max-h-56 overflow-y-auto">
+                    {locationSearchResults.map((res, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => handleSelectSearchedLoc(res)}
+                        className="w-full text-left p-2.5 hover:bg-surface-container text-xs text-on-surface flex items-start gap-2 cursor-pointer transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[16px] text-primary shrink-0 mt-0.5">location_on</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-bold truncate">{res.areaName || res.name}</span>
+                          <span className="text-[10px] text-on-surface-variant truncate">{res.displayName}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </form>
+            </div>
+
+            {/* City Preset Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs no-scrollbar">
+              <span className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+                <span className="material-symbols-outlined text-[14px]">apartment</span>
+                Quick Cities:
+              </span>
+              {INDIAN_CITY_PRESETS.filter(p => !p.isGps).map((preset) => {
+                const isActive = userLocation.city?.toLowerCase() === preset.city?.toLowerCase() || (userLocation.areaName && userLocation.areaName.toLowerCase().includes(preset.city.toLowerCase()));
+                return (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => handleSelectCityPreset(preset)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all shrink-0 cursor-pointer ${
+                      isActive
+                        ? 'bg-primary text-on-primary shadow-xs font-bold ring-1 ring-primary'
+                        : 'bg-surface-container text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    {preset.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Main 2-Column Section: Left Hospital List / Directions + Right Real-Life Map */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Column: Hospital Data List & OSRM Turn-by-Turn (5 cols on Desktop) */}

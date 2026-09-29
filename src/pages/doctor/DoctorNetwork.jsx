@@ -146,7 +146,7 @@ export default function DoctorNetwork() {
     async function fetchReferrals() {
       try {
         setLoadingReferrals(true);
-        const token = localStorage.getItem('ekavach_token');
+        const token = localStorage.getItem('ekawach_token');
         const res = await fetch('/api/doctor/referrals', {
           headers: {
             'Content-Type': 'application/json',
@@ -201,7 +201,7 @@ export default function DoctorNetwork() {
     const selectedPatient = PRECONFIGURED_PATIENTS[referralForm.patientIndex] || PRECONFIGURED_PATIENTS[0];
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch('/api/doctor/referrals', {
         method: 'POST',
         headers: {
@@ -599,7 +599,7 @@ export default function DoctorNetwork() {
                       Inter-Hospital Clinical Referral
                     </h3>
                     <p className="text-xs text-on-surface-variant">
-                      E-KAVACH National Emergency Trauma Grid Handover
+                      E-KAWACH National Emergency Trauma Grid Handover
                     </p>
                   </div>
                 </div>

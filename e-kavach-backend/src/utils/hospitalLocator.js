@@ -1,5 +1,5 @@
 /**
- * E-KAVACH Open-Source Hospital Geolocation & Routing Engine
+ * E-KAWACH Open-Source Hospital Geolocation & Routing Engine
  * Strictly uses Open-Source & Free-tier APIs:
  * - OpenStreetMap Nominatim (Geocoding & Reverse Geocoding)
  * - OpenStreetMap Overpass API (Real OSM nodes tagged with amenity=hospital within radius)
@@ -7,7 +7,7 @@
  * - OSRM (Open Source Routing Machine for driving geometry & ETA)
  */
 
-const USER_AGENT = 'EKavach-Emergency-Hospital-Locator/1.0 (https://ekavach.health)';
+const USER_AGENT = 'EKavach-Emergency-Hospital-Locator/1.0 (https://ekawach.health)';
 
 /**
  * Calculates the great-circle distance between two points on the Earth
@@ -166,50 +166,18 @@ async function reverseGeocode(lat, lng) {
  * @returns {Promise<Array>} List of raw hospital elements from OSM
  */
 async function fetchOverpassHospitals(lat, lng, radiusMeters = 7000) {
-  const elements = [];
-
-  // Method A: Fast Overpass API Query
-  const query = `[out:json][timeout:10];(node["amenity"="hospital"](around:${radiusMeters},${lat},${lng});node["healthcare"="hospital"](around:${radiusMeters},${lat},${lng}););out body 25;`;
-  const overpassEndpoints = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-  ];
-
-  for (const endpoint of overpassEndpoints) {
-    try {
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'User-Agent': USER_AGENT,
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `data=${encodeURIComponent(query)}`,
-        signal: AbortSignal.timeout(6000),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data.elements) && data.elements.length > 0) {
-          return data.elements;
-        }
-      }
-    } catch (err) {
-      // try next
-    }
-  }
-
-  // Method B: OpenStreetMap Nominatim Bounded Hospital Query (Ultra-fast 200ms real OSM data)
+  // Method A: OpenStreetMap Nominatim Bounded Hospital Query (Ultra-fast 200-400ms real OSM hospital data)
   try {
-    const delta = (radiusMeters / 1000) * 0.01; // approximate degrees for radius
+    const delta = (radiusMeters / 1000) * 0.012; // approximate degrees for radius
     const left = lng - delta;
     const right = lng + delta;
     const top = lat + delta;
     const bottom = lat - delta;
 
-    const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&viewbox=${left},${top},${right},${bottom}&bounded=1&limit=15&addressdetails=1`;
+    const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=hospital&viewbox=${left},${top},${right},${bottom}&bounded=1&limit=20&addressdetails=1`;
     const nomRes = await fetch(nomUrl, {
       headers: { 'User-Agent': USER_AGENT, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(2500),
     });
 
     if (nomRes.ok) {
@@ -230,10 +198,40 @@ async function fetchOverpassHospitals(lat, lng, radiusMeters = 7000) {
       }
     }
   } catch (nomErr) {
-    console.warn('Nominatim bounded hospital query warning:', nomErr.message);
+    // continue to Overpass
   }
 
-  return elements;
+  // Method B: Fast Overpass API Query
+  const query = `[out:json][timeout:3];(node["amenity"="hospital"](around:${radiusMeters},${lat},${lng});node["healthcare"="hospital"](around:${radiusMeters},${lat},${lng}););out body 25;`;
+  const overpassEndpoints = [
+    'https://overpass-api.de/api/interpreter',
+    'https://overpass.kumi.systems/api/interpreter',
+  ];
+
+  for (const endpoint of overpassEndpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'User-Agent': USER_AGENT,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: AbortSignal.timeout(2500),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data.elements) && data.elements.length > 0) {
+          return data.elements;
+        }
+      }
+    } catch (err) {
+      // try next
+    }
+  }
+
+  return [];
 }
 
 /**

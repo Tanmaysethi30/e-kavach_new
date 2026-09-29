@@ -121,7 +121,7 @@ export default function PatientManagement() {
   ];
 
   const [patients, setPatients] = useState(() => {
-    const saved = localStorage.getItem('ekavach_admin_patients');
+    const saved = localStorage.getItem('ekawach_admin_patients');
     return saved ? JSON.parse(saved) : initialPatients;
   });
 
@@ -129,7 +129,7 @@ export default function PatientManagement() {
   useEffect(() => {
     const fetchBackendPatients = async () => {
       try {
-        const token = localStorage.getItem('ekavach_token');
+        const token = localStorage.getItem('ekawach_token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const res = await fetch('/api/admin/patients', { headers });
         const data = await res.json();
@@ -189,7 +189,7 @@ export default function PatientManagement() {
     };
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       await fetch('/api/admin/patients', {
         method: 'POST',
         headers: {
@@ -212,7 +212,7 @@ export default function PatientManagement() {
 
     const updated = [regItem, ...patients];
     setPatients(updated);
-    localStorage.setItem('ekavach_admin_patients', JSON.stringify(updated));
+    localStorage.setItem('ekawach_admin_patients', JSON.stringify(updated));
     setShowRegisterModal(false);
     setNewPatient({
       name: '',
@@ -227,7 +227,7 @@ export default function PatientManagement() {
   };
 
   const handleExportCSV = () => {
-    let csvContent = `E-KAVACH HOSPITAL COMMAND NODE 01 - PATIENT REGISTRY AUDIT
+    let csvContent = `E-KAWACH HOSPITAL COMMAND NODE 01 - PATIENT REGISTRY AUDIT
 Generated: ${new Date().toLocaleString()}
 Hospital: Apollo Greams Super-Speciality Trauma Center, Chennai
 
@@ -241,7 +241,7 @@ Name,Age & Gender,ABHA ID,Admission Status,Attending Specialist,Specialty,Ward /
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `E-KAVACH_Patient_Registry_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `E-KAWACH_Patient_Registry_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -845,7 +845,7 @@ Name,Age & Gender,ABHA ID,Admission Status,Attending Specialist,Specialty,Ward /
           <div className="flex flex-col sm:flex-row items-center justify-between gap-space-sm px-space-sm pt-space-xs text-on-surface-variant font-body-sm text-body-sm">
             <div className="flex items-center gap-space-xs">
               <span className="material-symbols-outlined text-[16px] text-secondary">encrypted</span>
-              <span className="">E-KAVACH Federated Health Data Exchange • 256-bit Encrypted Session #TN-TR-842</span>
+              <span className="">E-KAWACH Federated Health Data Exchange • 256-bit Encrypted Session #TN-TR-842</span>
             </div>
             <div className="flex items-center gap-space-md">
               <Link to="/doctor/privacy" className="hover:text-primary hover:underline transition-colors no-underline">Registry Audit Log</Link>

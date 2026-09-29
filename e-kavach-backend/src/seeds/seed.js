@@ -16,7 +16,7 @@ const {
 } = require('../database/seedData');
 
 async function runSeed() {
-  console.log('🌱 Starting E-KAVACH Database Seeding...');
+  console.log('🌱 Starting E-KAWACH Database Seeding...');
 
   try {
     console.log(`✅ Loaded ${seedHospitals.length} hospitals`);
@@ -31,7 +31,7 @@ async function runSeed() {
     console.log(`✅ Loaded ${seedNetworkNodes.length} regional trauma network nodes`);
     console.log(`✅ Seeded Golden Hour Emergency Pass token: EK-TR-88190-V4`);
 
-    console.log('🎉 E-KAVACH database seeding successfully completed!');
+    console.log('🎉 E-KAWACH database seeding successfully completed!');
   } catch (error) {
     console.error('❌ Seeding failed:', error);
     process.exit(1);

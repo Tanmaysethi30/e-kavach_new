@@ -10,8 +10,8 @@ async function authenticateToken(req, res, next) {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1];
-  } else if (req.cookies && req.cookies.ekavach_access_token) {
-    token = req.cookies.ekavach_access_token;
+  } else if (req.cookies && req.cookies.ekawach_access_token) {
+    token = req.cookies.ekawach_access_token;
   }
 
   if (!token) {

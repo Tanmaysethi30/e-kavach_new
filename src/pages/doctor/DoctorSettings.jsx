@@ -48,7 +48,7 @@ export default function DoctorSettings() {
     const cleanPhone = `+91 ${rawDigits}`;
     const updatedProfile = { ...profile, phone: cleanPhone };
     setProfile(updatedProfile);
-    localStorage.setItem('ekavach_doctor_profile', JSON.stringify(updatedProfile));
+    localStorage.setItem('ekawach_doctor_profile', JSON.stringify(updatedProfile));
     if (updateProfileDetails) {
       updateProfileDetails({
         name: updatedProfile.fullName,
@@ -79,7 +79,7 @@ export default function DoctorSettings() {
       language: 'English (UK / India)',
     };
     setProfile(resetVals);
-    localStorage.setItem('ekavach_doctor_profile', JSON.stringify(resetVals));
+    localStorage.setItem('ekawach_doctor_profile', JSON.stringify(resetVals));
     setToastMessage('Preferences reverted');
     setTimeout(() => setToastMessage(null), 3000);
   };

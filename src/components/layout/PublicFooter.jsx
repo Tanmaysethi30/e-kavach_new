@@ -19,7 +19,7 @@ export default function PublicFooter() {
           <div className="lg:col-span-2 flex flex-col gap-space-sm pr-space-lg">
             <div className="flex items-center gap-space-xs">
               <span className="font-headline-sm text-headline-sm text-primary font-semibold">
-                E-KAVACH
+                E-KAWACH
               </span>
             </div>
             <p className="font-body-md text-body-md text-on-surface-variant max-w-md">
@@ -127,7 +127,7 @@ export default function PublicFooter() {
 
         <div className="pt-space-lg flex flex-col md:flex-row items-center justify-between gap-space-md bg-surface-container-low px-space-lg py-space-md rounded-xl">
           <p className="font-body-sm text-body-sm text-on-surface-variant">
-            © 2026 E-KAVACH Health Systems (Team Nexus, Build with Bharat 2.0). All rights reserved.
+            © 2026 E-KAWACH Health Systems (Team Nexus, Build with Bharat 2.0). All rights reserved.
           </p>
           <div className="flex items-center gap-space-sm font-label-sm text-label-sm text-on-surface-variant">
             <span className="flex items-center gap-1">

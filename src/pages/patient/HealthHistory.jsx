@@ -63,7 +63,7 @@ export default function HealthHistory() {
     },
   ]);
 
-  const getToken = () => localStorage.getItem('ekavach_token') || localStorage.getItem('ek_token');
+  const getToken = () => localStorage.getItem('ekawach_token') || localStorage.getItem('ek_token');
 
   const fetchConsentRequests = async () => {
     try {
@@ -348,7 +348,7 @@ export default function HealthHistory() {
 
     const content = `=====================================================
 NATIONAL HEALTH AUTHORITY • ABDM DIGITAL HEALTH GRID
-E-KAVACH VERIFIED CLINICAL HEALTH RECORD & SUMMARY
+E-KAWACH VERIFIED CLINICAL HEALTH RECORD & SUMMARY
 =====================================================
 
 PATIENT DEMOGRAPHICS & ABHA IDENTIFIERS:
@@ -388,7 +388,7 @@ Digitally Signed by e-Kavach National Health Core Pipeline.
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `EKAVACH-Health-Record-${abhaId.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+    a.download = `EKAWACH-Health-Record-${abhaId.replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -401,7 +401,7 @@ Digitally Signed by e-Kavach National Health Core Pipeline.
         <!DOCTYPE html>
         <html>
         <head>
-          <title>E-KAVACH Clinical Record - ${patientName}</title>
+          <title>E-KAWACH Clinical Record - ${patientName}</title>
           <style>
             body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px; color: #1e293b; max-width: 800px; margin: 0 auto; line-height: 1.5; }
             .header { border-bottom: 3px solid #0f766e; padding-bottom: 16px; margin-bottom: 24px; }

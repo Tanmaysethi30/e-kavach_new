@@ -49,7 +49,7 @@ export default function DoctorAppointments() {
 
   // Helper to safely obtain a valid doctor auth token
   const getDoctorAuthToken = async () => {
-    let token = localStorage.getItem('ekavach_token');
+    let token = localStorage.getItem('ekawach_token');
     if (token) return token;
 
     try {
@@ -61,7 +61,7 @@ export default function DoctorAppointments() {
       });
       const loginData = await loginRes.json();
       if (loginData.accessToken) {
-        localStorage.setItem('ekavach_token', loginData.accessToken);
+        localStorage.setItem('ekawach_token', loginData.accessToken);
         return loginData.accessToken;
       }
     } catch (_err) {}
@@ -71,7 +71,7 @@ export default function DoctorAppointments() {
   const fetchDoctorAppointments = async () => {
     try {
       setLoading(true);
-      let token = localStorage.getItem('ekavach_token');
+      let token = localStorage.getItem('ekawach_token');
       let headers = token ? { Authorization: `Bearer ${token}` } : {};
       let res = await fetch('/api/doctor/appointments', { headers });
 
@@ -97,7 +97,7 @@ export default function DoctorAppointments() {
 
   const checkAccessStatus = async (pId = searchPatientId) => {
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch(`/api/doctor/access-status/${encodeURIComponent(pId)}`, {
         headers: { Authorization: token ? `Bearer ${token}` : '' },
       });

@@ -126,11 +126,11 @@ export default function AdminLayout() {
           <div className="flex items-center gap-space-sm mb-space-lg">
             <Link to="/" className="flex items-center gap-3 no-underline">
               <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary shadow-[0_1px_8px_rgba(0,77,108,0.06)] p-1">
-                <img src={LogoImg} alt="E-KAVACH Logo" className="w-full h-full object-contain rounded" />
+                <img src={LogoImg} alt="E-KAWACH Logo" className="w-full h-full object-contain rounded" />
               </div>
               <div>
                 <div className="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
-                  E-KAVACH
+                  E-KAWACH
                 </div>
                 <div className="font-label-sm text-label-sm text-on-surface-variant tracking-wider uppercase">
                   ADMIN CONSOLE

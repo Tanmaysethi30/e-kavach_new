@@ -106,7 +106,7 @@ export default function BreakGlassModal({
 
     setIsSubmitting(true);
     try {
-      const token = localStorage.getItem('ekavach_token') || localStorage.getItem('ek_token');
+      const token = localStorage.getItem('ekawach_token') || localStorage.getItem('ek_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

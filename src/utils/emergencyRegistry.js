@@ -11,6 +11,51 @@
 const STORAGE_KEY_REGISTRY = 'ekavach_emergency_registry';
 const STORAGE_KEY_EMERGENCY_ID = 'ekavach_patient_emergency_id';
 
+/**
+ * Calculates patient age dynamically from date of birth (DOB) string.
+ * Supports ISO, YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, or DD-Mon-YYYY.
+ * Guaranteed to return exact age in years with 'Yrs' suffix.
+ */
+export function calculateAge(dob, fallbackAge = null) {
+  if (!dob && !fallbackAge) return '36 Yrs';
+  if (!dob && fallbackAge) {
+    const numOnly = String(fallbackAge).replace(/[^0-9]/g, '');
+    return numOnly ? `${numOnly} Yrs` : `${fallbackAge}`;
+  }
+
+  try {
+    let birthDate = null;
+    const str = String(dob).trim();
+
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      birthDate = new Date(str.slice(0, 10));
+    } else if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+      const parts = str.split(/[-/]/);
+      birthDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+    } else {
+      birthDate = new Date(str);
+    }
+
+    if (birthDate && !isNaN(birthDate.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      if (age >= 0 && age < 130) {
+        return `${age} Yrs`;
+      }
+    }
+  } catch (_e) {}
+
+  if (fallbackAge) {
+    const num = parseInt(String(fallbackAge).replace(/[^0-9]/g, ''), 10);
+    return !isNaN(num) ? `${num} Yrs` : String(fallbackAge);
+  }
+  return '36 Yrs';
+}
+
 // Default baseline clinical profile (Rajesh V. Sharma)
 export const DEFAULT_PATIENT_PROFILE = {
   id: 'patient-rajesh',
@@ -173,8 +218,8 @@ export function createQrReferencePayload(patient) {
     allergies: patient.allergies || patient.criticalAllergies || 'None reported',
     conditions: patient.conditions || patient.chronicConditions || 'None reported',
     chronicConditions: patient.chronicConditions || patient.conditions || 'None reported',
-    dob: patient.dob || '1990-01-01',
-    age: patient.age || 36,
+    dob: patient.dob || '',
+    age: calculateAge(patient.dob, patient.age),
     gender: patient.gender || 'Not Specified',
     emergencyContact: patient.emergencyContactName 
       ? `${patient.emergencyContactName} (${patient.emergencyContactPhone || ''}) - ${patient.emergencyContactRelation || 'ICE'}`

@@ -63,7 +63,7 @@ export default function EmergencyWard() {
   const fetchTriageData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -33,7 +33,7 @@ export default function StaffManagement() {
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -51,7 +51,7 @@ export default function StaffManagement() {
             status: s.status === 'ON_DUTY' || s.status === 'On Duty' ? 'On Duty' : 'Off Duty',
             ext: s.extension || s.ext || 'Ext. 1000 • Shift A',
             phone: s.phone || '+91 98401 00000',
-            email: s.email || `${(s.name || 'staff').toLowerCase().replace(/\s+/g, '.')}@apollo.ekavach.in`,
+            email: s.email || `${(s.name || 'staff').toLowerCase().replace(/\s+/g, '.')}@apollo.ekawach.in`,
             shift: s.shift || 'Shift A (08:00 - 16:00)',
           }));
           setStaffList(mapped);
@@ -77,7 +77,7 @@ export default function StaffManagement() {
     }
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -125,7 +125,7 @@ export default function StaffManagement() {
     if (!editingStaff) return;
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -161,7 +161,7 @@ export default function StaffManagement() {
   const handleToggleDutyStatus = async (staffMember) => {
     const newStatus = staffMember.status === 'On Duty' ? 'Off Duty' : 'On Duty';
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -184,7 +184,7 @@ export default function StaffManagement() {
 
   const handleDeleteStaff = async (id) => {
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -595,7 +595,7 @@ export default function StaffManagement() {
               </div>
               <div className="bg-surface-container-low p-3.5 rounded-xl border border-surface-container">
                 <div className="text-[11px] font-semibold text-on-surface-variant uppercase">Institutional Email</div>
-                <div className="text-xs font-bold text-primary mt-0.5 truncate">{selectedStaffProfile.email || 'staff@apollo.ekavach.in'}</div>
+                <div className="text-xs font-bold text-primary mt-0.5 truncate">{selectedStaffProfile.email || 'staff@apollo.ekawach.in'}</div>
               </div>
             </div>
 

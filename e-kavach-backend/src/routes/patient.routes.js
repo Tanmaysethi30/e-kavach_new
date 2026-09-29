@@ -11,6 +11,7 @@ router.get('/hospitals', (req, res, next) => patientController.getNearbyHospital
 router.get('/emergency-hospitals', (req, res, next) => patientController.getNearbyHospitals(req, res, next));
 router.get('/route', (req, res, next) => patientController.getRoute(req, res, next));
 router.get('/ip-location', (req, res, next) => patientController.getIpLocation(req, res, next));
+router.get('/search-location', (req, res, next) => patientController.searchLocation(req, res, next));
 router.post('/quick-id-and-book', (req, res, next) => patientController.quickIdAndBook(req, res, next));
 
 // Golden-Hour Emergency Triage Scan (Sub-3-second emergency SLA)
@@ -41,7 +42,7 @@ router.get('/abha/card', async (req, res, next) => {
         chronicConditions: pass?.chronicConditions || 'Type II Diabetes, Mild Hypertension',
         implants: pass?.implants || 'Coronary Stent (DES - 2021)',
         emergencyToken: pass?.passToken || 'EK-TR-88190-V4',
-        qrPayload: abha?.qrPayload || `EKAVACH:ABHA:9824-8819-3320-TN:TOKEN:EK-TR-88190-V4`,
+        qrPayload: abha?.qrPayload || `EKAWACH:ABHA:9824-8819-3320-TN:TOKEN:EK-TR-88190-V4`,
       },
     });
   } catch (err) {

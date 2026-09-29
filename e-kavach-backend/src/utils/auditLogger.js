@@ -25,7 +25,7 @@ async function logAccess({
   accessType,
   reason = null,
   ipAddress = '127.0.0.1',
-  userAgent = 'E-KAVACH API Client',
+  userAgent = 'E-KAWACH API Client',
   latencyMs = 18,
 }) {
   try {

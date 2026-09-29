@@ -115,10 +115,10 @@ export default function DoctorLayout() {
           {/* Brand Header */}
           <div className="flex items-center gap-3 pb-4 mb-4 border-b border-slate-100">
             <Link to="/" className="flex items-center gap-3 no-underline">
-              <img src={LogoImg} alt="E-KAVACH Logo" className="w-10 h-10 rounded-xl object-contain" />
+              <img src={LogoImg} alt="E-KAWACH Logo" className="w-10 h-10 rounded-xl object-contain" />
               <div className="flex flex-col">
                 <span className="font-headline-sm text-primary tracking-tight font-bold text-[19px]">
-                  E-KAVACH
+                  E-KAWACH
                 </span>
                 <span className="font-label-sm text-[11px] text-slate-400 font-medium tracking-wider uppercase">
                   Trauma OS v4.2

@@ -10,6 +10,7 @@ import {
   savePatientToRegistry,
   lookupPatientInRegistry,
   DEFAULT_PATIENT_PROFILE,
+  calculateAge,
 } from '../../utils/emergencyRegistry';
 
 export default function PatientDashboard() {
@@ -35,30 +36,96 @@ export default function PatientDashboard() {
       if (event?.detail?.source === 'PatientDashboard') return;
       setProfileSyncKey((prev) => prev + 1);
     };
-    window.addEventListener('ekavach_patient_profile_updated', handleProfileSync);
+    window.addEventListener('ekawach_patient_profile_updated', handleProfileSync);
     return () => {
-      window.removeEventListener('ekavach_patient_profile_updated', handleProfileSync);
+      window.removeEventListener('ekawach_patient_profile_updated', handleProfileSync);
     };
   }, []);
+
+  // Fetch fresh verified profile from backend database on mount / auth change
+  useEffect(() => {
+    let isMounted = true;
+    const fetchFreshProfile = async () => {
+      const token = localStorage.getItem('ekawach_token');
+      if (!token) return;
+      try {
+        const res = await fetch('/api/patient/me', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.profile && isMounted) {
+            const p = data.profile;
+            const updated = {
+              fullName: p.name || p.fullName,
+              name: p.name || p.fullName,
+              abhaNumber: p.abhaNumber,
+              phone: p.phone,
+              aadhaarNumber: p.aadhaarNumber,
+              email: p.email,
+              dob: p.dob ? (typeof p.dob === 'string' && p.dob.includes('T') ? p.dob.split('T')[0] : p.dob) : undefined,
+              gender: p.gender,
+              bloodGroup: p.bloodGroup,
+              address: p.address,
+              pincode: p.pincode,
+              city: p.city,
+              state: p.state,
+              emergencyContactName: p.emergencyContactName,
+              emergencyContactPhone: p.emergencyContactPhone,
+              emergencyContactRelation: p.emergencyContactRelation,
+              bpLevel: p.bpLevel,
+              hasDiabetes: p.hasDiabetes,
+              diabetesType: p.diabetesType,
+              diabetesMedication: p.diabetesMedication,
+              allergies: Array.isArray(p.allergies) ? p.allergies.join(', ') : p.allergies,
+              chronicConditions: Array.isArray(p.chronicConditions) ? p.chronicConditions.join(', ') : p.chronicConditions,
+            };
+            Object.keys(updated).forEach((k) => updated[k] === undefined && delete updated[k]);
+
+            savePatientToRegistry({ ...currentUser, ...updated }, false, 'PatientDashboard');
+            localStorage.setItem(
+              'ekawach_patient_profile',
+              JSON.stringify({ ...updated, userId: currentUser?.id, email: currentUser?.email })
+            );
+            setProfileSyncKey((prev) => prev + 1);
+          }
+        }
+      } catch (err) {
+        console.warn('Dashboard profile fetch notice:', err);
+      }
+    };
+    fetchFreshProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser?.id, currentUser?.email]);
+
+  const isDemoRajesh = !currentUser || currentUser?.id === 'user-patient-rajesh' || currentUser?.email === 'rajesh.sharma@ekawach.health';
 
   // Compute active patient profile combining currentUser, saved local profile, and registry
   const activeProfile = useMemo(() => {
     let savedLocal = {};
     try {
-      const p = localStorage.getItem('ekavach_patient_profile');
-      if (p) savedLocal = JSON.parse(p);
+      const p = localStorage.getItem('ekawach_patient_profile');
+      if (p) {
+        const parsed = JSON.parse(p);
+        if (!currentUser?.id || !parsed.userId || parsed.userId === currentUser.id || parsed.email === currentUser.email) {
+          savedLocal = parsed;
+        }
+      }
     } catch (_e) {}
 
-    const queryKey = savedLocal.emergencyId || currentUser?.emergencyId || currentUser?.abhaNumber || currentUser?.id || 'EK-EMG-9824-8819';
-    const regMatch = lookupPatientInRegistry(queryKey);
+    const queryKey = savedLocal.emergencyId || currentUser?.emergencyId || currentUser?.abhaNumber || currentUser?.id || (isDemoRajesh ? 'EK-EMG-9824-8819' : null);
+    const regMatch = queryKey ? lookupPatientInRegistry(queryKey) : null;
+    const base = isDemoRajesh ? DEFAULT_PATIENT_PROFILE : {};
 
     return {
-      ...DEFAULT_PATIENT_PROFILE,
-      ...(regMatch || {}),
+      ...base,
       ...(currentUser || {}),
+      ...(regMatch || {}),
       ...savedLocal,
     };
-  }, [currentUser, profileSyncKey]);
+  }, [currentUser, profileSyncKey, isDemoRajesh]);
 
   // Validate profile completeness
   const completeness = useMemo(() => validateProfileCompleteness(activeProfile), [activeProfile]);
@@ -66,38 +133,39 @@ export default function PatientDashboard() {
   const emergencyId = useMemo(() => activeProfile.emergencyId || getOrCreateEmergencyId(activeProfile), [activeProfile]);
 
   // Patient details with robust fallbacks
-  const patientName = activeProfile.name || activeProfile.fullName || 'Rajesh V. Sharma';
-  const abhaVal = activeProfile.abhaNumber || activeProfile.id || '9824-8819-3320-TN';
-  const phrVal = activeProfile.email || (patientName ? `${patientName.toLowerCase().replace(/\s+/g, '.')}@abdm` : 'rajesh.sharma@abdm');
-  const bloodGroup = activeProfile.bloodGroup || 'O+';
-  const phoneVal = activeProfile.phone || '+91 98401 77312';
-  const rawAadhaar = activeProfile.aadhaarNumber || activeProfile.aadhaar;
-  const aadhaarVal = rawAadhaar ? (rawAadhaar.length >= 4 ? `XXXX-XXXX-${rawAadhaar.slice(-4)}` : rawAadhaar) : 'XXXX-XXXX-3320';
-  const genderVal = activeProfile.gender || 'Male';
-  const dobVal = activeProfile.dob || '14-Aug-1984';
-  const ageVal = activeProfile.age || '42 Yrs';
-  const addressVal = activeProfile.address || 'Greams Road, Thousand Lights';
-  const cityVal = activeProfile.city || 'Chennai';
-  const stateVal = activeProfile.state || 'Tamil Nadu';
-  const pincodeVal = activeProfile.pincode || '600006';
-  const allergiesVal = activeProfile.allergies || 'Penicillin (Severe anaphylaxis)';
-  const conditionsVal = activeProfile.conditions || activeProfile.chronicConditions || 'Hypertension, Mild Asthmatic Bronchitis';
-  const bpLevelVal = activeProfile.bpLevel || '128/82 mmHg (Optimal)';
-  const diabetesVal = activeProfile.hasDiabetes === 'Yes' 
-    ? `Diabetic (${activeProfile.diabetesType || 'Type 2'}) • ${activeProfile.diabetesMedication || 'Metformin'}`
+  const patientName = activeProfile.name || activeProfile.fullName || currentUser?.name || (isDemoRajesh ? 'Rajesh V. Sharma' : 'Patient');
+  const abhaVal = activeProfile.abhaNumber || activeProfile.id || currentUser?.abhaNumber || currentUser?.id || (isDemoRajesh ? '9824-8819-3320-TN' : 'ABHA-PENDING');
+  const phrVal = activeProfile.email || currentUser?.email || (patientName ? `${patientName.toLowerCase().replace(/\s+/g, '.')}@abdm` : 'patient@abdm');
+  const bloodGroup = activeProfile.bloodGroup || currentUser?.bloodGroup || (isDemoRajesh ? 'O+' : 'Not Set');
+  const phoneVal = activeProfile.phone || currentUser?.phone || '';
+  const rawAadhaar = activeProfile.aadhaarNumber || activeProfile.aadhaar || currentUser?.aadhaarNumber || currentUser?.aadhaar;
+  const aadhaarVal = rawAadhaar ? (rawAadhaar.length >= 4 ? `XXXX-XXXX-${rawAadhaar.slice(-4)}` : rawAadhaar) : (isDemoRajesh ? 'XXXX-XXXX-3320' : 'Not Linked');
+  const genderVal = activeProfile.gender || currentUser?.gender || 'Not Specified';
+  const dobVal = activeProfile.dob || currentUser?.dob || (isDemoRajesh ? '1984-08-14' : '');
+  const ageVal = dobVal ? calculateAge(dobVal, activeProfile.age || currentUser?.age) : (activeProfile.age || currentUser?.age || (isDemoRajesh ? '42 Yrs' : 'Not Set'));
+  const addressVal = activeProfile.address || currentUser?.address || (isDemoRajesh ? 'Greams Road, Thousand Lights' : 'Residential Address');
+  const cityVal = activeProfile.city || currentUser?.city || (isDemoRajesh ? 'Chennai' : 'New Delhi');
+  const stateVal = activeProfile.state || currentUser?.state || (isDemoRajesh ? 'Tamil Nadu' : 'Delhi');
+  const pincodeVal = activeProfile.pincode || currentUser?.pincode || (isDemoRajesh ? '600006' : '');
+  const allergiesVal = activeProfile.allergies || currentUser?.allergies || (isDemoRajesh ? 'Penicillin (Severe anaphylaxis)' : 'None reported');
+  const conditionsVal = activeProfile.conditions || activeProfile.chronicConditions || currentUser?.chronicConditions || (isDemoRajesh ? 'Hypertension, Mild Asthmatic Bronchitis' : 'None reported');
+  const bpLevelVal = activeProfile.bpLevel || currentUser?.bpLevel || (isDemoRajesh ? '128/82 mmHg (Optimal)' : 'Normal (120/80)');
+  const hasDiabetesVal = activeProfile.hasDiabetes || currentUser?.hasDiabetes;
+  const diabetesVal = hasDiabetesVal === 'Yes' 
+    ? `Diabetic (${activeProfile.diabetesType || currentUser?.diabetesType || 'Type 2'}) • ${activeProfile.diabetesMedication || currentUser?.diabetesMedication || 'Metformin'}`
     : 'Non-Diabetic (Normal Range)';
-  const emergencyName = activeProfile.emergencyContactName || 'Ananya S. Sharma';
-  const emergencyRelation = activeProfile.emergencyContactRelation || 'Spouse';
-  const emergencyPhone = activeProfile.emergencyContactPhone || '+91 98401 22819';
+  const emergencyName = activeProfile.emergencyContactName || currentUser?.emergencyContactName || (isDemoRajesh ? 'Ananya S. Sharma' : 'Emergency Contact');
+  const emergencyRelation = activeProfile.emergencyContactRelation || currentUser?.emergencyContactRelation || (isDemoRajesh ? 'Spouse' : 'Family');
+  const emergencyPhone = activeProfile.emergencyContactPhone || currentUser?.emergencyContactPhone || (isDemoRajesh ? '+91 98401 22819' : '');
   const hospitalVal = (typeof activeProfile.hospital === 'object' && activeProfile.hospital !== null)
     ? (activeProfile.hospital.name || activeProfile.hospital.hospital_name || 'Apollo Greams Trauma Hub (Connected)')
-    : (activeProfile.hospital || 'Apollo Greams Trauma Hub (Connected)');
+    : (activeProfile.hospital || currentUser?.hospital || 'Apollo Greams Trauma Hub (Connected)');
 
   const [chatMessages, setChatMessages] = useState([
     {
       id: 1,
       role: 'ai',
-      text: `${patientName}, your E-KAVACH Trauma & Clinical Assistant is active. You can check medication interactions, triage questions, or ask about hospital access anytime.`,
+      text: `${patientName}, your E-KAWACH Trauma & Clinical Assistant is active. You can check medication interactions, triage questions, or ask about hospital access anytime.`,
     },
   ]);
 
@@ -160,7 +228,7 @@ export default function PatientDashboard() {
     const fetchDashboardData = async () => {
       try {
         setLoadingData(true);
-        const token = localStorage.getItem('ekavach_token');
+        const token = localStorage.getItem('ekawach_token');
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
         // Fetch live appointments
@@ -317,7 +385,7 @@ export default function PatientDashboard() {
     if (!qrCodeUrl) return;
     const a = document.createElement('a');
     a.href = qrCodeUrl;
-    a.download = `EKAVACH-ABHA-QR-${patientName.replace(/\s+/g, '-')}.png`;
+    a.download = `EKAWACH-ABHA-QR-${patientName.replace(/\s+/g, '-')}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -326,12 +394,12 @@ export default function PatientDashboard() {
 
   const handleDownloadSummary = () => {
     showToast(`Downloading Universal Health Summary (${abhaVal}.pdf)...`);
-    const content = `E-KAVACH UNIVERSAL EMERGENCY HEALTH SUMMARY\nPatient: ${patientName}\nABHA ID: ${abhaVal}\nPHR Handle: ${phrVal}\nBlood Group: ${bloodGroup}\nAge & Gender: ${ageVal}, ${genderVal}\nAllergies: ${allergiesVal}\nChronic Conditions: ${conditionsVal}\nBP Baseline: ${bpLevelVal}\nPrimary Emergency Kin: ${emergencyName} (${emergencyRelation}) • ${emergencyPhone}\nPrimary Hospital: ${hospitalVal}\nABDM Cryptographic Stamp: Level-4 Certified`;
+    const content = `E-KAWACH UNIVERSAL EMERGENCY HEALTH SUMMARY\nPatient: ${patientName}\nABHA ID: ${abhaVal}\nPHR Handle: ${phrVal}\nBlood Group: ${bloodGroup}\nAge & Gender: ${ageVal}, ${genderVal}\nAllergies: ${allergiesVal}\nChronic Conditions: ${conditionsVal}\nBP Baseline: ${bpLevelVal}\nPrimary Emergency Kin: ${emergencyName} (${emergencyRelation}) • ${emergencyPhone}\nPrimary Hospital: ${hospitalVal}\nABDM Cryptographic Stamp: Level-4 Certified`;
     const blob = new Blob([content], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `EKAVACH-Summary-${patientName.replace(/\s+/g, '-')}.pdf`;
+    a.download = `EKAWACH-Summary-${patientName.replace(/\s+/g, '-')}.pdf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -346,13 +414,13 @@ export default function PatientDashboard() {
     setChatInput('');
 
     setTimeout(() => {
-      let reply = 'E-KAVACH AI: Based on your ABHA health records, your metrics are synchronized with Apollo Greams Trauma Hub. Let me know if you need clinical triage assistance.';
+      let reply = 'E-KAWACH AI: Based on your ABHA health records, your metrics are synchronized with Apollo Greams Trauma Hub. Let me know if you need clinical triage assistance.';
       if (textToSend.toLowerCase().includes('interaction') || textToSend.toLowerCase().includes('drug')) {
-        reply = 'E-KAVACH AI: Checking Rosuvastatin 10mg & Telmisartan 40mg against your profile. No adverse contraindications found. Penicillin remains flagged as a SEVERE ALLERGY.';
+        reply = 'E-KAWACH AI: Checking Rosuvastatin 10mg & Telmisartan 40mg against your profile. No adverse contraindications found. Penicillin remains flagged as a SEVERE ALLERGY.';
       } else if (textToSend.toLowerCase().includes('lab') || textToSend.toLowerCase().includes('report')) {
-        reply = 'E-KAVACH AI: Your last HbA1c reading was 6.8% (fair glycemic control). Fasting blood sugar logged at 118 mg/dL.';
+        reply = 'E-KAWACH AI: Your last HbA1c reading was 6.8% (fair glycemic control). Fasting blood sugar logged at 118 mg/dL.';
       } else if (textToSend.toLowerCase().includes('emergency') || textToSend.toLowerCase().includes('er')) {
-        reply = `E-KAVACH AI: Emergency protocol active. Your primary kin ${emergencyName} (${emergencyPhone}) and Apollo ER have your Level-1 telemetry token.`;
+        reply = `E-KAWACH AI: Emergency protocol active. Your primary kin ${emergencyName} (${emergencyPhone}) and Apollo ER have your Level-1 telemetry token.`;
       }
       setChatMessages((prev) => [...prev, { id: Date.now() + 1, role: 'ai', text: reply }]);
     }, 600);
@@ -520,7 +588,7 @@ export default function PatientDashboard() {
 
         {/* TOP SECTION: SECURE HEALTH ID & 3 QUICK-GLANCE CARDS */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-space-lg items-stretch">
-          {/* E-KAVACH SECURE HEALTH ID CARD WITH LIVE GENERATED QR */}
+          {/* E-KAWACH SECURE HEALTH ID CARD WITH LIVE GENERATED QR */}
           <div className="xl:col-span-7 bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 p-space-lg flex flex-col justify-between relative overflow-hidden">
             <div className="absolute -right-16 -bottom-16 w-56 h-56 rounded-full bg-primary/5 pointer-events-none"></div>
 
@@ -535,7 +603,7 @@ export default function PatientDashboard() {
                     Universal Health Identity (ABDM)
                   </span>
                   <span className="font-headline-sm text-base text-primary font-bold">
-                    E-KAVACH DIGITAL HEALTH CARD
+                    E-KAWACH DIGITAL HEALTH CARD
                   </span>
                 </div>
               </div>
@@ -1303,7 +1371,7 @@ export default function PatientDashboard() {
           {/* Floating Toggle Button */}
           <button onClick={() => setAiChatOpen(!aiChatOpen)} className="pointer-events-auto flex items-center gap-space-xs px-space-md py-space-sm rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-xl hover:bg-primary/90 transition-all cursor-pointer" type="button">
             <span className="material-symbols-outlined text-[20px]">smart_toy</span>
-            <span>Ask E-KAVACH AI</span>
+            <span>Ask E-KAWACH AI</span>
             <span className="w-2 h-2 rounded-full bg-tertiary-fixed animate-ping ml-1"></span>
           </button>
         </aside>

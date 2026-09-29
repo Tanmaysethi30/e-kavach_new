@@ -61,7 +61,7 @@ export const roleProfiles = {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(() => {
     try {
-      const saved = localStorage.getItem('ekavach_user');
+      const saved = localStorage.getItem('ekawach_user') || localStorage.getItem('ekavach_user');
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
     const hasCredentials = Boolean(credentials.identifier || credentials.email || credentials.phone || credentials.password);
     
     try {
-      const demoIdentifier = normRole === 'doctor' ? 'dr.kavitha@apollo.health' : normRole === 'hospital' ? 'admin.chennai@apollo.health' : 'rajesh.sharma@ekavach.health';
+      const demoIdentifier = normRole === 'doctor' ? 'dr.kavitha@apollo.health' : normRole === 'hospital' ? 'admin.chennai@apollo.health' : 'rajesh.sharma@ekawach.health';
       const demoPassword = 'password123';
 
       const payload = {
@@ -104,9 +104,38 @@ export function AuthProvider({ children }) {
           dashboardRoute: profile.dashboardRoute,
         };
         setCurrentUser(merged);
-        localStorage.setItem('ekavach_user', JSON.stringify(merged));
+        localStorage.setItem('ekawach_user', JSON.stringify(merged));
         if (data.accessToken) {
-          localStorage.setItem('ekavach_token', data.accessToken);
+          localStorage.setItem('ekawach_token', data.accessToken);
+        }
+        if (normRole === 'patient') {
+          const patientProfileData = {
+            userId: merged.userId || merged.id,
+            email: merged.email,
+            fullName: merged.name || merged.fullName,
+            name: merged.name || merged.fullName,
+            abhaNumber: merged.abhaNumber || merged.id,
+            phone: merged.phone,
+            aadhaarNumber: merged.aadhaarNumber,
+            bloodGroup: merged.bloodGroup,
+            gender: merged.gender,
+            dob: merged.dob,
+            age: merged.age,
+            address: merged.address,
+            pincode: merged.pincode,
+            city: merged.city,
+            state: merged.state,
+            emergencyContactName: merged.emergencyContactName,
+            emergencyContactPhone: merged.emergencyContactPhone,
+            emergencyContactRelation: merged.emergencyContactRelation,
+            bpLevel: merged.bpLevel,
+            hasDiabetes: merged.hasDiabetes,
+            diabetesType: merged.diabetesType,
+            diabetesMedication: merged.diabetesMedication,
+            profileCompleted: merged.profileCompleted,
+          };
+          localStorage.setItem('ekawach_patient_profile', JSON.stringify(patientProfileData));
+          window.dispatchEvent(new CustomEvent('ekawach_patient_profile_updated', { detail: { source: 'AuthContext' } }));
         }
         if (normRole === 'patient' && (merged.profileCompleted === false || (!merged.bloodGroup && !merged.pincode))) {
           return '/patient/settings#profile';
@@ -127,7 +156,7 @@ export function AuthProvider({ children }) {
 
     if (!hasCredentials) {
       setCurrentUser(profile);
-      localStorage.setItem('ekavach_user', JSON.stringify(profile));
+      localStorage.setItem('ekawach_user', JSON.stringify(profile));
       if (normRole === 'patient' && (profile.profileCompleted === false || (!profile.bloodGroup && !profile.pincode))) {
         return '/patient/settings#profile';
       }
@@ -149,7 +178,7 @@ export function AuthProvider({ children }) {
       }
     }
     if (!cleanEmail) {
-      cleanEmail = `${normRole}_${Date.now()}@ekavach.gov.in`;
+      cleanEmail = `${normRole}_${Date.now()}@ekawach.gov.in`;
     }
 
     const cleanPhone = (details.phone || details.contact || '').trim();
@@ -204,7 +233,7 @@ export function AuthProvider({ children }) {
         body: JSON.stringify({
           email: cleanEmail,
           phone: cleanPhone || undefined,
-          password: details.password || 'Ekavach@2026',
+          password: details.password || 'Ekawach@2026',
           role: normRole,
           name: userPayload.name,
           additionalDetails: userPayload,
@@ -224,9 +253,38 @@ export function AuthProvider({ children }) {
             profileCompleted: normRole === 'patient' ? false : true,
           };
           setCurrentUser(merged);
-          localStorage.setItem('ekavach_user', JSON.stringify(merged));
+          localStorage.setItem('ekawach_user', JSON.stringify(merged));
           if (data.accessToken) {
-            localStorage.setItem('ekavach_token', data.accessToken);
+            localStorage.setItem('ekawach_token', data.accessToken);
+          }
+          if (normRole === 'patient') {
+            const patientProfileData = {
+              userId: merged.userId || merged.id,
+              email: merged.email,
+              fullName: merged.name || merged.fullName,
+              name: merged.name || merged.fullName,
+              abhaNumber: merged.abhaNumber || merged.id,
+              phone: merged.phone,
+              aadhaarNumber: merged.aadhaarNumber,
+              bloodGroup: merged.bloodGroup,
+              gender: merged.gender,
+              dob: merged.dob,
+              age: merged.age,
+              address: merged.address,
+              pincode: merged.pincode,
+              city: merged.city,
+              state: merged.state,
+              emergencyContactName: merged.emergencyContactName,
+              emergencyContactPhone: merged.emergencyContactPhone,
+              emergencyContactRelation: merged.emergencyContactRelation,
+              bpLevel: merged.bpLevel,
+              hasDiabetes: merged.hasDiabetes,
+              diabetesType: merged.diabetesType,
+              diabetesMedication: merged.diabetesMedication,
+              profileCompleted: merged.profileCompleted,
+            };
+            localStorage.setItem('ekawach_patient_profile', JSON.stringify(patientProfileData));
+            window.dispatchEvent(new CustomEvent('ekawach_patient_profile_updated', { detail: { source: 'AuthContext' } }));
           }
           return normRole === 'patient' ? '/patient/settings#profile' : (normRole === 'hospital' ? '/admin/hospital-details' : baseProfile.dashboardRoute);
         }
@@ -255,11 +313,11 @@ export function AuthProvider({ children }) {
       if (updatedFields.fullName && !updatedFields.name) {
         updated.name = updatedFields.fullName;
       }
-      localStorage.setItem('ekavach_user', JSON.stringify(updated));
+      localStorage.setItem('ekawach_user', JSON.stringify(updated));
       return updated;
     });
 
-    const token = localStorage.getItem('ekavach_token');
+    const token = localStorage.getItem('ekawach_token');
     fetch('/api/patient/me', {
       method: 'PUT',
       headers: {
@@ -290,9 +348,9 @@ export function AuthProvider({ children }) {
           const regId = data.user.registration_id || data.registration_id || profile.registration_id;
           const merged = { ...profile, ...data.user, registration_id: regId, registrationId: regId, role: normRole, dashboardRoute: profile.dashboardRoute };
           setCurrentUser(merged);
-          localStorage.setItem('ekavach_user', JSON.stringify(merged));
+          localStorage.setItem('ekawach_user', JSON.stringify(merged));
           if (data.accessToken) {
-            localStorage.setItem('ekavach_token', data.accessToken);
+            localStorage.setItem('ekawach_token', data.accessToken);
           }
           return profile.dashboardRoute;
         }
@@ -306,7 +364,7 @@ export function AuthProvider({ children }) {
     }
     const merged = { ...profile, role: normRole, dashboardRoute: profile.dashboardRoute };
     setCurrentUser(merged);
-    localStorage.setItem('ekavach_user', JSON.stringify(merged));
+    localStorage.setItem('ekawach_user', JSON.stringify(merged));
     return profile.dashboardRoute;
   };
 
@@ -314,8 +372,8 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Local session verification on mount / refresh
-    const savedToken = localStorage.getItem('ekavach_token');
-    const savedUser = localStorage.getItem('ekavach_user');
+    const savedToken = localStorage.getItem('ekawach_token') || localStorage.getItem('ekavach_token');
+    const savedUser = localStorage.getItem('ekawach_user') || localStorage.getItem('ekavach_user');
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser);
@@ -335,9 +393,39 @@ export function AuthProvider({ children }) {
           if (data.success && data.user) {
             setCurrentUser((prev) => {
               const updated = { ...(prev || {}), ...data.user };
-              localStorage.setItem('ekavach_user', JSON.stringify(updated));
+              localStorage.setItem('ekawach_user', JSON.stringify(updated));
               return updated;
             });
+            if (data.user.role === 'patient') {
+              const u = data.user;
+              const patientProfileData = {
+                userId: u.userId || u.id,
+                email: u.email,
+                fullName: u.name || u.fullName,
+                name: u.name || u.fullName,
+                abhaNumber: u.abhaNumber || u.id,
+                phone: u.phone,
+                aadhaarNumber: u.aadhaarNumber,
+                bloodGroup: u.bloodGroup,
+                gender: u.gender,
+                dob: u.dob,
+                age: u.age,
+                address: u.address,
+                pincode: u.pincode,
+                city: u.city,
+                state: u.state,
+                emergencyContactName: u.emergencyContactName,
+                emergencyContactPhone: u.emergencyContactPhone,
+                emergencyContactRelation: u.emergencyContactRelation,
+                bpLevel: u.bpLevel,
+                hasDiabetes: u.hasDiabetes,
+                diabetesType: u.diabetesType,
+                diabetesMedication: u.diabetesMedication,
+                profileCompleted: u.profileCompleted,
+              };
+              localStorage.setItem('ekawach_patient_profile', JSON.stringify(patientProfileData));
+              window.dispatchEvent(new CustomEvent('ekawach_patient_profile_updated', { detail: { source: 'AuthContext' } }));
+            }
           }
         })
         .catch(() => {});
@@ -346,7 +434,7 @@ export function AuthProvider({ children }) {
 
   const signInWithGoogle = async (preferredRole = 'patient') => {
     try {
-      localStorage.setItem('ekavach_selected_role', preferredRole);
+      localStorage.setItem('ekawach_selected_role', preferredRole);
       const gUser = await loginWithGoogle();
       if (!gUser) throw new Error('No user returned from Google sign-in');
 
@@ -388,9 +476,9 @@ export function AuthProvider({ children }) {
               dashboardRoute: baseProfile.dashboardRoute,
             };
             setCurrentUser(merged);
-            localStorage.setItem('ekavach_user', JSON.stringify(merged));
+            localStorage.setItem('ekawach_user', JSON.stringify(merged));
             if (data.accessToken) {
-              localStorage.setItem('ekavach_token', data.accessToken);
+              localStorage.setItem('ekawach_token', data.accessToken);
             }
             return baseProfile.dashboardRoute;
           }
@@ -417,7 +505,7 @@ export function AuthProvider({ children }) {
       };
 
       setCurrentUser(merged);
-      localStorage.setItem('ekavach_user', JSON.stringify(merged));
+      localStorage.setItem('ekawach_user', JSON.stringify(merged));
       return baseProfile.dashboardRoute;
     } catch (err) {
       console.error('Google Sign-In error:', err);
@@ -428,7 +516,7 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await logoutFirebase();
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       if (token) {
         await fetch('/api/auth/logout', {
           method: 'POST',
@@ -436,8 +524,12 @@ export function AuthProvider({ children }) {
         }).catch(() => {});
       }
     } catch (_e) {}
+    localStorage.removeItem('ekawach_user');
     localStorage.removeItem('ekavach_user');
+    localStorage.removeItem('ekawach_token');
     localStorage.removeItem('ekavach_token');
+    localStorage.removeItem('ekawach_patient_profile');
+    localStorage.removeItem('ekavach_patient_profile');
     setCurrentUser(null);
   };
 

@@ -29,7 +29,7 @@ export default function HospitalNetwork() {
   const fetchNetwork = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -76,7 +76,7 @@ export default function HospitalNetwork() {
     }
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

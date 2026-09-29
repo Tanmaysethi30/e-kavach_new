@@ -163,7 +163,7 @@ export default function AbhaHealthId() {
     </span>
   </div>
   <p className="font-body-sm text-body-sm text-on-surface-variant">
-    Health records from these empanelled providers synchronize bidirectionally with your E-KAVACH emergency telemetry grid.
+    Health records from these empanelled providers synchronize bidirectionally with your E-KAWACH emergency telemetry grid.
   </p>
 
   <div className="space-y-3">

@@ -146,55 +146,55 @@ class MetricsService {
     const socketService = require('./socket.service');
     const activeWs = socketService?.io?.engine?.clientsCount || 4;
 
-    return `# HELP ekavach_http_requests_total Total number of HTTP requests processed by E-KAVACH API
-# TYPE ekavach_http_requests_total counter
-ekavach_http_requests_total{service="e-kavach-backend",environment="production"} ${this.counters.httpRequestsTotal}
-ekavach_http_requests_total{service="e-kavach-backend",status="2xx"} ${this.counters.http2xxTotal}
-ekavach_http_requests_total{service="e-kavach-backend",status="4xx"} ${this.counters.http4xxTotal}
-ekavach_http_requests_total{service="e-kavach-backend",status="5xx"} ${this.counters.http5xxTotal}
+    return `# HELP ekawach_http_requests_total Total number of HTTP requests processed by E-KAWACH API
+# TYPE ekawach_http_requests_total counter
+ekawach_http_requests_total{service="e-kawach-backend",environment="production"} ${this.counters.httpRequestsTotal}
+ekawach_http_requests_total{service="e-kawach-backend",status="2xx"} ${this.counters.http2xxTotal}
+ekawach_http_requests_total{service="e-kawach-backend",status="4xx"} ${this.counters.http4xxTotal}
+ekawach_http_requests_total{service="e-kawach-backend",status="5xx"} ${this.counters.http5xxTotal}
 
-# HELP ekavach_http_errors_total Total number of failed HTTP requests (4xx and 5xx)
-# TYPE ekavach_http_errors_total counter
-ekavach_http_errors_total{service="e-kavach-backend"} ${this.counters.httpErrorsTotal}
+# HELP ekawach_http_errors_total Total number of failed HTTP requests (4xx and 5xx)
+# TYPE ekawach_http_errors_total counter
+ekawach_http_errors_total{service="e-kawach-backend"} ${this.counters.httpErrorsTotal}
 
-# HELP ekavach_response_time_ms Response time in milliseconds
-# TYPE ekavach_response_time_ms gauge
-ekavach_response_time_ms{quantile="0.50"} ${percentiles.p50}
-ekavach_response_time_ms{quantile="0.90"} ${percentiles.p90}
-ekavach_response_time_ms{quantile="0.95"} ${percentiles.p95}
-ekavach_response_time_ms{quantile="0.99"} ${percentiles.p99}
-ekavach_response_time_ms{stat="mean"} ${percentiles.avg}
+# HELP ekawach_response_time_ms Response time in milliseconds
+# TYPE ekawach_response_time_ms gauge
+ekawach_response_time_ms{quantile="0.50"} ${percentiles.p50}
+ekawach_response_time_ms{quantile="0.90"} ${percentiles.p90}
+ekawach_response_time_ms{quantile="0.95"} ${percentiles.p95}
+ekawach_response_time_ms{quantile="0.99"} ${percentiles.p99}
+ekawach_response_time_ms{stat="mean"} ${percentiles.avg}
 
-# HELP ekavach_process_uptime_seconds Total runtime of the E-KAVACH cluster node in seconds
-# TYPE ekavach_process_uptime_seconds gauge
-ekavach_process_uptime_seconds ${uptimeSec}
+# HELP ekawach_process_uptime_seconds Total runtime of the E-KAWACH cluster node in seconds
+# TYPE ekawach_process_uptime_seconds gauge
+ekawach_process_uptime_seconds ${uptimeSec}
 
-# HELP ekavach_memory_heap_bytes Node.js memory heap used in bytes
-# TYPE ekavach_memory_heap_bytes gauge
-ekavach_memory_heap_bytes ${memory.heapUsed}
-ekavach_memory_rss_bytes ${memory.rss}
+# HELP ekawach_memory_heap_bytes Node.js memory heap used in bytes
+# TYPE ekawach_memory_heap_bytes gauge
+ekawach_memory_heap_bytes ${memory.heapUsed}
+ekawach_memory_rss_bytes ${memory.rss}
 
-# HELP ekavach_websocket_clients_active Real-time WebSocket telemetry connections count
-# TYPE ekavach_websocket_clients_active gauge
-ekavach_websocket_clients_active{channel="telemetry"} ${activeWs}
+# HELP ekawach_websocket_clients_active Real-time WebSocket telemetry connections count
+# TYPE ekawach_websocket_clients_active gauge
+ekawach_websocket_clients_active{channel="telemetry"} ${activeWs}
 
-# HELP ekavach_golden_hour_scans_total Total Golden-Hour emergency QR/NFC/ABHA scans performed
-# TYPE ekavach_golden_hour_scans_total counter
-ekavach_golden_hour_scans_total{hospital="AP-HSP-842-TN"} ${this.counters.goldenHourScansTotal}
+# HELP ekawach_golden_hour_scans_total Total Golden-Hour emergency QR/NFC/ABHA scans performed
+# TYPE ekawach_golden_hour_scans_total counter
+ekawach_golden_hour_scans_total{hospital="AP-HSP-842-TN"} ${this.counters.goldenHourScansTotal}
 
-# HELP ekavach_emergency_bypasses_total Total emergency pass bypasses logged
-# TYPE ekavach_emergency_bypasses_total counter
-ekavach_emergency_bypasses_total{hospital="AP-HSP-842-TN"} ${this.counters.emergencyBypassesTotal}
+# HELP ekawach_emergency_bypasses_total Total emergency pass bypasses logged
+# TYPE ekawach_emergency_bypasses_total counter
+ekawach_emergency_bypasses_total{hospital="AP-HSP-842-TN"} ${this.counters.emergencyBypassesTotal}
 
-# HELP ekavach_icu_bed_occupancy_ratio Ratio of ICU beds currently occupied
-# TYPE ekavach_icu_bed_occupancy_ratio gauge
-ekavach_icu_bed_occupancy_ratio{hospital="AP-HSP-842-TN",ward="ICU"} 0.92
+# HELP ekawach_icu_bed_occupancy_ratio Ratio of ICU beds currently occupied
+# TYPE ekawach_icu_bed_occupancy_ratio gauge
+ekawach_icu_bed_occupancy_ratio{hospital="AP-HSP-842-TN",ward="ICU"} 0.92
 
-# HELP ekavach_triage_patients_total Active triage queue count by urgency
-# TYPE ekavach_triage_patients_total gauge
-ekavach_triage_patients_total{priority="red_critical"} 1
-ekavach_triage_patients_total{priority="yellow_urgent"} 2
-ekavach_triage_patients_total{priority="green_stable"} 5
+# HELP ekawach_triage_patients_total Active triage queue count by urgency
+# TYPE ekawach_triage_patients_total gauge
+ekawach_triage_patients_total{priority="red_critical"} 1
+ekawach_triage_patients_total{priority="yellow_urgent"} 2
+ekawach_triage_patients_total{priority="green_stable"} 5
 `;
   }
 
@@ -209,39 +209,39 @@ ekavach_triage_patients_total{priority="green_stable"} 5
       let datapoints = [];
 
       switch (targetName) {
-        case 'ekavach_http_requests_per_sec':
+        case 'ekawach_http_requests_per_sec':
         case 'Throughput (RPS)':
           datapoints = dataset.map((d) => [d.rps, d.timestamp]);
           break;
-        case 'ekavach_response_time_p95_ms':
+        case 'ekawach_response_time_p95_ms':
         case 'Response Time P95 (ms)':
           datapoints = dataset.map((d) => [d.latencyP95, d.timestamp]);
           break;
-        case 'ekavach_response_time_avg_ms':
+        case 'ekawach_response_time_avg_ms':
         case 'Response Time Avg (ms)':
           datapoints = dataset.map((d) => [d.latencyAvg, d.timestamp]);
           break;
-        case 'ekavach_cpu_usage_percent':
+        case 'ekawach_cpu_usage_percent':
         case 'CPU Usage (%)':
           datapoints = dataset.map((d) => [d.cpuPercent, d.timestamp]);
           break;
-        case 'ekavach_memory_usage_mb':
+        case 'ekawach_memory_usage_mb':
         case 'Memory Usage (MB)':
           datapoints = dataset.map((d) => [d.memoryMb, d.timestamp]);
           break;
-        case 'ekavach_active_websockets':
+        case 'ekawach_active_websockets':
         case 'Active WebSocket Clients':
           datapoints = dataset.map((d) => [d.activeWebsockets, d.timestamp]);
           break;
-        case 'ekavach_icu_occupancy_rate':
+        case 'ekawach_icu_occupancy_rate':
         case 'ICU Occupancy (%)':
           datapoints = dataset.map((d) => [d.icuOccupancyRate, d.timestamp]);
           break;
-        case 'ekavach_triage_red':
+        case 'ekawach_triage_red':
         case 'Triage Red (Critical)':
           datapoints = dataset.map((d) => [d.triageRed, d.timestamp]);
           break;
-        case 'ekavach_triage_yellow':
+        case 'ekawach_triage_yellow':
         case 'Triage Yellow (Urgent)':
           datapoints = dataset.map((d) => [d.triageYellow, d.timestamp]);
           break;
@@ -312,7 +312,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           collapsed: false,
           gridPos: { h: 1, w: 24, x: 0, y: 0 },
           id: 100,
-          title: 'E-KAVACH REAL-TIME HEALTHCARE & SYSTEM METRICS',
+          title: 'E-KAWACH REAL-TIME HEALTHCARE & SYSTEM METRICS',
           type: 'row',
         },
         {
@@ -320,7 +320,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           title: 'Requests / Sec (Throughput)',
           type: 'stat',
           gridPos: { h: 4, w: 4, x: 0, y: 1 },
-          targets: [{ expr: 'rate(ekavach_http_requests_total[1m])', target: 'Throughput (RPS)' }],
+          targets: [{ expr: 'rate(ekawach_http_requests_total[1m])', target: 'Throughput (RPS)' }],
           fieldConfig: { defaults: { color: { mode: 'palette-classic' }, unit: 'reqps' } },
         },
         {
@@ -328,7 +328,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           title: 'p95 Response Latency',
           type: 'stat',
           gridPos: { h: 4, w: 4, x: 4, y: 1 },
-          targets: [{ expr: 'ekavach_response_time_ms{quantile="0.95"}', target: 'Response Time P95 (ms)' }],
+          targets: [{ expr: 'ekawach_response_time_ms{quantile="0.95"}', target: 'Response Time P95 (ms)' }],
           fieldConfig: {
             defaults: {
               color: { mode: 'thresholds' },
@@ -342,7 +342,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           title: 'ICU Bed Occupancy',
           type: 'gauge',
           gridPos: { h: 4, w: 4, x: 8, y: 1 },
-          targets: [{ expr: 'ekavach_icu_bed_occupancy_ratio * 100', target: 'ICU Occupancy (%)' }],
+          targets: [{ expr: 'ekawach_icu_bed_occupancy_ratio * 100', target: 'ICU Occupancy (%)' }],
           fieldConfig: {
             defaults: {
               min: 0,
@@ -357,7 +357,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           title: 'Active WebSocket Telemetry Nodes',
           type: 'stat',
           gridPos: { h: 4, w: 4, x: 12, y: 1 },
-          targets: [{ expr: 'ekavach_websocket_clients_active', target: 'Active WebSocket Clients' }],
+          targets: [{ expr: 'ekawach_websocket_clients_active', target: 'Active WebSocket Clients' }],
           fieldConfig: { defaults: { color: { mode: 'palette-classic' }, unit: 'none' } },
         },
         {
@@ -365,7 +365,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           title: 'Golden Hour Emergency Scans',
           type: 'stat',
           gridPos: { h: 4, w: 4, x: 16, y: 1 },
-          targets: [{ expr: 'ekavach_golden_hour_scans_total', target: 'Golden Hour Scans' }],
+          targets: [{ expr: 'ekawach_golden_hour_scans_total', target: 'Golden Hour Scans' }],
           fieldConfig: { defaults: { color: { mode: 'palette-classic' }, unit: 'none' } },
         },
         {
@@ -373,7 +373,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           title: 'System Memory (Heap)',
           type: 'stat',
           gridPos: { h: 4, w: 4, x: 20, y: 1 },
-          targets: [{ expr: 'ekavach_memory_heap_bytes', target: 'Memory Usage (MB)' }],
+          targets: [{ expr: 'ekawach_memory_heap_bytes', target: 'Memory Usage (MB)' }],
           fieldConfig: { defaults: { unit: 'decmbytes' } },
         },
         {
@@ -382,8 +382,8 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           type: 'timeseries',
           gridPos: { h: 8, w: 12, x: 0, y: 5 },
           targets: [
-            { expr: 'rate(ekavach_http_requests_total[1m])', target: 'Throughput (RPS)' },
-            { expr: 'ekavach_http_errors_total', target: 'Errors' },
+            { expr: 'rate(ekawach_http_requests_total[1m])', target: 'Throughput (RPS)' },
+            { expr: 'ekawach_http_errors_total', target: 'Errors' },
           ],
         },
         {
@@ -392,8 +392,8 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           type: 'timeseries',
           gridPos: { h: 8, w: 12, x: 12, y: 5 },
           targets: [
-            { expr: 'ekavach_response_time_ms{quantile="0.50"}', target: 'Response Time Avg (ms)' },
-            { expr: 'ekavach_response_time_ms{quantile="0.95"}', target: 'Response Time P95 (ms)' },
+            { expr: 'ekawach_response_time_ms{quantile="0.50"}', target: 'Response Time Avg (ms)' },
+            { expr: 'ekawach_response_time_ms{quantile="0.95"}', target: 'Response Time P95 (ms)' },
           ],
           fieldConfig: { defaults: { unit: 'ms' } },
         },
@@ -403,8 +403,8 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           type: 'timeseries',
           gridPos: { h: 8, w: 12, x: 0, y: 13 },
           targets: [
-            { expr: 'ekavach_cpu_usage_percent', target: 'CPU Usage (%)' },
-            { expr: 'ekavach_memory_usage_mb', target: 'Memory Usage (MB)' },
+            { expr: 'ekawach_cpu_usage_percent', target: 'CPU Usage (%)' },
+            { expr: 'ekawach_memory_usage_mb', target: 'Memory Usage (MB)' },
           ],
         },
         {
@@ -413,19 +413,19 @@ ekavach_triage_patients_total{priority="green_stable"} 5
           type: 'timeseries',
           gridPos: { h: 8, w: 12, x: 12, y: 13 },
           targets: [
-            { expr: 'ekavach_triage_patients_total{priority="red_critical"}', target: 'Triage Red (Critical)' },
-            { expr: 'ekavach_triage_patients_total{priority="yellow_urgent"}', target: 'Triage Yellow (Urgent)' },
+            { expr: 'ekawach_triage_patients_total{priority="red_critical"}', target: 'Triage Red (Critical)' },
+            { expr: 'ekawach_triage_patients_total{priority="yellow_urgent"}', target: 'Triage Yellow (Urgent)' },
           ],
         },
       ],
       refresh: '2s',
       schemaVersion: 39,
-      tags: ['ekavach', 'healthcare', 'emergency', 'realtime'],
+      tags: ['ekawach', 'healthcare', 'emergency', 'realtime'],
       time: { from: 'now-15m', to: 'now' },
       timepicker: { refresh_intervals: ['1s', '2s', '5s', '10s', '30s', '1m'] },
       timezone: 'browser',
-      title: 'E-KAVACH — Universal Emergency Real-Time Telemetry & Health Grid',
-      uid: 'ekavach-realtime-grid',
+      title: 'E-KAWACH — Universal Emergency Real-Time Telemetry & Health Grid',
+      uid: 'ekawach-realtime-grid',
       version: 1,
     };
   }
@@ -439,7 +439,7 @@ ekavach_triage_patients_total{priority="green_stable"} 5
 
     return {
       timestamp: new Date().toISOString(),
-      service: 'e-kavach-backend',
+      service: 'e-kawach-backend',
       version: '1.0.0',
       uptimeSeconds: Math.floor(process.uptime()),
       performance: {

@@ -10,7 +10,7 @@ socketService.init(server, env.CORS_ORIGIN);
 
 server.listen(env.PORT, () => {
   console.log('====================================================');
-  console.log(`🛡️  E-KAVACH Backend API & Live Telemetry Server`);
+  console.log(`🛡️  E-KAWACH Backend API & Live Telemetry Server`);
   console.log(`📡 Listening on: http://localhost:${env.PORT}`);
   console.log(`🚀 REST Health:  http://localhost:${env.PORT}/api/health`);
   console.log(`⚡ WebSocket:   ws://localhost:${env.PORT}/ws/telemetry`);

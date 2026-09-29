@@ -106,7 +106,7 @@ export default function HospitalList({
             <button
               type="button"
               onClick={onResetLocation}
-              title="Reset to Central Chennai Grid"
+              title="Reset to Default Location"
               className="px-2 py-1 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-[10px] font-semibold rounded-lg transition-colors cursor-pointer"
             >
               Reset

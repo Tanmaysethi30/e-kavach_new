@@ -107,7 +107,7 @@ export default function HospitalSchemaSection({
     setTestStatus('Querying internal database variables...');
     const startTime = performance.now();
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch('/api/admin/hospital-schema', {
         headers: {
           'Content-Type': 'application/json',

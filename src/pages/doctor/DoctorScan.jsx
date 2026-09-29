@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import BreakGlassModal from '../../components/doctor/BreakGlassModal';
 import jsQR from 'jsqr';
-import { lookupPatientInRegistry } from '../../utils/emergencyRegistry';
+import { lookupPatientInRegistry, calculateAge } from '../../utils/emergencyRegistry';
 
 export default function DoctorScan() {
   const navigate = useNavigate();
@@ -331,7 +331,7 @@ export default function DoctorScan() {
           bp: parsedObj.bp || parsedObj.bpLevel || '124/80 mmHg',
           sugar: parsedObj.bloodSugar || 'Normal Glycemia',
           gender: parsedObj.gender || 'Not Specified',
-          age: parsedObj.age || (parsedObj.dob ? `${new Date().getFullYear() - new Date(parsedObj.dob).getFullYear()} Yrs` : '36 Yrs'),
+          age: calculateAge(parsedObj.dob, parsedObj.age),
           height: parsedObj.height || '172 cm',
           weight: parsedObj.weight || '72 kg',
           allergies: pAllergies,
@@ -371,7 +371,7 @@ export default function DoctorScan() {
           bp: p.bpLevel || p.bp || '124/80 mmHg',
           sugar: p.bloodSugar || (p.hasDiabetes === 'Yes' ? 'Fasting 118 mg/dL (HbA1c 6.8%)' : 'Normal (92 mg/dL)'),
           gender: p.gender || 'Not Specified',
-          age: p.age || (p.dob ? `${new Date().getFullYear() - new Date(p.dob).getFullYear()} Yrs` : 38),
+          age: calculateAge(p.dob, p.age),
           height: p.height || '174 cm',
           weight: p.weight || '74 kg',
           allergies: p.allergies || p.criticalAllergies || 'None reported',
@@ -389,7 +389,7 @@ export default function DoctorScan() {
         return;
       }
 
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
@@ -419,7 +419,7 @@ export default function DoctorScan() {
           bp: p.bp || '124/80 mmHg',
           sugar: p.bloodSugar || 'Fasting 108 mg/dL',
           gender: p.gender || 'Not Specified',
-          age: p.age || 40,
+          age: calculateAge(p.dob, p.age || 42),
           height: p.height || '174 cm',
           weight: p.weight || '74 kg',
           allergies: p.criticalAllergies || (Array.isArray(p.allergies) ? p.allergies.join(', ') : p.allergies) || 'None reported',
@@ -448,7 +448,7 @@ export default function DoctorScan() {
           bp: '124/80 mmHg',
           sugar: isRajesh ? 'Fasting 118 mg/dL (HbA1c 6.8%)' : 'Normal (98 mg/dL)',
           gender: 'Not Specified',
-          age: isRajesh ? 52 : 36,
+          age: isRajesh ? '42 Yrs' : '36 Yrs',
           height: '174 cm',
           weight: '74 kg',
           allergies: isRajesh ? 'Penicillin (Severe anaphylaxis)' : 'None reported',
@@ -476,7 +476,7 @@ export default function DoctorScan() {
         bp: '124/80 mmHg',
         sugar: 'Normal Fasting Glycemia',
         gender: 'Not Specified',
-        age: 38,
+        age: isRajesh ? '42 Yrs' : '36 Yrs',
         height: '172 cm',
         weight: '72 kg',
         allergies: isRajesh ? 'Penicillin (Severe anaphylaxis)' : 'None reported',
@@ -827,7 +827,7 @@ export default function DoctorScan() {
     </div>
     <div className="p-3 rounded-xl bg-surface-container-low flex flex-col">
       <span className="text-[11px] font-semibold text-on-surface-variant uppercase tracking-wider">Gender &amp; Age</span>
-      <span className="font-bold text-base text-primary mt-0.5">{scanResult?.gender || 'Male'} • {scanResult?.age || 52} Y</span>
+      <span className="font-bold text-base text-primary mt-0.5">{scanResult?.gender || 'Male'} • {calculateAge(scanResult?.dob, scanResult?.age || '42 Yrs')}</span>
     </div>
   </div>
 

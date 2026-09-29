@@ -530,7 +530,7 @@ class AdminService {
         status: data.status === 'On Duty' || data.status === 'ON_DUTY' ? 'ON_DUTY' : 'OFF_DUTY',
         extension: data.extension || data.ext || `Ext. ${idNum} • Shift A`,
         phone: data.phone || '+91 98400 11000',
-        email: data.email || `${data.name.toLowerCase().replace(/\s+/g, '.')}@apollo.ekavach.in`,
+        email: data.email || `${data.name.toLowerCase().replace(/\s+/g, '.')}@apollo.ekawach.in`,
         shift: data.shift || 'Shift A (08:00 - 16:00)',
       },
     });

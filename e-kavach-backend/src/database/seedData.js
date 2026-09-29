@@ -30,7 +30,7 @@ const UNIVERSAL_HOSPITAL = {
     er: '+91 11 2700 0108',
     helpline: '1800-11-0108',
     ambulance: '108',
-    email: 'universal.er@ekavach.health'
+    email: 'universal.er@ekawach.health'
   },
   icuBedsTotal: 120,
   icuBedsOccupied: 52,
@@ -311,8 +311,8 @@ const seedHospitalSchemaRecords = [
     hospital_type: 'Government / National Central Grid',
     registration_number: 'EK-NAT-APEX-0001',
     contact_number: '+91 11 2700 0108',
-    email: 'universal.er@ekavach.health',
-    website: 'https://ekavach.health/nodes/universal',
+    email: 'universal.er@ekawach.health',
+    website: 'https://ekawach.health/nodes/universal',
     address: 'National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Road Corridor',
     city: 'Delhi',
     district: 'North Delhi',
@@ -731,7 +731,7 @@ const seedRegistrations = [
     registration_id: 'REG-PAT-RAJESH-9824',
     auth_user_id: 'user-patient-rajesh',
     name: 'Rajesh V. Sharma',
-    email: 'rajesh.sharma@ekavach.health',
+    email: 'rajesh.sharma@ekawach.health',
     phone: '+91 98401 22819',
     role: 'patient',
     status: 'ACTIVE',
@@ -821,7 +821,7 @@ const seedUsers = [
   {
     id: 'user-patient-rajesh',
     registration_id: 'REG-PAT-RAJESH-9824',
-    email: 'rajesh.sharma@ekavach.health',
+    email: 'rajesh.sharma@ekawach.health',
     phone: '+91 98401 22819',
     passwordHash: DEFAULT_PASSWORD_HASH,
     role: 'patient',
@@ -920,7 +920,7 @@ const seedPatientProfiles = [
       { name: 'Dr. Vivek Sharma', relation: 'Brother / Physician', phone: '+91 94440 88129', priority: 2, verified: true }
     ],
     emergencyToken: 'EK-TR-88190-V4',
-    qrPayload: 'EKAVACH:ABHA:9824-8819-3320-TN:BLOOD:O_POS:ALLERGY:PENICILLIN:TOKEN:EK-TR-88190-V4',
+    qrPayload: 'EKAWACH:ABHA:9824-8819-3320-TN:BLOOD:O_POS:ALLERGY:PENICILLIN:TOKEN:EK-TR-88190-V4',
     hospitalAffiliation: 'Apollo Greams Trauma Hub',
     tag: 'Verified Health ID'
   }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { savePatientToRegistry } from '../../utils/emergencyRegistry';
+import { savePatientToRegistry, calculateAge } from '../../utils/emergencyRegistry';
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -582,6 +582,7 @@ export default function PatientSettings() {
         bloodGroup: profile.bloodGroup,
         gender: profile.gender,
         dob: profile.dob,
+        age: calculateAge(profile.dob),
         phone: profile.phone,
         aadhaarNumber: profile.aadhaarNumber,
         aadhaar: profile.aadhaarNumber,
@@ -1359,19 +1360,21 @@ export default function PatientSettings() {
                       />
                     </div>
 
-                    {/* Date of Birth (Locked from Registration) */}
+                    {/* Date of Birth & Live Age */}
                     <div className="flex flex-col gap-space-2xs">
                       <div className="flex items-center justify-between">
                         <label className="font-label-md text-label-md text-on-surface-variant font-semibold">Date of Birth</label>
-                        <span className="font-label-sm text-[11px] text-amber-700 dark:text-amber-400 font-semibold flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[14px]">lock</span> Registered DOB
-                        </span>
+                        {profile.dob && (
+                          <span className="font-label-sm text-[11px] bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">cake</span> Age: {calculateAge(profile.dob)}
+                          </span>
+                        )}
                       </div>
                       <input
                         type="date"
                         value={profile.dob}
-                        readOnly
-                        className="w-full px-space-md py-space-xs bg-surface-container-low text-on-surface-variant rounded-lg font-body-md text-body-md cursor-not-allowed shadow-inner"
+                        onChange={(e) => handleProfileChange('dob', e.target.value)}
+                        className="w-full px-space-md py-space-xs bg-surface-container-lowest text-on-surface rounded-lg font-body-md text-body-md focus:outline-none focus:ring-2 focus:ring-primary shadow-sm"
                       />
                     </div>
 

@@ -82,9 +82,9 @@ export default function PatientLayout() {
         <div className="p-space-lg flex flex-col gap-space-sm bg-surface-container-low/60 border-b border-surface-container">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-space-sm no-underline">
-              <img alt="E-KAVACH Logo" className="h-8 w-auto object-contain rounded" src={LogoImg} />
+              <img alt="E-KAWACH Logo" className="h-8 w-auto object-contain rounded" src={LogoImg} />
               <span className="font-headline-sm text-headline-sm text-primary tracking-tight font-bold">
-                E-KAVACH
+                E-KAWACH
               </span>
             </Link>
             <span className="flex h-2 w-2 relative">

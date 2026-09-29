@@ -122,12 +122,12 @@ export default function PharmacyManagement() {
   ];
 
   const [inventory, setInventory] = useState(() => {
-    const saved = localStorage.getItem('ekavach_pharmacy_inventory');
+    const saved = localStorage.getItem('ekawach_pharmacy_inventory');
     return saved ? JSON.parse(saved) : initialInventory;
   });
 
   React.useEffect(() => {
-    const token = localStorage.getItem('ekavach_token');
+    const token = localStorage.getItem('ekawach_token');
     if (!token) return;
     fetch('/api/admin/pharmacy', {
       headers: { Authorization: `Bearer ${token}` },
@@ -163,7 +163,7 @@ export default function PharmacyManagement() {
   };
 
   const handleExportStockAudit = () => {
-    let csvContent = `E-KAVACH PHARMACY MANAGEMENT - FORMULARY STOCK AUDIT
+    let csvContent = `E-KAWACH PHARMACY MANAGEMENT - FORMULARY STOCK AUDIT
 Generated: ${new Date().toLocaleString()}
 Facility: Apollo Greams Central Pharmacy & Crash-Cart Node #01
 
@@ -177,7 +177,7 @@ Brand Name,Generic Formulation,Category,Lot Number,Location,Stock Quantity,Unit,
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `E-KAVACH_Pharmacy_Stock_Audit_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `E-KAWACH_Pharmacy_Stock_Audit_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -205,7 +205,7 @@ Brand Name,Generic Formulation,Category,Lot Number,Location,Stock Quantity,Unit,
 
     const updated = [drug, ...inventory];
     setInventory(updated);
-    localStorage.setItem('ekavach_pharmacy_inventory', JSON.stringify(updated));
+    localStorage.setItem('ekawach_pharmacy_inventory', JSON.stringify(updated));
     setShowAddModal(false);
     setNewDrug({
       name: '',
@@ -231,7 +231,7 @@ Brand Name,Generic Formulation,Category,Lot Number,Location,Stock Quantity,Unit,
       return i;
     });
     setInventory(updated);
-    localStorage.setItem('ekavach_pharmacy_inventory', JSON.stringify(updated));
+    localStorage.setItem('ekawach_pharmacy_inventory', JSON.stringify(updated));
   };
 
   const filteredInventory = inventory.filter(item => {
@@ -858,7 +858,7 @@ Brand Name,Generic Formulation,Category,Lot Number,Location,Stock Quantity,Unit,
         <footer className="p-space-md rounded-xl bg-surface-container text-on-surface-variant flex flex-col md:flex-row items-center justify-between gap-space-sm font-label-sm text-label-sm">
           <div className="flex items-center gap-2 text-center md:text-left">
             <span className="material-symbols-outlined text-secondary text-[20px] flex-shrink-0">verified_user</span>
-            <span className="">E-KAVACH Automated Formulary Sync • Integrated with Central Drugs Standard Control Organisation (CDSCO) &amp; ABDM e-Prescription Gateway • Real-time Batch Traceability Enabled</span>
+            <span className="">E-KAWACH Automated Formulary Sync • Integrated with Central Drugs Standard Control Organisation (CDSCO) &amp; ABDM e-Prescription Gateway • Real-time Batch Traceability Enabled</span>
           </div>
           <div className="flex items-center gap-4 flex-shrink-0 font-mono text-[11px] text-outline">
             <span className="">AUDIT HASH: #EKV-CDSCO-2025</span>

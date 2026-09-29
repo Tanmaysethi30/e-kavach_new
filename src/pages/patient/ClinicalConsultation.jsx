@@ -72,7 +72,7 @@ export default function ClinicalConsultation() {
         ...prev,
         {
           role: 'assistant',
-          text: `E-KAVACH AI analyzed your query: "${text}". Your diagnostic records and prescription history have been prepared for consultation.`
+          text: `E-KAWACH AI analyzed your query: "${text}". Your diagnostic records and prescription history have been prepared for consultation.`
         }
       ]);
     }, 600);
@@ -502,7 +502,7 @@ export default function ClinicalConsultation() {
           type="button"
         >
           <span className="material-symbols-outlined text-[20px]">smart_toy</span>
-          <span>Ask E-KAVACH AI</span>
+          <span>Ask E-KAWACH AI</span>
           <span className="w-2 h-2 rounded-full bg-tertiary-fixed animate-ping ml-1"></span>
         </button>
       </aside>

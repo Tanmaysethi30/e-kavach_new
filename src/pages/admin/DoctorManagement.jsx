@@ -30,7 +30,7 @@ export default function DoctorManagement() {
   const fetchDoctorsFromDB = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch('/api/admin/doctors', {
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export default function DoctorManagement() {
       return;
     }
 
-    const token = localStorage.getItem('ekavach_token');
+    const token = localStorage.getItem('ekawach_token');
     try {
       const res = await fetch('/api/admin/doctors', {
         method: 'POST',
@@ -131,7 +131,7 @@ export default function DoctorManagement() {
 
   const handleToggleDoctorStatus = async (docId, currentStatus) => {
     const nextStatus = currentStatus === 'Available' ? 'In Consult' : currentStatus === 'In Consult' ? 'Off Duty' : 'Available';
-    const token = localStorage.getItem('ekavach_token');
+    const token = localStorage.getItem('ekawach_token');
     try {
       await fetch(`/api/admin/doctors/${docId}`, {
         method: 'PATCH',
@@ -151,7 +151,7 @@ export default function DoctorManagement() {
 
   const handleDeleteDoctor = async (docId, name) => {
     if (!window.confirm(`Are you sure you want to remove ${name} from the active roster?`)) return;
-    const token = localStorage.getItem('ekavach_token');
+    const token = localStorage.getItem('ekawach_token');
     try {
       await fetch(`/api/admin/doctors/${docId}`, {
         method: 'DELETE',

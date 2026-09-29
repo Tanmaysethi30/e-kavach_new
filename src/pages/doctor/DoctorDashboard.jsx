@@ -23,7 +23,7 @@ export default function DoctorDashboard() {
   };
 
   const getDoctorAuthToken = async () => {
-    let token = localStorage.getItem('ekavach_token');
+    let token = localStorage.getItem('ekawach_token');
     if (token) return token;
 
     try {
@@ -35,7 +35,7 @@ export default function DoctorDashboard() {
       });
       const loginData = await loginRes.json();
       if (loginData.accessToken) {
-        localStorage.setItem('ekavach_token', loginData.accessToken);
+        localStorage.setItem('ekawach_token', loginData.accessToken);
         return loginData.accessToken;
       }
     } catch (_err) {}
@@ -45,7 +45,7 @@ export default function DoctorDashboard() {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      let token = localStorage.getItem('ekavach_token');
+      let token = localStorage.getItem('ekawach_token');
       let headers = token ? { Authorization: `Bearer ${token}` } : {};
       let res = await fetch('/api/doctor/appointments', { headers });
 
@@ -184,7 +184,7 @@ export default function DoctorDashboard() {
   };
 
   const handleExportSummary = () => {
-    const summary = `E-KAVACH CLINICAL SHIFT SUMMARY
+    const summary = `E-KAWACH CLINICAL SHIFT SUMMARY
 Practitioner: ${doctorName} (${doctorTitle})
 Date: ${new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
 Facility: ${doctorHospital}

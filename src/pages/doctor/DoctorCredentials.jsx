@@ -10,7 +10,7 @@ export default function DoctorCredentials() {
 
   React.useEffect(() => {
     const loadCreds = async () => {
-      let token = localStorage.getItem('ekavach_token');
+      let token = localStorage.getItem('ekawach_token');
       let res = await fetch('/api/doctor/credentials', {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       }).catch(() => null);

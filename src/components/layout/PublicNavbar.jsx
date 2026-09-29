@@ -55,9 +55,9 @@ export default function PublicNavbar() {
     <header className="fixed top-7 left-0 right-0 w-full z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
       <div className="h-20 w-full px-grid-margin flex items-center justify-between gap-space-lg">
         <Link to="/" className="flex items-center gap-space-sm no-underline">
-          <img alt="E-KAVACH Logo" className="h-9 w-auto object-contain rounded-md" src={LogoImg} />
+          <img alt="E-KAWACH Logo" className="h-9 w-auto object-contain rounded-md" src={LogoImg} />
           <span className="font-headline-sm text-headline-sm text-primary tracking-tight font-semibold">
-            E-KAVACH
+            E-KAWACH
           </span>
           <span className="hidden xl:inline-flex items-center gap-space-2xs px-space-xs py-0.5 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-secondary"></span>
@@ -177,7 +177,7 @@ export default function PublicNavbar() {
             onClick={(e) => {
               if (location.pathname === '/') {
                 e.preventDefault();
-                window.dispatchEvent(new CustomEvent('ekavach:scroll-to-register'));
+                window.dispatchEvent(new CustomEvent('ekawach:scroll-to-register'));
                 window.history.pushState(null, '', '#registration-card');
               }
             }}

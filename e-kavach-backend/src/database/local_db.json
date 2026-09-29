@@ -2,7 +2,7 @@
   "user": [
     {
       "id": "user-patient-rajesh",
-      "email": "rajesh.sharma@ekavach.health",
+      "email": "rajesh.sharma@ekawach.health",
       "phone": "+91 98401 22819",
       "passwordHash": "$2b$10$16Lq.ColIVQQjpRcUEg/leTIgqWSzc5B1XOnp0mDoOW74u7RniuJe",
       "role": "patient",
@@ -108,7 +108,7 @@
       "createdAt": "2026-09-12T10:10:13.185Z",
       "updatedAt": "2026-09-12T10:10:13.185Z",
       "registration_id": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
-      "email": "test_doc_verify_1@ekavach.gov.in",
+      "email": "test_doc_verify_1@ekawach.gov.in",
       "phone": "+91 9724854279",
       "passwordHash": "$2b$10$/B36eZrOFJpGditcJT8xUuv.DbaMOlvPOkbDzo3CRIjxwH1ApPbi.",
       "role": "doctor",
@@ -119,7 +119,7 @@
       "createdAt": "2026-09-12T12:04:32.170Z",
       "updatedAt": "2026-09-12T12:04:32.170Z",
       "registration_id": "REG-2BD82F70-005B-43B2-81E4-325E097F39D0",
-      "email": "patient_1789214672087@ekavach.health",
+      "email": "patient_1789214672087@ekawach.health",
       "phone": "+91 97890 55432",
       "passwordHash": "$2b$10$6gvL.uKwfW2Kw3zR7dwnt.4GM5JOnT8LXxagF9U79ZkPE9SNbQ81.",
       "role": "patient",
@@ -130,7 +130,7 @@
       "createdAt": "2026-09-12T12:21:16.652Z",
       "updatedAt": "2026-09-12T12:21:16.652Z",
       "registration_id": "REG-5C2CF3B1-CF96-49FC-BB79-12D68170F210",
-      "email": "patient_1789215675956@ekavach.gov.in",
+      "email": "patient_1789215675956@ekawach.gov.in",
       "phone": "9876543210",
       "passwordHash": "$2b$10$dqCPQcQLGM32KBomDaUPou7aez0zrHzFjSMiJVGN2VDZX0BOFmuCy",
       "role": "patient",
@@ -141,7 +141,7 @@
       "createdAt": "2026-09-12T12:21:36.467Z",
       "updatedAt": "2026-09-12T12:21:36.467Z",
       "registration_id": "REG-087903B8-2EE9-4E3D-AC88-CA077FD9A9F1",
-      "email": "doctor_1789215696378@ekavach.gov.in",
+      "email": "doctor_1789215696378@ekawach.gov.in",
       "phone": "9123456780",
       "passwordHash": "$2b$10$EuEzhydYCAEOt1PUeJw6j.QANEKXwjdzFNVrpzu8LelfdsYmnumxy",
       "role": "doctor",
@@ -237,7 +237,7 @@
       "updatedAt": "2026-09-12T16:11:03.037Z",
       "registration_id": "REG-938A81F9-34FD-4C85-B268-8AD05425870D",
       "name": "lokendra ",
-      "email": "patient_1789229387851@ekavach.gov.in",
+      "email": "patient_1789229387851@ekawach.gov.in",
       "phone": "9876543212",
       "passwordHash": "$2b$10$mnnj68hV9nF4koFK2apOhedC2k5rf94X1NSnmTi6xS/NSmJB1zxZS",
       "role": "patient",
@@ -261,7 +261,7 @@
       "updatedAt": "2026-09-12T17:42:24.507Z",
       "registration_id": "REG-4E4201DC-8077-4DA0-B732-E74AAB844E68",
       "name": "Avinesh Shukla",
-      "email": "patient_1789234924024@ekavach.gov.in",
+      "email": "patient_1789234924024@ekawach.gov.in",
       "phone": "1234567890",
       "passwordHash": "$2b$10$fDIga0/vGs1SET8lvVYYjOM6Ks381Y2H1IAvDNU0.xLBZb7IgIbeS",
       "role": "patient",
@@ -384,6 +384,18 @@
       "email": "e2e_patient_1789256747995@test.health",
       "phone": "+91 9976086347",
       "passwordHash": "$2b$10$PC1x.4/WBE/H21Klvp5G9epIQkaWU.fGwFeTP6Ae.blcdet8U7zFu",
+      "role": "patient",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "user_1790663748483_fdpjn5",
+      "createdAt": "2026-09-29T06:35:48.483Z",
+      "updatedAt": "2026-09-29T06:35:48.483Z",
+      "registration_id": "REG-A5A0D38F-7909-4ED1-A67D-3BBFF1F06342",
+      "name": "E2E Test Patient",
+      "email": "e2e_patient_1790663748381@test.health",
+      "phone": "+91 9998321202",
+      "passwordHash": "$2b$10$C1CIG1qcJMRmrJ2195UC6eGBaMeMPuUGgqfctKnt3oz30ZuMwhALC",
       "role": "patient",
       "status": "ACTIVE"
     }
@@ -671,6 +683,49 @@
       "wardBedsTotal": 380,
       "wardBedsOccupied": 322,
       "status": "ACTIVE"
+    },
+    {
+      "id": "hosp-universal-apex",
+      "registration_id": "REG-HOSP-UNIVERSAL-0001",
+      "name": "e-Kavach Universal Emergency Health & Trauma Hub",
+      "code": "EK-UNIV-APEX-01",
+      "address": "National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Road / Ring Corridor",
+      "city": "Delhi",
+      "state": "Delhi",
+      "pinCode": "110040",
+      "geoLat": 28.853,
+      "geoLng": 77.094,
+      "departments": [
+        "Emergency & Trauma (Level-1)",
+        "ICU & Resuscitation",
+        "Interventional Cardiology",
+        "Neurotrauma & Stroke Care",
+        "Orthopedics & Polytrauma",
+        "General & Laparoscopic Surgery",
+        "Pulmonology & Respiratory Care",
+        "Pediatric Critical Care",
+        "Burn & Hyperbaric Care",
+        "24x7 Blood Bank & Transfusion"
+      ],
+      "contactNumbers": {
+        "er": "+91 11 2700 0108",
+        "helpline": "1800-11-0108",
+        "ambulance": "108",
+        "email": "universal.er@ekawach.health"
+      },
+      "icuBedsTotal": 120,
+      "icuBedsOccupied": 52,
+      "icuBedsAvailable": 68,
+      "wardBedsTotal": 950,
+      "wardBedsOccupied": 540,
+      "wardBedsAvailable": 410,
+      "ventilatorsTotal": 80,
+      "ventilatorsOccupied": 35,
+      "ventilatorsAvailable": 45,
+      "oxygenSupplyStatus": "100% Guaranteed Cryogenic Bulk Reserve Operational",
+      "traumaLevel": "LEVEL-1 NATIONAL APEX TRAUMA HUB",
+      "status": "ACTIVE",
+      "isUniversalFallback": true
     }
   ],
   "patientProfile": [
@@ -709,7 +764,7 @@
         }
       ],
       "emergencyToken": "EK-TR-88190-V4",
-      "qrPayload": "EKAVACH:ABHA:9824-8819-3320-TN:BLOOD:O_POS:ALLERGY:PENICILLIN:TOKEN:EK-TR-88190-V4",
+      "qrPayload": "EKAWACH:ABHA:9824-8819-3320-TN:BLOOD:O_POS:ALLERGY:PENICILLIN:TOKEN:EK-TR-88190-V4",
       "hospitalAffiliation": "Apollo Greams Trauma Hub",
       "tag": "Verified Health ID",
       "abhaNumberEncrypted": "a5d10ce1540a43e779910e4ea811e846:8754a52400bd134a93ff54823a8ed2cf:92daada12c15e99a5a2b65b9b4392c038a",
@@ -1360,6 +1415,36 @@
         }
       ],
       "emergencyToken": "EK-TR-30448-V4",
+      "hospitalAffiliation": "",
+      "tag": "Verified Patient ID",
+      "address": ""
+    },
+    {
+      "id": "patientProfile_1790663748488_7nzc9j",
+      "createdAt": "2026-09-29T06:35:48.488Z",
+      "updatedAt": "2026-09-29T06:35:48.488Z",
+      "userId": "user_1790663748483_fdpjn5",
+      "registration_id": "REG-A5A0D38F-7909-4ED1-A67D-3BBFF1F06342",
+      "registrationId": "REG-A5A0D38F-7909-4ED1-A67D-3BBFF1F06342",
+      "name": "E2E Test Patient",
+      "phone": "+91 9998321202",
+      "abhaNumber": "9824-8819-3279-TN",
+      "aadhaarNumber": "8841-2536-2017",
+      "bloodGroup": "B+ Rh Pos",
+      "gender": "Not Specified",
+      "dob": null,
+      "chronicConditions": [],
+      "allergies": [],
+      "emergencyContacts": [
+        {
+          "name": "Emergency Contact",
+          "phone": "+91 9998321202",
+          "relation": "Family",
+          "priority": 1,
+          "verified": true
+        }
+      ],
+      "emergencyToken": "EK-TR-26996-V4",
       "hospitalAffiliation": "",
       "tag": "Verified Patient ID",
       "address": ""
@@ -2139,6 +2224,26 @@
         }
       ],
       "status": "ACTIVE"
+    },
+    {
+      "id": "emergencyPass_1790663748495_4458mh",
+      "createdAt": "2026-09-29T06:35:48.495Z",
+      "updatedAt": "2026-09-29T06:35:48.495Z",
+      "patientProfileId": "patientProfile_1790663748488_7nzc9j",
+      "passToken": "EK-TR-26996-V4",
+      "bloodGroup": "B+ Rh Pos",
+      "criticalAllergies": "None reported",
+      "chronicConditions": "None reported",
+      "iceContacts": [
+        {
+          "name": "Emergency Contact",
+          "phone": "+91 9998321202",
+          "relation": "Family",
+          "priority": 1,
+          "verified": true
+        }
+      ],
+      "status": "ACTIVE"
     }
   ],
   "abhaAccount": [
@@ -2440,6 +2545,19 @@
       "qrPayload": "ABDM:PHR:E2E Test Patient@abdm:ABHA:9824-8819-4858-TN",
       "verificationStatus": "LEVEL-4 CERTIFIED",
       "issueDate": "2026-09-12T23:45:48.133Z"
+    },
+    {
+      "id": "abhaAccount_1790663748493_aiurn4",
+      "createdAt": "2026-09-29T06:35:48.493Z",
+      "updatedAt": "2026-09-29T06:35:48.493Z",
+      "patientProfileId": "patientProfile_1790663748488_7nzc9j",
+      "abhaNumber": "5876f32c1d5623b1a8b500a7dba5714b:87b7784e49f08d3495a6da39e477e4a5:e272c78eb27d2c78dc8d78a453989ce9ce",
+      "phrAddress": "e2etestpatient@abdm",
+      "linkedMobile": "aa4ed19b439dfc8ffa0dc9a00d6dbb84:2a7782f401d172ebbd215f5ffe93c934:aedee118cd484241d67a79686ee6",
+      "aadhaarRef": "XXXX-XXXX-2017",
+      "qrPayload": "ABDM:PHR:E2E Test Patient@abdm:ABHA:9824-8819-3279-TN",
+      "verificationStatus": "LEVEL-4 CERTIFIED",
+      "issueDate": "2026-09-29T06:35:48.493Z"
     }
   ],
   "governmentScheme": [
@@ -2515,7 +2633,7 @@
       "occupiedBeds": 47,
       "availableBeds": 3,
       "status": "HIGH_LOAD",
-      "updatedAt": "2026-09-12T23:44:35.182Z"
+      "updatedAt": "2026-09-29T06:35:48.287Z"
     },
     {
       "id": "bed-ccu",
@@ -3574,6 +3692,159 @@
       "status": "INGRESS",
       "isReferral": false,
       "source": "IVR_VOICE_ASSISTANT"
+    },
+    {
+      "id": "triageEntry_1790663748363_uc2uom",
+      "createdAt": "2026-09-29T06:35:48.363Z",
+      "updatedAt": "2026-09-29T06:35:48.363Z",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "hosp-fortis-stroke",
+      "assignedDoctorId": "doc-arjun-nair",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical)",
+      "bayNumber": "Bay 02",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-29T06:35:48.363Z",
+      "vitals": {
+        "bp": "138/88",
+        "spo2": "97%",
+        "heartRate": "92 bpm"
+      },
+      "condition": "Acute coronary syndrome requiring tertiary catheterization and emergency triage handover. (Referred by Dr. Kavitha Menon • Apollo Greams Trauma Hub)",
+      "doctor": "Dr. Arjun Nair, MD, DM",
+      "status": "INGRESS",
+      "isReferral": true
+    },
+    {
+      "id": "triageEntry_1790663761796_0dz5x1",
+      "createdAt": "2026-09-29T06:36:01.796Z",
+      "updatedAt": "2026-09-29T06:36:01.796Z",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "OSM_6341578934",
+      "assignedDoctorId": "doctor-kavitha",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical Red)",
+      "bayNumber": "Bay 05",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-29T06:36:01.796Z",
+      "vitals": {
+        "heartRate": "118 bpm (Tachycardia)",
+        "bp": "168/104",
+        "spO2": "91%",
+        "respRate": "26 /min",
+        "note": "Voice IVR Dispatch [HI] • Landmark: Palasia Square, Indore"
+      },
+      "condition": "Golden-Hour Emergency Dispatch via Voice IVR (Palasia Square, Indore -> Sarvodaya Hospital)",
+      "doctor": "Dr. Kavitha Menon",
+      "status": "INGRESS",
+      "isReferral": false,
+      "source": "IVR_VOICE_ASSISTANT"
+    },
+    {
+      "id": "triageEntry_1790663774745_whyyxj",
+      "createdAt": "2026-09-29T06:36:14.745Z",
+      "updatedAt": "2026-09-29T06:36:14.745Z",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "OSM_6216982258",
+      "assignedDoctorId": "doctor-kavitha",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical Red)",
+      "bayNumber": "Bay 04",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-29T06:36:14.745Z",
+      "vitals": {
+        "heartRate": "118 bpm (Tachycardia)",
+        "bp": "168/104",
+        "spO2": "91%",
+        "respRate": "26 /min",
+        "note": "Voice IVR Dispatch [EN] • Landmark: Indore Central"
+      },
+      "condition": "Golden-Hour Emergency Dispatch via Voice IVR (Indore Central -> Railway Hospital)",
+      "doctor": "Dr. Kavitha Menon",
+      "status": "INGRESS",
+      "isReferral": false,
+      "source": "IVR_VOICE_ASSISTANT"
+    },
+    {
+      "id": "triageEntry_1790663787689_etv5u8",
+      "createdAt": "2026-09-29T06:36:27.689Z",
+      "updatedAt": "2026-09-29T06:36:27.689Z",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "OSM_13914261232",
+      "assignedDoctorId": "doctor-kavitha",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical Red)",
+      "bayNumber": "Bay 02",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-29T06:36:27.689Z",
+      "vitals": {
+        "heartRate": "118 bpm (Tachycardia)",
+        "bp": "168/104",
+        "spO2": "91%",
+        "respRate": "26 /min",
+        "note": "Voice IVR Dispatch [HI] • Landmark: Rajwada Palace, Indore"
+      },
+      "condition": "Golden-Hour Emergency Dispatch via Voice IVR (Rajwada Palace, Indore -> Metro Hospital)",
+      "doctor": "Dr. Kavitha Menon",
+      "status": "INGRESS",
+      "isReferral": false,
+      "source": "IVR_VOICE_ASSISTANT"
+    },
+    {
+      "id": "triageEntry_1790663787927_m6tsni",
+      "createdAt": "2026-09-29T06:36:27.927Z",
+      "updatedAt": "2026-09-29T06:36:27.927Z",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "hosp-apollo-greams",
+      "assignedDoctorId": "doctor-kavitha",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical Red)",
+      "bayNumber": "Bay 03",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-29T06:36:27.927Z",
+      "vitals": {
+        "heartRate": "118 bpm (Tachycardia)",
+        "bp": "168/104",
+        "spO2": "91%",
+        "respRate": "26 /min",
+        "note": "Voice IVR Dispatch [EN] • Landmark: Chappan Dukan, Indore"
+      },
+      "condition": "Golden-Hour Emergency Dispatch via Voice IVR (Chappan Dukan, Indore -> Apollo Greams Trauma Hub)",
+      "doctor": "Dr. Kavitha Menon",
+      "status": "INGRESS",
+      "isReferral": false,
+      "source": "IVR_VOICE_ASSISTANT"
+    },
+    {
+      "id": "triageEntry_1790663801354_1n0b2n",
+      "createdAt": "2026-09-29T06:36:41.354Z",
+      "updatedAt": "2026-09-29T06:36:41.354Z",
+      "patientProfileId": "patient-rajesh",
+      "hospitalId": "OSM_6219206958",
+      "assignedDoctorId": "doctor-kavitha",
+      "triageColor": "RED",
+      "priorityLevel": "Priority 1 (Critical Red)",
+      "bayNumber": "Bay 05",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "arrivalTime": "2026-09-29T06:36:41.354Z",
+      "vitals": {
+        "heartRate": "118 bpm (Tachycardia)",
+        "bp": "168/104",
+        "spO2": "91%",
+        "respRate": "26 /min",
+        "note": "Voice IVR Dispatch [TA] • Landmark: Indore Bypass"
+      },
+      "condition": "Golden-Hour Emergency Dispatch via Voice IVR (Indore Bypass -> Pooja Hospital)",
+      "doctor": "Dr. Kavitha Menon",
+      "status": "INGRESS",
+      "isReferral": false,
+      "source": "IVR_VOICE_ASSISTANT"
     }
   ],
   "staffMember": [
@@ -4602,6 +4873,42 @@
       "symptoms": "Routine lipid & cardiovascular evaluation",
       "notes": "{\"serviceType\":\"DOCTOR_CONSULT\",\"bookingFor\":\"OTHER\",\"relation\":\"Spouse\",\"testName\":null,\"patientAge\":\"35\",\"patientGender\":\"Not Specified\",\"patientAbha\":null,\"userNotes\":\"\"}",
       "tokenNumber": "EK-SLOT-144"
+    },
+    {
+      "id": "appointment_1790663748316_9enjys",
+      "createdAt": "2026-09-29T06:35:48.316Z",
+      "updatedAt": "2026-09-29T06:35:48.352Z",
+      "patientProfileId": "patient-rajesh",
+      "doctorProfileId": "doctor-kavitha",
+      "hospitalId": "hosp-apollo-greams",
+      "patientName": "Ananya S. Sharma",
+      "patientPhone": "+91 98401 22819",
+      "scheduledAt": "2026-10-02T06:35:48.312Z",
+      "timeSlot": "02:30 PM",
+      "mode": "IN_PERSON",
+      "status": "CANCELLED",
+      "department": "Cardiology",
+      "symptoms": "Routine lipid & cardiovascular evaluation",
+      "notes": "{\"serviceType\":\"DOCTOR_CONSULT\",\"bookingFor\":\"OTHER\",\"relation\":\"Spouse\",\"testName\":null,\"patientAge\":\"35\",\"patientGender\":\"Not Specified\",\"patientAbha\":null,\"userNotes\":\"\"}",
+      "tokenNumber": "EK-SLOT-145"
+    },
+    {
+      "id": "appointment_1790663748339_evld05",
+      "createdAt": "2026-09-29T06:35:48.339Z",
+      "updatedAt": "2026-09-29T06:35:48.339Z",
+      "patientProfileId": "patientProfile_1789214672172_4fpluu",
+      "doctorProfileId": "doctor-kavitha",
+      "hospitalId": "hosp-apollo-greams",
+      "patientName": "Vikram Sethi",
+      "patientPhone": "+91 97890 55432",
+      "scheduledAt": "2026-09-30T06:35:48.339Z",
+      "timeSlot": "04:00 PM",
+      "mode": "IN_PERSON",
+      "status": "PENDING",
+      "department": "Cardiology",
+      "symptoms": "Post-CABG follow-up",
+      "notes": "",
+      "tokenNumber": "EK-SLOT-146"
     }
   ],
   "medicalRecord": [
@@ -4905,6 +5212,23 @@
       "verifiedBy": "Dr. Kavitha Menon",
       "verifiedAt": "2026-09-12T23:45:48.415Z",
       "verificationNotes": "Clinically verified against hospital digital archive."
+    },
+    {
+      "id": "medicalRecord_1790663748757_82xea8",
+      "createdAt": "2026-09-29T06:35:48.757Z",
+      "updatedAt": "2026-09-29T06:35:48.768Z",
+      "patientProfileId": "patientProfile_1790663748488_7nzc9j",
+      "uploadedByUserId": "user_1790663748483_fdpjn5",
+      "title": "Annual Cardiac ECG Report",
+      "recordType": "ECG_REPORT",
+      "fileUrl": "/uploads/sample_report.pdf",
+      "fileKey": null,
+      "date": "2026-09-29T06:35:48.757Z",
+      "notes": "Resting 12-lead ECG, normal sinus rhythm",
+      "verificationStatus": "VERIFIED",
+      "verifiedBy": "Dr. Kavitha Menon",
+      "verifiedAt": "2026-09-29T06:35:48.768Z",
+      "verificationNotes": "Clinically verified against hospital digital archive."
     }
   ],
   "consentGrant": [
@@ -4914,8 +5238,8 @@
       "grantedToDoctorId": "doctor-kavitha",
       "recordScope": "ALL",
       "status": "PENDING_APPROVAL",
-      "grantedAt": "2026-09-12T23:45:48.424Z",
-      "updatedAt": "2026-09-12T23:45:48.424Z"
+      "grantedAt": "2026-09-29T06:35:48.776Z",
+      "updatedAt": "2026-09-29T06:35:48.776Z"
     },
     {
       "id": "consentGrant_1789235272799_rs6zr4",
@@ -4969,7 +5293,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:02:51.503Z"
     },
@@ -4985,7 +5309,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:02:58.322Z"
     },
@@ -5001,7 +5325,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:04:32.004Z"
     },
@@ -5017,7 +5341,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:06:05.448Z"
     },
@@ -5033,7 +5357,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 2,
       "timestamp": "2026-09-12T12:06:10.959Z"
     },
@@ -5049,7 +5373,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:24:32.113Z"
     },
@@ -5065,7 +5389,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:25:32.828Z"
     },
@@ -5081,7 +5405,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:25:48.184Z"
     },
@@ -5097,7 +5421,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:26:03.113Z"
     },
@@ -5113,7 +5437,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:31:18.547Z"
     },
@@ -5129,7 +5453,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T12:42:15.508Z"
     },
@@ -5145,7 +5469,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:13:34.349Z"
     },
@@ -5161,7 +5485,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:19:00.448Z"
     },
@@ -5177,7 +5501,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:23:53.150Z"
     },
@@ -5193,7 +5517,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:24:11.335Z"
     },
@@ -5209,7 +5533,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:24:11.401Z"
     },
@@ -5225,7 +5549,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:24:29.504Z"
     },
@@ -5241,7 +5565,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:24:29.570Z"
     },
@@ -5257,7 +5581,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:30:51.965Z"
     },
@@ -5273,7 +5597,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:30:52.037Z"
     },
@@ -5289,7 +5613,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:34:13.977Z"
     },
@@ -5305,7 +5629,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:34:14.041Z"
     },
@@ -5321,7 +5645,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:35:16.285Z"
     },
@@ -5337,7 +5661,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:35:16.351Z"
     },
@@ -5353,7 +5677,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:36:24.090Z"
     },
@@ -5369,7 +5693,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:36:24.160Z"
     },
@@ -5385,7 +5709,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:43:15.818Z"
     },
@@ -5401,7 +5725,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:43:15.890Z"
     },
@@ -5417,7 +5741,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:47:02.967Z"
     },
@@ -5433,7 +5757,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:47:03.044Z"
     },
@@ -5449,7 +5773,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T15:59:59.398Z"
     },
@@ -5465,7 +5789,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T15:59:59.526Z"
     },
@@ -5481,7 +5805,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:38:28.401Z"
     },
@@ -5497,7 +5821,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T17:38:28.491Z"
     },
@@ -5513,7 +5837,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:26.834Z"
     },
@@ -5529,7 +5853,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:33.143Z"
     },
@@ -5545,7 +5869,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:34.157Z"
     },
@@ -5561,7 +5885,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:34.747Z"
     },
@@ -5577,7 +5901,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:44.373Z"
     },
@@ -5593,7 +5917,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:45.005Z"
     },
@@ -5609,7 +5933,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:45.170Z"
     },
@@ -5625,7 +5949,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:45.406Z"
     },
@@ -5641,7 +5965,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:45.540Z"
     },
@@ -5657,7 +5981,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T17:46:45.752Z"
     },
@@ -5673,7 +5997,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Emergency / SOS Break-Glass Clinical Ingress",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Clinical Portal v2.4",
+      "userAgent": "E-KAWACH Doctor Clinical Portal v2.4",
       "latencyMs": 16,
       "timestamp": "2026-09-12T17:46:46.810Z"
     },
@@ -5689,7 +6013,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Emergency / SOS Break-Glass Clinical Ingress",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Clinical Portal v2.4",
+      "userAgent": "E-KAWACH Doctor Clinical Portal v2.4",
       "latencyMs": 16,
       "timestamp": "2026-09-12T17:46:47.057Z"
     },
@@ -5705,7 +6029,7 @@
       "accessType": "EMERGENCY_BREAK_GLASS",
       "reason": "Emergency / SOS Break-Glass Protocol: Immediate patient resuscitation & chart access",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Emergency Break-Glass Portal",
+      "userAgent": "E-KAWACH Doctor Emergency Break-Glass Portal",
       "latencyMs": 12,
       "timestamp": "2026-09-12T18:02:04.911Z"
     },
@@ -5721,7 +6045,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Emergency / SOS Break-Glass Clinical Ingress",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Clinical Portal v2.4",
+      "userAgent": "E-KAWACH Doctor Clinical Portal v2.4",
       "latencyMs": 16,
       "timestamp": "2026-09-12T18:02:04.920Z"
     },
@@ -5737,7 +6061,7 @@
       "accessType": "EMERGENCY_BREAK_GLASS",
       "reason": "[ABDM BREAK-GLASS] Emergency Condition: Acute Hemodynamic Shock / Severe Polytrauma | Clinical Justification: Patient unconscious in Trauma Bay 3; rapid transfusion and emergency laparotomy required | Authorized by Dr. Dr. Kavitha Menon (NMC: MD-44912-TN) | Location: Apollo Greams Trauma Hub",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Emergency Break-Glass Portal (ABDM Tier-3)",
+      "userAgent": "E-KAWACH Doctor Emergency Break-Glass Portal (ABDM Tier-3)",
       "latencyMs": 14,
       "timestamp": "2026-09-12T18:02:26.499Z"
     },
@@ -5753,7 +6077,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Emergency / SOS Break-Glass Clinical Ingress",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Clinical Portal v2.4",
+      "userAgent": "E-KAWACH Doctor Clinical Portal v2.4",
       "latencyMs": 16,
       "timestamp": "2026-09-12T18:02:26.516Z"
     },
@@ -5769,7 +6093,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Emergency / SOS Break-Glass Clinical Ingress",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH Doctor Clinical Portal v2.4",
+      "userAgent": "E-KAWACH Doctor Clinical Portal v2.4",
       "latencyMs": 16,
       "timestamp": "2026-09-12T18:02:31.173Z"
     },
@@ -5785,7 +6109,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T21:15:08.874Z"
     },
@@ -5801,7 +6125,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T21:15:08.972Z"
     },
@@ -5817,7 +6141,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T22:33:21.132Z"
     },
@@ -5833,7 +6157,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T22:33:21.219Z"
     },
@@ -5849,7 +6173,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T23:00:16.774Z"
     },
@@ -5865,7 +6189,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T23:00:16.853Z"
     },
@@ -5881,7 +6205,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T23:00:46.863Z"
     },
@@ -5897,7 +6221,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T23:00:46.960Z"
     },
@@ -5913,7 +6237,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T23:37:04.733Z"
     },
@@ -5929,7 +6253,7 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T23:37:04.815Z"
     },
@@ -5945,7 +6269,7 @@
       "accessType": "EMERGENCY_PASS_BYPASS",
       "reason": "Golden Hour Emergency Scanner Ingress Protocol",
       "ipAddress": "10.14.22.90",
-      "userAgent": "E-KAVACH ER Scan Terminal v2.4",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
       "latencyMs": 1,
       "timestamp": "2026-09-12T23:44:35.166Z"
     },
@@ -5961,9 +6285,41 @@
       "accessType": "INTER_HOSPITAL_REFERRAL",
       "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
       "ipAddress": "127.0.0.1",
-      "userAgent": "E-KAVACH API Client",
+      "userAgent": "E-KAWACH API Client",
       "latencyMs": 12,
       "timestamp": "2026-09-12T23:44:35.248Z"
+    },
+    {
+      "id": "accessLog_1790663748269_n5himz",
+      "createdAt": "2026-09-29T06:35:48.269Z",
+      "updatedAt": "2026-09-29T06:35:48.269Z",
+      "patientProfileId": "patient-rajesh",
+      "accessorUserId": "user-doctor-kavitha",
+      "accessorRole": "doctor",
+      "accessorName": "Dr. Kavitha Menon",
+      "hospitalId": "Apollo Greams Trauma Hub",
+      "accessType": "EMERGENCY_PASS_BYPASS",
+      "reason": "Golden Hour Emergency Scanner Ingress Protocol",
+      "ipAddress": "10.14.22.90",
+      "userAgent": "E-KAWACH ER Scan Terminal v2.4",
+      "latencyMs": 1,
+      "timestamp": "2026-09-29T06:35:48.268Z"
+    },
+    {
+      "id": "accessLog_1790663748366_l7gs7x",
+      "createdAt": "2026-09-29T06:35:48.366Z",
+      "updatedAt": "2026-09-29T06:35:48.366Z",
+      "patientProfileId": "patient-rajesh",
+      "accessorUserId": "user-doctor-kavitha",
+      "accessorRole": "doctor",
+      "accessorName": "Dr. Kavitha Menon",
+      "hospitalId": "hosp-apollo-greams",
+      "accessType": "INTER_HOSPITAL_REFERRAL",
+      "reason": "Inter-hospital referral to Dr. Arjun Nair, MD, DM at Fortis Grid Hub (Priority 1 (Critical))",
+      "ipAddress": "127.0.0.1",
+      "userAgent": "E-KAWACH API Client",
+      "latencyMs": 12,
+      "timestamp": "2026-09-29T06:35:48.366Z"
     }
   ],
   "notification": [],
@@ -6450,6 +6806,68 @@
       "created_at": "2025-01-10T10:00:00.000Z",
       "updated_at": "2026-03-24T12:00:00.000Z",
       "id": "HOSP-8"
+    },
+    {
+      "hospital_id": "hosp-universal-apex",
+      "id": "hosp-universal-apex",
+      "registration_id": "REG-HOSP-UNIVERSAL-0001",
+      "hospital_name": "e-Kavach Universal Emergency Health & Trauma Hub",
+      "hospital_type": "Government / National Central Grid",
+      "registration_number": "EK-NAT-APEX-0001",
+      "contact_number": "+91 11 2700 0108",
+      "email": "universal.er@ekawach.health",
+      "website": "https://ekawach.health/nodes/universal",
+      "address": "National Central Emergency Grid & Level-1 Trauma Dispatch Network, GT Karnal Road Corridor",
+      "city": "Delhi",
+      "district": "North Delhi",
+      "state": "Delhi",
+      "pincode": "110040",
+      "latitude": 28.853,
+      "longitude": 77.094,
+      "total_beds": 950,
+      "available_beds": 410,
+      "icu_beds": 120,
+      "icu_available": 68,
+      "emergency_beds": 40,
+      "emergency_available": 24,
+      "general_beds": 650,
+      "private_beds": 140,
+      "ambulance_count": 25,
+      "blood_bank_available": true,
+      "pharmacy_available": true,
+      "diagnostic_available": true,
+      "operation_theatre_count": 18,
+      "ventilator_count": 80,
+      "oxygen_beds": 350,
+      "specialities": [
+        "Emergency & Trauma (Level-1)",
+        "ICU & Resuscitation",
+        "Interventional Cardiology",
+        "Neurotrauma & Stroke Care",
+        "Orthopedics & Polytrauma",
+        "General & Laparoscopic Surgery",
+        "Pulmonology & Respiratory Care",
+        "Pediatric Critical Care",
+        "Burn & Hyperbaric Care",
+        "24x7 Blood Bank & Transfusion"
+      ],
+      "services": [
+        "24x7 Level-1 Apex Trauma",
+        "Tele-ICU Grid Dispatch",
+        "Air & ALS Ambulance Fleet",
+        "Advanced Catheterization Lab",
+        "Central Cryogenic O2 Reservoir",
+        "24x7 Blood Bank & Apheresis",
+        "Rapid Ingress Triage"
+      ],
+      "opening_time": "00:00",
+      "closing_time": "23:59",
+      "emergency_24x7": true,
+      "admin_name": "Dr. Devendra Sharma (National Emergency Medical Superintendent)",
+      "admin_phone": "+91 11 2700 0108",
+      "status": "Approved",
+      "created_at": "2025-01-01T00:00:00.000Z",
+      "updated_at": "2026-09-12T18:00:00.000Z"
     }
   ],
   "registration": [
@@ -6458,7 +6876,7 @@
       "registration_id": "REG-PAT-RAJESH-9824",
       "auth_user_id": "user-patient-rajesh",
       "name": "Rajesh V. Sharma",
-      "email": "rajesh.sharma@ekavach.health",
+      "email": "rajesh.sharma@ekawach.health",
       "phone": "+91 98401 22819",
       "role": "patient",
       "status": "ACTIVE",
@@ -6580,7 +6998,7 @@
       "registration_id": "REG-13B715A1-85AD-456B-8C9A-C848C834DBAC",
       "auth_user_id": "user_1789207813185_ne7p2u",
       "name": "Dr. Ananya Roy",
-      "email": "test_doc_verify_1@ekavach.gov.in",
+      "email": "test_doc_verify_1@ekawach.gov.in",
       "phone": "+91 9724854279",
       "role": "doctor",
       "status": "ACTIVE",
@@ -6606,7 +7024,7 @@
       "registration_id": "REG-2BD82F70-005B-43B2-81E4-325E097F39D0",
       "auth_user_id": "user_1789214672170_vk04qv",
       "name": "Vikram Sethi",
-      "email": "patient_1789214672087@ekavach.health",
+      "email": "patient_1789214672087@ekawach.health",
       "phone": "+91 97890 55432",
       "role": "patient",
       "status": "ACTIVE",
@@ -6620,7 +7038,7 @@
       "registration_id": "REG-5C2CF3B1-CF96-49FC-BB79-12D68170F210",
       "auth_user_id": "user_1789215676652_d2lnmn",
       "name": "Aarav Patel",
-      "email": "patient_1789215675956@ekavach.gov.in",
+      "email": "patient_1789215675956@ekawach.gov.in",
       "phone": "9876543210",
       "role": "patient",
       "status": "ACTIVE",
@@ -6634,7 +7052,7 @@
       "registration_id": "REG-087903B8-2EE9-4E3D-AC88-CA077FD9A9F1",
       "auth_user_id": "user_1789215696467_6x5cxd",
       "name": "Dr. Sameer Khan",
-      "email": "doctor_1789215696378@ekavach.gov.in",
+      "email": "doctor_1789215696378@ekawach.gov.in",
       "phone": "9123456780",
       "role": "doctor",
       "status": "ACTIVE",
@@ -6746,7 +7164,7 @@
       "registration_id": "REG-938A81F9-34FD-4C85-B268-8AD05425870D",
       "auth_user_id": "user_1789229388276_qn3yt8",
       "name": "lokendra ",
-      "email": "patient_1789229387851@ekavach.gov.in",
+      "email": "patient_1789229387851@ekawach.gov.in",
       "phone": "9876543212",
       "role": "patient",
       "status": "ACTIVE",
@@ -6774,7 +7192,7 @@
       "registration_id": "REG-4E4201DC-8077-4DA0-B732-E74AAB844E68",
       "auth_user_id": "user_1789234924324_y7pe9i",
       "name": "Avinesh Shukla",
-      "email": "patient_1789234924024@ekavach.gov.in",
+      "email": "patient_1789234924024@ekawach.gov.in",
       "phone": "1234567890",
       "role": "patient",
       "status": "ACTIVE",
@@ -6920,6 +7338,20 @@
       "status": "ACTIVE",
       "created_at": "2026-09-12T23:45:48.127Z",
       "updated_at": "2026-09-12T23:45:48.127Z"
+    },
+    {
+      "id": "REG-A5A0D38F-7909-4ED1-A67D-3BBFF1F06342",
+      "createdAt": "2026-09-29T06:35:48.485Z",
+      "updatedAt": "2026-09-29T06:35:48.485Z",
+      "registration_id": "REG-A5A0D38F-7909-4ED1-A67D-3BBFF1F06342",
+      "auth_user_id": "user_1790663748483_fdpjn5",
+      "name": "E2E Test Patient",
+      "email": "e2e_patient_1790663748381@test.health",
+      "phone": "+91 9998321202",
+      "role": "patient",
+      "status": "ACTIVE",
+      "created_at": "2026-09-29T06:35:48.485Z",
+      "updated_at": "2026-09-29T06:35:48.485Z"
     }
   ],
   "referralRequest": [
@@ -7227,6 +7659,26 @@
       "id": "referralRequest_1789256675244_9d9k9z",
       "createdAt": "2026-09-12T23:44:35.244Z",
       "updatedAt": "2026-09-12T23:44:35.244Z",
+      "fromDoctorId": "doctor-kavitha",
+      "fromDoctorName": "Dr. Kavitha Menon",
+      "sourceHospital": "Apollo Greams Trauma Hub",
+      "toDoctorId": "doc-arjun-nair",
+      "toDoctorName": "Dr. Arjun Nair, MD, DM",
+      "patientProfileId": "patient-rajesh",
+      "patientName": "Rajesh V. Sharma",
+      "abhaNumber": "9824-8819-3320-TN",
+      "hospitalId": "hosp-fortis-stroke",
+      "destinationHospital": "Fortis Grid Hub",
+      "priority": "URGENT",
+      "priorityLevel": "Priority 1 (Critical)",
+      "clinicalSummary": "Acute coronary syndrome requiring tertiary catheterization and emergency triage handover.",
+      "bayAllocated": "Bay 02",
+      "status": "DISPATCHED"
+    },
+    {
+      "id": "referralRequest_1790663748360_g97fa5",
+      "createdAt": "2026-09-29T06:35:48.360Z",
+      "updatedAt": "2026-09-29T06:35:48.360Z",
       "fromDoctorId": "doctor-kavitha",
       "fromDoctorName": "Dr. Kavitha Menon",
       "sourceHospital": "Apollo Greams Trauma Hub",

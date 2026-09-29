@@ -61,7 +61,7 @@ async function chatWithClinicalAI({ patientProfileId, prompt, history = [] }) {
     )
     .join('\n');
 
-  const systemInstruction = `You are E-KAVACH AI Clinical Navigator, an intelligent AI medical assistant integrated into India's National Health Digital Grid.
+  const systemInstruction = `You are E-KAWACH AI Clinical Navigator, an intelligent AI medical assistant integrated into India's National Health Digital Grid.
 You are helping Patient ${patientName} (ABHA: ${abhaId}, Age: ${age}, Gender: ${gender}).
 
 Patient's Verified Health Context:
@@ -200,7 +200,7 @@ Please structure your response into the following clear sections using Markdown:
         contents,
         config: {
           systemInstruction:
-            'You are E-KAVACH Gemini AI Specialist, analyzing patient prescriptions, lab reports, and diagnostic documents with precision.',
+            'You are E-KAWACH Gemini AI Specialist, analyzing patient prescriptions, lab reports, and diagnostic documents with precision.',
           temperature: 0.3,
         },
       });
@@ -230,7 +230,7 @@ Please structure your response into the following clear sections using Markdown:
 - **Allergy Check:** Strictly avoids Penicillin & Cephalosporins.
 
 #### 4. 💡 Guidance for Patient
-- Store physical copy safely or keep backed up in E-KAVACH Local Storage.
+- Store physical copy safely or keep backed up in E-KAWACH Local Storage.
 - Share this report with Dr. Kavitha Menon during your upcoming cardiology review.`;
 }
 
@@ -272,7 +272,7 @@ Provide:
         model: 'gemini-3.8-flash',
         contents: prompt,
         config: {
-          systemInstruction: 'You are E-KAVACH Clinical AI Specialist generating accurate, high-impact clinical summaries for emergency triage and hospital discharge.',
+          systemInstruction: 'You are E-KAWACH Clinical AI Specialist generating accurate, high-impact clinical summaries for emergency triage and hospital discharge.',
           temperature: 0.4,
         },
       });
@@ -294,9 +294,9 @@ Provide:
   // Deterministic high-grade clinical fallback
   return {
     success: true,
-    model: 'ekavach-clinical-engine-v2',
+    model: 'ekawach-clinical-engine-v2',
     patient: { name: patientName, abhaNumber },
-    summary: `### 🏥 E-KAVACH Clinical Summary & Discharge Record
+    summary: `### 🏥 E-KAWACH Clinical Summary & Discharge Record
 **Patient:** ${patientName} | **ABHA ID:** ${abhaNumber}
 **Date:** ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
 

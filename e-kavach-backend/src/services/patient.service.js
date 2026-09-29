@@ -8,6 +8,36 @@ const {
   calculateHaversineDistance,
 } = require('../utils/hospitalLocator');
 
+function calculateAge(dob, fallbackAge = null) {
+  if (!dob && !fallbackAge) return '36 Yrs';
+  if (!dob && fallbackAge) {
+    const numOnly = String(fallbackAge).replace(/[^0-9]/g, '');
+    return numOnly ? `${numOnly} Yrs` : `${fallbackAge}`;
+  }
+  try {
+    let birthDate = null;
+    const str = dob instanceof Date ? dob.toISOString().slice(0, 10) : String(dob).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      birthDate = new Date(str.slice(0, 10));
+    } else if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+      const parts = str.split(/[-/]/);
+      birthDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+    } else {
+      birthDate = new Date(str);
+    }
+    if (birthDate && !isNaN(birthDate.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return `${Math.max(0, age)} Yrs`;
+    }
+  } catch (_e) {}
+  return fallbackAge ? `${fallbackAge}` : '36 Yrs';
+}
+
 class PatientService {
   async getProfile(userId) {
     let profile = await db.patientProfile.findUnique({
@@ -19,7 +49,33 @@ class PatientService {
     });
 
     if (!profile) {
-      // Fallback search by id or first patient profile
+      profile = await db.patientProfile.findFirst({
+        where: { id: userId },
+        include: { abhaAccount: true, emergencyPass: true },
+      });
+    }
+
+    if (!profile) {
+      // Find the user and create their own patient profile if it was missing
+      const user = await db.user.findUnique({ where: { id: userId } });
+      if (user && user.role === 'patient') {
+        const generatedAbha = `9824-8819-${Math.floor(1000 + Math.random() * 9000)}-TN`;
+        profile = await db.patientProfile.create({
+          data: {
+            userId: user.id,
+            name: user.name || 'Registered Patient',
+            phone: user.phone || '',
+            abhaNumber: generatedAbha,
+            bloodGroup: '',
+            gender: 'Not Specified',
+            emergencyToken: `EK-TR-${Math.floor(10000 + Math.random() * 90000)}-V4`,
+            hospitalAffiliation: 'Apollo Greams Trauma Hub',
+          },
+        });
+      }
+    }
+
+    if (!profile) {
       profile = await db.patientProfile.findFirst({
         include: { abhaAccount: true, emergencyPass: true },
       });
@@ -29,8 +85,12 @@ class PatientService {
       throw new Error('Patient profile not found');
     }
 
+    const formattedDob = profile.dob ? (profile.dob instanceof Date ? profile.dob.toISOString().slice(0, 10) : String(profile.dob).slice(0, 10)) : '';
+
     return {
       ...profile,
+      dob: formattedDob,
+      age: calculateAge(profile.dob, profile.age),
       abhaNumber: decryptPII(profile.abhaNumber) || profile.abhaNumber,
     };
   }
@@ -41,6 +101,28 @@ class PatientService {
     });
 
     if (!profile) {
+      profile = await db.patientProfile.findFirst({
+        where: { id: userId },
+      });
+    }
+
+    if (!profile) {
+      const user = await db.user.findUnique({ where: { id: userId } });
+      if (user) {
+        profile = await db.patientProfile.create({
+          data: {
+            userId: user.id,
+            name: updateData.fullName || updateData.name || user.name || 'Patient',
+            phone: updateData.phone || user.phone || '',
+            abhaNumber: `9824-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-TN`,
+            bloodGroup: updateData.bloodGroup || '',
+            emergencyToken: `EK-TR-${Math.floor(10000 + Math.random() * 90000)}-V4`,
+          },
+        });
+      }
+    }
+
+    if (!profile) {
       profile = await db.patientProfile.findFirst({});
     }
 
@@ -48,13 +130,15 @@ class PatientService {
       throw new Error('Patient profile not found');
     }
 
+    const calculatedAge = updateData.dob ? calculateAge(updateData.dob, updateData.age) : (updateData.age || profile.age);
+
     const updatedProfile = await db.patientProfile.update({
       where: { id: profile.id },
       data: {
         ...(updateData.fullName || updateData.name ? { name: updateData.fullName || updateData.name } : {}),
         ...(updateData.bloodGroup ? { bloodGroup: updateData.bloodGroup } : {}),
         ...(updateData.gender ? { gender: updateData.gender } : {}),
-        ...(updateData.age ? { age: updateData.age } : {}),
+        ...(calculatedAge ? { age: calculatedAge } : {}),
         ...(updateData.dob ? { dob: new Date(updateData.dob) } : {}),
         ...(updateData.aadhaarNumber || updateData.aadhaar ? { aadhaarNumber: updateData.aadhaarNumber || updateData.aadhaar } : {}),
         ...(updateData.address ? { address: updateData.address } : {}),
@@ -186,7 +270,7 @@ class PatientService {
         ],
         status: 'ACTIVE',
         validUntil: '2027-12-31',
-        qrMatrix: 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="%230f172a"/><text x="50" y="55" fill="%2306b6d4" font-size="8" text-anchor="middle">EKAVACH PASS</text></svg>',
+        qrMatrix: 'data:image/svg+xml;utf8,<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="%230f172a"/><text x="50" y="55" fill="%2306b6d4" font-size="8" text-anchor="middle">EKAWACH PASS</text></svg>',
       };
     }
 
@@ -461,9 +545,9 @@ class PatientService {
     if (!patient) {
       const abha = data.abhaNumber || `${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}-TN`;
       const registered = await authService.register({
-        email: data.email || `patient_${Date.now()}@ekavach.health`,
+        email: data.email || `patient_${Date.now()}@ekawach.health`,
         phone: data.phone || '+91 98401 ' + Math.floor(10000 + Math.random() * 90000),
-        password: data.password || 'Ekavach@123',
+        password: data.password || 'Ekawach@123',
         role: 'patient',
         name: data.name || 'Verified Patient',
         additionalDetails: {
@@ -739,7 +823,7 @@ class PatientService {
               bloodBankAvailable: true,
               emergency24x7: true,
               accreditation: 'NABH / JCI Level-1 Apex Trauma Center',
-              contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108', email: 'universal.er@ekavach.health' },
+              contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108', email: 'universal.er@ekawach.health' },
               specialties: ['Emergency & Trauma (Level-1)', 'ICU & Resuscitation', 'Interventional Cardiology', 'Neurotrauma & Stroke Care', 'Orthopedics & Polytrauma', 'Pediatric Critical Care', '24x7 Blood Bank & Transfusion'],
               facilities: ['24x7 Level-1 Apex Trauma', 'Tele-ICU Grid Dispatch', 'Air & ALS Ambulance Fleet', 'Advanced Cath Lab', 'Central Cryo O2 Reservoir'],
               status: 'ACTIVE',
@@ -859,7 +943,7 @@ class PatientService {
           er: hosp.contactNumbers?.er || schema.contact_number || '+91 11 2658 8500',
           helpline: hosp.contactNumbers?.helpline || '1066',
           ambulance: hosp.contactNumbers?.ambulance || '108',
-          email: schema.email || 'er.triage@ekavach.health'
+          email: schema.email || 'er.triage@ekawach.health'
         },
         specialties,
         facilities,
@@ -926,7 +1010,7 @@ class PatientService {
         bloodBankAvailable: true,
         emergency24x7: true,
         accreditation: 'NABH / JCI Level-1 Apex Trauma Center',
-        contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108', email: 'universal.er@ekavach.health' },
+        contactNumbers: { er: '+91 11 2700 0108', helpline: '1800-11-0108', ambulance: '108', email: 'universal.er@ekawach.health' },
         specialties: ['Emergency & Trauma (Level-1)', 'ICU & Resuscitation', 'Interventional Cardiology', 'Neurotrauma & Stroke Care', 'Orthopedics & Polytrauma', 'Pediatric Critical Care', '24x7 Blood Bank & Transfusion'],
         facilities: ['24x7 Level-1 Apex Trauma', 'Tele-ICU Grid Dispatch', 'Air & ALS Ambulance Fleet', 'Advanced Cath Lab', 'Central Cryo O2 Reservoir'],
         status: 'ACTIVE',
@@ -962,38 +1046,168 @@ class PatientService {
     };
   }
 
-  async getIpLocation(reqIp = '') {
-    try {
-      const response = await fetch('https://ipapi.co/json/', { timeout: 3000 });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.latitude && data.longitude) {
+  async getIpLocation(req = null) {
+    let clientIp = '';
+    let cfCity = '';
+    let cfCountry = '';
+    let cfRegion = '';
+
+    if (req && typeof req === 'object' && req.headers) {
+      cfCity = req.headers['cf-ipcity'] || '';
+      cfCountry = req.headers['cf-ipcountry'] || '';
+      cfRegion = req.headers['cf-region'] || '';
+      clientIp = req.headers['cf-connecting-ip'] || (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket?.remoteAddress || req.ip || '';
+    } else if (typeof req === 'string') {
+      clientIp = req;
+    }
+
+    clientIp = (clientIp || '').replace(/^.*:/, '').trim();
+
+    // 1. If Cloudflare passes geolocation city directly:
+    if (cfCity) {
+      try {
+        const found = await this.searchLocation(cfCity);
+        if (found && found.length > 0) {
           return {
             success: true,
-            lat: parseFloat(data.latitude),
-            lng: parseFloat(data.longitude),
-            city: data.city || 'Chennai',
-            region: data.region || 'Tamil Nadu',
-            country: data.country_name || 'India',
-            label: `${data.city || 'Detected Area'}, ${data.region || 'India'} (IP Synced)`,
-            source: 'IP_GEO',
+            lat: found[0].lat,
+            lng: found[0].lng,
+            city: cfCity,
+            region: cfRegion || found[0].state || 'India',
+            country: cfCountry || 'India',
+            label: `${cfCity}, ${cfRegion || 'India'} (Cloudflare Edge Geolocation)`,
+            source: 'CF_EDGE',
           };
         }
+      } catch (_e) {}
+    }
+
+    // 2. Query multi-provider IP geolocation
+    const isPublicIp = clientIp && !['127.0.0.1', 'localhost', '::1', ''].includes(clientIp) && !clientIp.startsWith('192.168.') && !clientIp.startsWith('10.');
+    const ipEndpoints = isPublicIp
+      ? [
+          `https://ipwho.is/${clientIp}`,
+          `https://freeipapi.com/api/json/${clientIp}`,
+          `https://ipapi.co/${clientIp}/json/`,
+        ]
+      : [
+          'https://ipwho.is/',
+          'https://freeipapi.com/api/json',
+          'https://ipapi.co/json/',
+        ];
+
+    for (const url of ipEndpoints) {
+      try {
+        const response = await fetch(url, { signal: AbortSignal.timeout(3000) });
+        if (response.ok) {
+          const data = await response.json();
+          const lat = parseFloat(data.latitude || data.lat);
+          const lng = parseFloat(data.longitude || data.lon || data.lng);
+          if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+            const city = data.city || data.cityName || 'Local Area';
+            const region = data.region || data.regionName || 'India';
+            return {
+              success: true,
+              lat,
+              lng,
+              city,
+              region,
+              country: data.country || data.country_name || 'India',
+              label: `${city}, ${region} (IP Synced)`,
+              source: 'IP_GEO',
+            };
+          }
+        }
+      } catch (e) {
+        // try next
       }
-    } catch (e) {
-      console.warn('IP Geolocation fallback warning:', e.message);
     }
 
     return {
       success: true,
-      lat: 13.0604,
-      lng: 80.2496,
-      city: 'Chennai',
-      region: 'Tamil Nadu',
+      lat: 28.6139,
+      lng: 77.2090,
+      city: 'New Delhi',
+      region: 'Delhi',
       country: 'India',
-      label: 'Thousand Lights, Chennai (Default Clinical Grid)',
+      label: 'New Delhi (AIIMS / Safdarjung Clinical Grid)',
       source: 'DEFAULT',
     };
+  }
+
+  async searchLocation(query = '') {
+    if (!query || typeof query !== 'string' || query.trim().length < 2) return [];
+
+    try {
+      const encoded = encodeURIComponent(query.trim());
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encoded}&countrycodes=in&limit=6&addressdetails=1`,
+        {
+          headers: {
+            'User-Agent': 'EKavach-Emergency-Hospital-Locator/1.0 (https://ekawach.health)',
+            'Accept': 'application/json',
+          },
+          signal: AbortSignal.timeout(5000),
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((item) => {
+            const addr = item.address || {};
+            const areaName = addr.suburb || addr.neighbourhood || addr.road || item.name || item.display_name.split(',')[0];
+            const city = addr.city || addr.town || addr.state_district || addr.county || 'City';
+            const state = addr.state || 'India';
+            return {
+              displayName: item.display_name,
+              name: item.name || areaName,
+              areaName,
+              city,
+              state,
+              label: `${areaName}, ${city} (${state})`,
+              lat: parseFloat(item.lat),
+              lng: parseFloat(item.lon),
+              type: item.type,
+            };
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Backend Nominatim search warning:', err.message);
+    }
+
+    // Built-in Indian city search fallback
+    const majorCities = [
+      { name: 'Indore', lat: 22.7196, lng: 75.8577, city: 'Indore', state: 'Madhya Pradesh' },
+      { name: 'New Delhi', lat: 28.6139, lng: 77.2090, city: 'New Delhi', state: 'Delhi' },
+      { name: 'Mumbai', lat: 19.0760, lng: 72.8777, city: 'Mumbai', state: 'Maharashtra' },
+      { name: 'Bengaluru', lat: 12.9716, lng: 77.5946, city: 'Bengaluru', state: 'Karnataka' },
+      { name: 'Chennai', lat: 13.0604, lng: 80.2496, city: 'Chennai', state: 'Tamil Nadu' },
+      { name: 'Jaipur', lat: 26.9124, lng: 75.7873, city: 'Jaipur', state: 'Rajasthan' },
+      { name: 'Kolkata', lat: 22.5726, lng: 88.3639, city: 'Kolkata', state: 'West Bengal' },
+      { name: 'Hyderabad', lat: 17.3850, lng: 78.4867, city: 'Hyderabad', state: 'Telangana' },
+      { name: 'Pune', lat: 18.5204, lng: 73.8567, city: 'Pune', state: 'Maharashtra' },
+      { name: 'Ahmedabad', lat: 23.0225, lng: 72.5714, city: 'Ahmedabad', state: 'Gujarat' },
+      { name: 'Lucknow', lat: 26.8467, lng: 80.9462, city: 'Lucknow', state: 'Uttar Pradesh' },
+      { name: 'Chandigarh', lat: 30.7333, lng: 76.7794, city: 'Chandigarh', state: 'Punjab' },
+      { name: 'Bhopal', lat: 23.2599, lng: 77.4126, city: 'Bhopal', state: 'Madhya Pradesh' },
+      { name: 'Patna', lat: 25.5941, lng: 85.1376, city: 'Patna', state: 'Bihar' },
+    ];
+
+    const qLower = query.toLowerCase();
+    return majorCities
+      .filter((c) => c.name.toLowerCase().includes(qLower) || c.city.toLowerCase().includes(qLower) || c.state.toLowerCase().includes(qLower))
+      .map((c) => ({
+        displayName: `${c.name}, ${c.state}, India`,
+        name: c.name,
+        areaName: c.name,
+        city: c.city,
+        state: c.state,
+        label: `${c.name}, ${c.state}`,
+        lat: c.lat,
+        lng: c.lng,
+      }));
   }
 
   async getRoute(query = {}) {

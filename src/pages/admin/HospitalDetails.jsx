@@ -113,7 +113,7 @@ export default function HospitalDetails() {
   const fetchHospitalDetails = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -222,7 +222,7 @@ export default function HospitalDetails() {
   const handleSaveHospitalDetails = async () => {
     setSaving(true);
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

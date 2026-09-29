@@ -56,7 +56,7 @@ function NotFoundPage() {
       <span className="material-symbols-outlined text-[64px] text-primary mb-4">emergency_home</span>
       <h1 className="font-headline-lg text-3xl font-bold text-primary mb-2">404 — Node Not Found</h1>
       <p className="font-body-md text-on-surface-variant max-w-md mb-6">
-        The requested clinical node or patient registry route could not be resolved on the E-KAVACH emergency network.
+        The requested clinical node or patient registry route could not be resolved on the E-KAWACH emergency network.
       </p>
       <div className="flex flex-wrap gap-3 justify-center">
         <Link to="/" className="px-5 py-2.5 rounded-lg bg-primary text-on-primary font-semibold text-sm">

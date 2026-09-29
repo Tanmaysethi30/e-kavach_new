@@ -73,7 +73,7 @@ export default function DocBook() {
   const fetchAppointments = async () => {
     try {
       setLoadingAppointments(true);
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch('/api/patient/appointments', { headers });
       const data = await res.json();
@@ -137,7 +137,7 @@ export default function DocBook() {
 
     setBookingLoading(true);
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
 
       let response;
       if (token && hasIdOption === 'existing') {
@@ -174,7 +174,7 @@ export default function DocBook() {
           body: JSON.stringify({
             name: patientForm.name,
             phone: patientForm.phone,
-            email: `${patientForm.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'patient'}@ekavach.health`,
+            email: `${patientForm.name.toLowerCase().replace(/[^a-z0-9]/g, '') || 'patient'}@ekawach.health`,
             bloodGroup: patientForm.bloodGroup,
             gender: patientForm.gender,
             doctorProfileId: selectedDoctor.id,
@@ -200,8 +200,8 @@ export default function DocBook() {
         showToast(`Consultation slot confirmed with ${selectedDoctor.name}! Token #${apt?.tokenNumber || 'EK-SLOT'}`);
 
         // If new token returned, store it
-        if (result.token && !localStorage.getItem('ekavach_token')) {
-          localStorage.setItem('ekavach_token', result.token);
+        if (result.token && !localStorage.getItem('ekawach_token')) {
+          localStorage.setItem('ekawach_token', result.token);
         }
 
         // Refresh list
@@ -222,7 +222,7 @@ export default function DocBook() {
     if (!window.confirm('Are you sure you want to cancel this appointment slot?')) return;
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch(`/api/patient/appointments/${appointmentId}/cancel`, {
         method: 'PATCH',
         headers: {
@@ -588,7 +588,7 @@ export default function DocBook() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Live synchronized across hospital OPDs and clinician schedules via E-KAVACH Telemetry.
+              Live synchronized across hospital OPDs and clinician schedules via E-KAWACH Telemetry.
             </p>
           </div>
 

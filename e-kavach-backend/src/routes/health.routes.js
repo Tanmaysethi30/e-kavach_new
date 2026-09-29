@@ -5,7 +5,7 @@ const metricsService = require('../services/metrics.service');
 router.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    service: 'e-kavach-backend',
+    service: 'e-kawach-backend',
     version: '1.0.0',
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),

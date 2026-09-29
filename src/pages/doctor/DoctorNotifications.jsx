@@ -6,7 +6,7 @@ export default function DoctorNotifications() {
   const [toastMessage, setToastMessage] = useState(null);
 
   const [toggles, setToggles] = useState(() => {
-    const saved = localStorage.getItem('ekavach_doctor_notifications');
+    const saved = localStorage.getItem('ekawach_doctor_notifications');
     return saved
       ? JSON.parse(saved)
       : {
@@ -27,12 +27,12 @@ export default function DoctorNotifications() {
   const toggle = (key, label) => {
     const next = { ...toggles, [key]: !toggles[key] };
     setToggles(next);
-    localStorage.setItem('ekavach_doctor_notifications', JSON.stringify(next));
+    localStorage.setItem('ekawach_doctor_notifications', JSON.stringify(next));
     showToast(`${label} is now ${next[key] ? 'ENABLED' : 'MUTED'}.`);
   };
 
   const handleSave = () => {
-    localStorage.setItem('ekavach_doctor_notifications', JSON.stringify(toggles));
+    localStorage.setItem('ekawach_doctor_notifications', JSON.stringify(toggles));
     showToast('All notification preferences synced to Apollo Local Node.');
   };
 
@@ -46,7 +46,7 @@ export default function DoctorNotifications() {
       scheduleHOverrides: true,
     };
     setToggles(defaultVals);
-    localStorage.setItem('ekavach_doctor_notifications', JSON.stringify(defaultVals));
+    localStorage.setItem('ekawach_doctor_notifications', JSON.stringify(defaultVals));
     showToast('Notification settings restored to default clinical protocol.');
   };
 
@@ -77,7 +77,7 @@ export default function DoctorNotifications() {
             <span className="text-[#004d6c] font-semibold">SETTINGS</span>
             <span className="text-slate-400">/</span>
             <span className="text-slate-700">NOTIFICATIONS &amp; CLINICAL ALERTS</span>
-            <span className="bg-[#E4E4FB] text-[#4f46e5] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ml-1">E-Kavach Telemetry</span>
+            <span className="bg-[#E4E4FB] text-[#4f46e5] text-[10px] font-semibold px-2 py-0.5 rounded-full uppercase tracking-wider ml-1">E-Kawach Telemetry</span>
           </div>
           <h1 className="font-headline font-bold text-2xl lg:text-3xl text-[#004d6c]">Clinical Alert &amp; Notification Hub</h1>
           <p className="text-sm text-slate-500 mt-1">Configure emergency trauma signals, clinical ingress audio, triage escalations, and automated peer consult alerts.</p>

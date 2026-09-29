@@ -75,7 +75,7 @@ export default function AppointmentSlipModal({ appointment, onClose, onCancelSlo
             Official OPD Token Slip
           </h2>
           <p className="text-xs text-slate-300 mt-0.5">
-            E-KAVACH Fast-Track OPD Ingress &amp; Consultation Pass
+            E-KAWACH Fast-Track OPD Ingress &amp; Consultation Pass
           </p>
         </div>
 

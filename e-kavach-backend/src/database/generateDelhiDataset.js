@@ -206,7 +206,7 @@ function generateDataset() {
       .replace(/[^a-z0-9]/g, '')
       .substring(0, 15);
     
-    const adminEmail = `admin.${cleanSlug}@ekavach.health`;
+    const adminEmail = `admin.${cleanSlug}@ekawach.health`;
     const adminCode = `ADM-${hospCode}`;
 
     const contactER = `+91 11 27${String(100000 + (hIndex * 873) % 899999).padStart(6, '0')}`;
@@ -299,7 +299,7 @@ function generateDataset() {
       const spec = medicalSpecialties[d % medicalSpecialties.length];
       const degree = spec.degrees[d % spec.degrees.length];
       const designation = spec.roles[d % spec.roles.length];
-      const docEmail = `dr.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${hIndex + 1}@ekavach.health`;
+      const docEmail = `dr.${firstName.toLowerCase()}.${lastName.toLowerCase()}.${hIndex + 1}@ekawach.health`;
       const docPhone = `+91 98${String(10000000 + (doctorCounter * 491) % 89999999)}`;
       const expYears = 6 + ((hIndex + d) % 22);
 

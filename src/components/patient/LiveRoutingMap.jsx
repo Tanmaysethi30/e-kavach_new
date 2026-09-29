@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   RotateCw,
 } from 'lucide-react';
+import { searchLocationByQuery } from '../../utils/geolocation';
 
 // Fix standard Leaflet default icon asset paths
 delete L.Icon.Default.prototype._getIconUrl;
@@ -323,26 +324,18 @@ export default function LiveRoutingMap({
     };
   }, [patientCoord.lat, patientCoord.lng, targetHospital?.lat, targetHospital?.lng, patientCoord.areaName, targetHospital?.name]);
 
-  // Handle Location Search using OpenStreetMap Nominatim
+  // Handle Location Search using OpenStreetMap & Backend Proxy
   const handleSearchSubmit = async (e) => {
     e?.preventDefault();
     if (!searchQuery.trim()) return;
 
     setIsSearchingLocation(true);
     try {
-      const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-        searchQuery
-      )}&limit=5&addressdetails=1`;
-      const res = await fetch(nomUrl, {
-        headers: { 'User-Agent': 'EKavach-Emergency-App/1.0', Accept: 'application/json' },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSearchResults(data);
-        setShowSearchResults(true);
-      }
+      const results = await searchLocationByQuery(searchQuery);
+      setSearchResults(results || []);
+      setShowSearchResults(true);
     } catch (err) {
-      console.error('Nominatim search failed:', err);
+      console.error('Location search failed:', err);
     } finally {
       setIsSearchingLocation(false);
     }
@@ -350,10 +343,9 @@ export default function LiveRoutingMap({
 
   const handleSelectSearchResult = (item) => {
     const lat = parseFloat(item.lat);
-    const lng = parseFloat(item.lon);
-    const addr = item.address || {};
-    const areaName = addr.suburb || addr.neighbourhood || addr.road || item.name || 'Searched Location';
-    const city = addr.city || addr.town || addr.county || 'City Center';
+    const lng = parseFloat(item.lng || item.lon);
+    const areaName = item.areaName || item.name || 'Searched Location';
+    const city = item.city || 'City Center';
 
     setShowSearchResults(false);
     setSearchQuery('');
@@ -364,8 +356,8 @@ export default function LiveRoutingMap({
         lng,
         areaName,
         city,
-        displayName: item.display_name,
-        label: `${areaName}, ${city}`,
+        displayName: item.displayName || item.display_name || `${areaName}, ${city}`,
+        label: item.label || `${areaName}, ${city}`,
         isDetected: true,
       });
     }

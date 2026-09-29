@@ -5,6 +5,36 @@ const redisClient = require('../config/redis');
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require('../utils/jwt');
 const { encryptPII, decryptPII } = require('../utils/crypto');
 
+function calculateAge(dob, fallbackAge = null) {
+  if (!dob && !fallbackAge) return '36 Yrs';
+  if (!dob && fallbackAge) {
+    const numOnly = String(fallbackAge).replace(/[^0-9]/g, '');
+    return numOnly ? `${numOnly} Yrs` : `${fallbackAge}`;
+  }
+  try {
+    let birthDate = null;
+    const str = dob instanceof Date ? dob.toISOString().slice(0, 10) : String(dob).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+      birthDate = new Date(str.slice(0, 10));
+    } else if (/^\d{1,2}[-/]\d{1,2}[-/]\d{4}$/.test(str)) {
+      const parts = str.split(/[-/]/);
+      birthDate = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+    } else {
+      birthDate = new Date(str);
+    }
+    if (birthDate && !isNaN(birthDate.getTime())) {
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const m = today.getMonth() - birthDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return `${Math.max(0, age)} Yrs`;
+    }
+  } catch (_e) {}
+  return fallbackAge ? `${fallbackAge}` : '36 Yrs';
+}
+
 /**
  * Builds the exact roleProfiles shape matching the frontend AuthContext
  */
@@ -20,6 +50,8 @@ async function formatUserProfile(user) {
     }
     profile = profile || {};
     const abha = profile.abhaNumber || user.abhaNumber || '';
+    const formattedDob = profile.dob ? (profile.dob instanceof Date ? profile.dob.toISOString().slice(0, 10) : String(profile.dob).slice(0, 10)) : '';
+    const formattedAge = calculateAge(profile.dob, profile.age);
     return {
       role: 'patient',
       registration_id: regId,
@@ -36,8 +68,8 @@ async function formatUserProfile(user) {
       phone: user.phone || profile.phone || '',
       bloodGroup: profile.bloodGroup || '',
       gender: profile.gender || '',
-      dob: profile.dob || '',
-      age: profile.age || '',
+      dob: formattedDob,
+      age: formattedAge,
       chronicConditions: Array.isArray(profile.chronicConditions) ? profile.chronicConditions : [],
       allergies: Array.isArray(profile.allergies) ? profile.allergies : [],
       address: profile.address || '',
@@ -253,9 +285,9 @@ class AuthService {
     }
 
     // Create New Unique User Account with Server-Generated Unique Registration ID
-    const finalEmail = reqEmail || `${normalizedRole}_${Date.now()}@ekavach.gov.in`;
+    const finalEmail = reqEmail || `${normalizedRole}_${Date.now()}@ekawach.gov.in`;
     const finalPhone = reqPhone || `+91 ${Math.floor(6000000000 + Math.random() * 3999999999)}`;
-    const passwordHash = await bcrypt.hash(password || 'Ekavach@2026', 10);
+    const passwordHash = await bcrypt.hash(password || 'Ekawach@2026', 10);
     const registration_id = `REG-${crypto.randomUUID().toUpperCase()}`;
 
     // Database will enforce uniqueness constraints on user and registration insertions
@@ -451,7 +483,7 @@ class AuthService {
         registration_number: hosp.code,
         contact_number: hosp.contactNumbers?.er || finalPhone,
         email: hosp.contactNumbers?.email || finalEmail,
-        website: additionalDetails.website || `https://ekavach.gov.in/hospitals/${hosp.code.toLowerCase()}`,
+        website: additionalDetails.website || `https://ekawach.gov.in/hospitals/${hosp.code.toLowerCase()}`,
         address: hosp.address,
         city: hosp.city,
         district: hosp.city,
@@ -577,7 +609,7 @@ class AuthService {
         user = allUsers.find(u => u.id === 'user-admin-nambiar' || u.role === 'hospital');
       } else if (searchTargetLower === 'namanjain82670@gmail.com') {
         user = allUsers.find(u => u.id === 'user-admin-naman' || u.email === 'namanjain82670@gmail.com');
-      } else if (searchTargetLower === 'rajesh.sharma@ekavach.health' || searchTargetLower === 'rajesh@ekavach.health') {
+      } else if (searchTargetLower === 'rajesh.sharma@ekawach.health' || searchTargetLower === 'rajesh@ekawach.health') {
         user = allUsers.find(u => u.id === 'user-patient-rajesh' || (u.role === 'patient' && u.email?.includes('rajesh')));
       } else if (searchTargetLower === 'dr.kavitha@apollo.health' || searchTargetLower === 'kavitha@apollo.health') {
         user = allUsers.find(u => u.id === 'user-doctor-kavitha' || (u.role === 'doctor' && u.email?.includes('kavitha')));
@@ -839,7 +871,7 @@ class AuthService {
     if (password) {
       let isValid = await bcrypt.compare(password, user.passwordHash).catch(() => false);
       const isDefaultDemoAccount = ['user-patient-rajesh', 'user-doctor-kavitha', 'user-admin-nambiar', 'user-admin-naman'].includes(user.id);
-      if (!isValid && isDefaultDemoAccount && (password === 'Ekavach@2026' || password === 'Password@123' || password === 'password123' || password.toLowerCase() === 'demo')) {
+      if (!isValid && isDefaultDemoAccount && (password === 'Ekawach@2026' || password === 'Password@123' || password === 'password123' || password.toLowerCase() === 'demo')) {
         isValid = true;
       }
       if (!isValid && (!user.passwordHash || user.passwordHash === '')) {
@@ -914,7 +946,7 @@ class AuthService {
     if (!user) {
       // If user logs in via OTP for first time, provision patient account
       const res = await this.register({
-        email: email || `${phone.replace(/\D/g, '')}@ekavach.local`,
+        email: email || `${phone.replace(/\D/g, '')}@ekawach.local`,
         phone,
         password: 'Password@123',
         role,
@@ -1022,7 +1054,7 @@ class AuthService {
       user = await db.user.create({
         data: {
           registration_id,
-          email: isEmail ? identifier : `${identifier.replace(/\s+/g, '').toLowerCase()}@ekavach.health`,
+          email: isEmail ? identifier : `${identifier.replace(/\s+/g, '').toLowerCase()}@ekawach.health`,
           phone: !isEmail ? identifier : undefined,
           passwordHash,
           role: normRole,

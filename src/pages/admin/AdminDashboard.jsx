@@ -77,7 +77,7 @@ export default function AdminDashboard() {
     async function loadSummary() {
       try {
         setLoading(true);
-        const token = localStorage.getItem('ekavach_token');
+        const token = localStorage.getItem('ekawach_token');
         const headers = {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -126,7 +126,7 @@ export default function AdminDashboard() {
 
     async function loadTriage() {
       try {
-        const token = localStorage.getItem('ekavach_token');
+        const token = localStorage.getItem('ekawach_token');
         const headers = {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -235,7 +235,7 @@ export default function AdminDashboard() {
   };
 
   const handleExportDailyReport = () => {
-    const csvContent = `E-KAVACH HOSPITAL COMMAND NODE 01 - DAILY OPERATIONS REPORT
+    const csvContent = `E-KAWACH HOSPITAL COMMAND NODE 01 - DAILY OPERATIONS REPORT
 Generated: ${new Date().toLocaleString()}
 Hospital: ${summaryData.hospitalName} (${summaryData.hospitalCode})
 
@@ -261,7 +261,7 @@ ${triageList.map((t) => `${t.bay}: ${t.name} (${t.abha}) - ${t.priority} - ${t.c
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `E-KAVACH_Daily_Operations_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.download = `E-KAWACH_Daily_Operations_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

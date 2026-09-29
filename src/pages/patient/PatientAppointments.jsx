@@ -136,7 +136,7 @@ export default function PatientAppointments() {
   const fetchAppointments = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       const res = await fetch('/api/patient/appointments', { headers });
       const data = await res.json();
@@ -233,7 +233,7 @@ export default function PatientAppointments() {
 
     setBookingLoading(true);
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const selectedDoctorObj = doctors.find((d) => d.id === formData.doctorId);
       const isDiagnostic = selectedServiceType !== 'DOCTOR_CONSULT';
       const departmentName = isDiagnostic
@@ -330,7 +330,7 @@ export default function PatientAppointments() {
     if (!window.confirm(`Are you sure you want to cancel the booking for ${patientLabel}?`)) return;
 
     try {
-      const token = localStorage.getItem('ekavach_token');
+      const token = localStorage.getItem('ekawach_token');
       const res = await fetch(`/api/patient/appointments/${appointmentId}/cancel`, {
         method: 'PATCH',
         headers: {

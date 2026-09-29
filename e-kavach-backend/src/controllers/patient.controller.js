@@ -226,8 +226,18 @@ class PatientController {
 
   async getIpLocation(req, res, next) {
     try {
-      const result = await patientService.getIpLocation(req.ip);
+      const result = await patientService.getIpLocation(req);
       res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async searchLocation(req, res, next) {
+    try {
+      const q = req.query.q || req.query.query || '';
+      const results = await patientService.searchLocation(q);
+      res.json({ success: true, results });
     } catch (err) {
       next(err);
     }
